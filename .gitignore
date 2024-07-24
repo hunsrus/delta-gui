@@ -36,3 +36,6 @@ build/*
 
 # cached files?
 .cache/*
+
+# 3d models .zip files
+models/BACKUPS/*
