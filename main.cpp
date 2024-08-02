@@ -6,14 +6,20 @@
 #include "rlgl.h"
 #include "DeltaKinematics.h"
 
+// deteccion de imagenes
+#include "opencv2/imgcodecs.hpp"
+#include "opencv2/highgui.hpp"
+#include "opencv2/imgproc.hpp"
+
 #include <iostream>
 #include <stdio.h>
+#include <thread>
 
-#if defined(PLATFORM_DESKTOP)
-    #define GLSL_VERSION            330
-#else   // PLATFORM_RPI, PLATFORM_ANDROID, PLATFORM_WEB
-    #define GLSL_VERSION            100
-#endif
+//#if defined(PLATFORM_DESKTOP)
+//    #define GLSL_VERSION            330
+//#else   // PLATFORM_RPI, PLATFORM_ANDROID, PLATFORM_WEB
+//    #define GLSL_VERSION            100
+//#endif
 
 #define TARGET_FPS 60
 #define MARGIN 20
@@ -33,7 +39,32 @@ static bool STARTING_ANIMATION = true;
 static Color COLOR_BG = {34,34,34,255};
 static Color COLOR_FG = {238,238,238,255};
 
-int main(void)
+Image MatToImage(const cv::Mat &mat) {
+    // Asegúrate de que la imagen está en formato RGB
+    cv::Mat matRGB;
+    cv::cvtColor(mat, matRGB, cv::COLOR_BGR2RGB);
+
+    // Crea un Image de Raylib
+    Image image = {
+        .data = malloc(matRGB.total() * matRGB.elemSize()),
+        .width = matRGB.cols,
+        .height = matRGB.rows,
+        .mipmaps = 1,
+        .format = PIXELFORMAT_UNCOMPRESSED_R8G8B8 // O PIXELFORMAT_UNCOMPRESSED_R8G8B8A8 si necesitas alfa
+    };
+
+    // Copia los datos de la matriz de OpenCV al array de Raylib
+    memcpy(image.data, matRGB.data, matRGB.total() * matRGB.elemSize());
+
+    return image;
+}
+
+void threadTest(std::string str)
+{
+    std::cout << str << std::endl;
+}
+
+int main(int argc, char** argv)
 {
     // Initialization
     //--------------------------------------------------------------------------------------
@@ -116,6 +147,37 @@ int main(void)
     SetCameraMode(camera, CAMERA_CUSTOM);
     HideCursor();
     SetTargetFPS(TARGET_FPS);
+
+    //read video
+    cv::VideoCapture capture;
+    capture.open("/dev/video2");
+    capture.set(cv::CAP_PROP_FRAME_WIDTH, 128);
+    capture.set(cv::CAP_PROP_FRAME_HEIGHT, 128);
+
+    double dWidth = capture.get(cv::CAP_PROP_FRAME_WIDTH); //get the width of frames of the video
+    double dHeight = capture.get(cv::CAP_PROP_FRAME_HEIGHT); //get the height of frames of the video
+
+    std::cout << "camera width = " << dWidth << ", height = " << dHeight << std::endl;
+
+    if (!capture.isOpened()) { //check if video device has been initialised
+        std::cout << "cannot open camera";
+    }
+
+    cv::Mat image;
+    Texture2D captureTexture;
+
+    bool bSuccess = capture.read(image); // read a new frame from video 
+
+    if (bSuccess == false) 
+    {
+        std::cout << "Video camera is disconnected" << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    captureTexture = LoadTextureFromImage(MatToImage(image));
+
+    std::thread t1(threadTest, "AEEA");
+
     //--------------------------------------------------------------------------------------
     //--------------------------------------------------------------------------------------
     while (!WindowShouldClose())
@@ -324,6 +386,11 @@ int main(void)
                     DrawRectangleLinesEx(viewBorderRectangle,2.0f,COLOR_FG);
                 // EndShaderMode();
 
+                Vector2 captureViewPos = { viewPos.x, viewPos.y+viewSize.y+MARGIN};
+                DrawTextureEx(captureTexture, captureViewPos, 0, viewSize.x/captureTexture.width,WHITE);
+                Rectangle captureViewRectangle = {captureViewPos.x, captureViewPos.y, captureTexture.width*(viewSize.x/captureTexture.width), captureTexture.height*(viewSize.x/captureTexture.width)};
+                DrawRectangleLinesEx(captureViewRectangle,2.0f,COLOR_FG);
+
                 //sprintf(c,"ANGLE: %f",auxValue);
                 //DrawText(c, MARGIN, MARGIN*5, MARGIN, COLOR_FG);
 
@@ -348,6 +415,8 @@ int main(void)
         EndDrawing();
         //----------------------------------------------------------------------------------
     }
+
+    t1.join();
 
     CloseWindow();
     //--------------------------------------------------------------------------------------

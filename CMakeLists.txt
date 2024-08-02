@@ -3,6 +3,7 @@ project(example)
 
 # Generate compile_commands.json
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(GRAPHICS GRAPHICS_API_OPENGL_21)
 
 # Dependencies
 find_package(raylib 4.0.0 QUIET) # QUIET or REQUIRED
@@ -21,6 +22,11 @@ if (NOT raylib_FOUND) # If there's none, fetch and build raylib
   endif()
 endif()
 
+# opencv
+
+find_package( OpenCV REQUIRED )
+include_directories( ${OpenCV_INCLUDE_DIRS} )
+
 # Our Project
 
 file(GLOB SOURCES
@@ -33,4 +39,4 @@ ${SOURCES}
 )
 
 #set(raylib_VERBOSE 1)
-target_link_libraries(${PROJECT_NAME} raylib)
+target_link_libraries(${PROJECT_NAME} raylib ${OpenCV_LIBS})
