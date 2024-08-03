@@ -21,7 +21,7 @@
 //    #define GLSL_VERSION            100
 //#endif
 
-#define TARGET_FPS 60
+#define TARGET_FPS 30
 #define MARGIN 20
 #define STARTING_DELAY 2.0f //[s]
 
@@ -38,6 +38,11 @@ static bool STARTING_ANIMATION = true;
 
 static Color COLOR_BG = {34,34,34,255};
 static Color COLOR_FG = {238,238,238,255};
+
+static cv::Mat image;
+static bool CAPTURE_READY = false;
+
+static bool EXIT = false;
 
 Image MatToImage(const cv::Mat &mat) {
     // Asegúrate de que la imagen está en formato RGB
@@ -59,9 +64,50 @@ Image MatToImage(const cv::Mat &mat) {
     return image;
 }
 
-void threadTest(std::string str)
+int captureVideo(void)
 {
-    std::cout << str << std::endl;
+    //read video
+    cv::VideoCapture capture;
+    capture.open("/dev/video2");
+    capture.set(cv::CAP_PROP_FRAME_WIDTH, 128);
+    capture.set(cv::CAP_PROP_FRAME_HEIGHT, 128);
+
+    double dWidth = capture.get(cv::CAP_PROP_FRAME_WIDTH); //get the width of frames of the video
+    double dHeight = capture.get(cv::CAP_PROP_FRAME_HEIGHT); //get the height of frames of the video
+
+    std::cout << "camera width = " << dWidth << ", height = " << dHeight << std::endl;
+
+    if (!capture.isOpened()) { //check if video device has been initialised
+        std::cout << "cannot open camera";
+    }
+
+    bool bSuccess = capture.read(image); // read a new frame from video 
+
+    if (bSuccess == false) 
+    {
+        std::cout << "Video camera is disconnected" << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    CAPTURE_READY = true;
+
+    while (!EXIT)
+    {
+        if(!CAPTURE_READY)
+        {
+            bool bSuccess = capture.read(image); // read a new frame from video 
+
+            if (bSuccess == false) 
+            {
+                std::cout << "Video camera is disconnected" << std::endl;
+                return EXIT_FAILURE;
+            }
+            CAPTURE_READY = true;
+        }
+    }
+
+    return EXIT_SUCCESS;
+    
 }
 
 int main(int argc, char** argv)
@@ -102,11 +148,11 @@ int main(int argc, char** argv)
     Vector3 arm1Projection, arm2Projection, arm3Projection;
 
 	//SetConfigFlags(FLAG_FULLSCREEN_MODE);
-    SetConfigFlags(FLAG_MSAA_4X_HINT);
+    //SetConfigFlags(FLAG_MSAA_4X_HINT);
     InitWindow(screenWidth, screenHeight, "delta gui test");
 
     // CARGAR LOS MODELOS DESPUÉS DE INICIAR LA VENTANA
-	Model* deltaModel = new Model(LoadModel(std::string("../models/delta/delta.obj").c_str()));
+	//Model* deltaModel = new Model(LoadModel(std::string("../models/delta/delta.obj").c_str()));
 	//bodyModel->materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = LoadTextureFromImage(LoadImage(std::string("../models/fordfocus128.png").c_str()));
     //Model* platformModel = new Model(LoadModelFromMesh(GenMeshPoly(10,PLATFORM_TRI)));
     Model* platformModel = new Model(LoadModel(std::string("../models/platform/platform.obj").c_str()));
@@ -148,43 +194,30 @@ int main(int argc, char** argv)
     HideCursor();
     SetTargetFPS(TARGET_FPS);
 
-    //read video
-    cv::VideoCapture capture;
-    capture.open("/dev/video2");
-    capture.set(cv::CAP_PROP_FRAME_WIDTH, 128);
-    capture.set(cv::CAP_PROP_FRAME_HEIGHT, 128);
-
-    double dWidth = capture.get(cv::CAP_PROP_FRAME_WIDTH); //get the width of frames of the video
-    double dHeight = capture.get(cv::CAP_PROP_FRAME_HEIGHT); //get the height of frames of the video
-
-    std::cout << "camera width = " << dWidth << ", height = " << dHeight << std::endl;
-
-    if (!capture.isOpened()) { //check if video device has been initialised
-        std::cout << "cannot open camera";
-    }
-
-    cv::Mat image;
     Texture2D captureTexture;
 
-    bool bSuccess = capture.read(image); // read a new frame from video 
+    std::thread t1(captureVideo);
 
-    if (bSuccess == false) 
-    {
-        std::cout << "Video camera is disconnected" << std::endl;
-        return EXIT_FAILURE;
-    }
-
+    while(!CAPTURE_READY){};
     captureTexture = LoadTextureFromImage(MatToImage(image));
 
-    std::thread t1(threadTest, "AEEA");
-
     //--------------------------------------------------------------------------------------
     //--------------------------------------------------------------------------------------
-    while (!WindowShouldClose())
+    while (!EXIT)
     {
+        if(IsKeyDown(KEY_ESCAPE))
+		{
+			EXIT = true;
+		}
         //update image----------------------------------------
         UpdateCamera(&camera);      // Actualizar camara interna y mi camara
 
+        if(CAPTURE_READY)
+        {
+            UpdateTexture(captureTexture,MatToImage(image).data);
+            CAPTURE_READY = false;
+        }
+        
         if(STARTING_ANIMATION)
         {
             animationStep++;
@@ -416,8 +449,6 @@ int main(int argc, char** argv)
         //----------------------------------------------------------------------------------
     }
 
-    t1.join();
-
     CloseWindow();
     //--------------------------------------------------------------------------------------
 
@@ -425,7 +456,12 @@ int main(int argc, char** argv)
 
 	///-----cleanup_start-----
 
-    UnloadModel(*deltaModel);
+    //UnloadModel(*deltaModel);
+
+    std::cout << "Joining capture thread...";
+	while(!t1.joinable()){}
+	t1.join();
+	std::cout << " Done." << std::endl;
 
     return 0;
 }
