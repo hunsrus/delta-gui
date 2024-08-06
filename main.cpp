@@ -68,7 +68,7 @@ int captureVideo(void)
 {
     //read video
     cv::VideoCapture capture;
-    capture.open("/dev/video2");
+    capture.open("/dev/video0");
     capture.set(cv::CAP_PROP_FRAME_WIDTH, 128);
     capture.set(cv::CAP_PROP_FRAME_HEIGHT, 128);
 
@@ -152,8 +152,6 @@ int main(int argc, char** argv)
     InitWindow(screenWidth, screenHeight, "delta gui test");
 
     // CARGAR LOS MODELOS DESPUÉS DE INICIAR LA VENTANA
-	//Model* deltaModel = new Model(LoadModel(std::string("../models/delta/delta.obj").c_str()));
-	//bodyModel->materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = LoadTextureFromImage(LoadImage(std::string("../models/fordfocus128.png").c_str()));
     //Model* platformModel = new Model(LoadModelFromMesh(GenMeshPoly(10,PLATFORM_TRI)));
     Model* platformModel = new Model(LoadModel(std::string("../models/platform/platform.obj").c_str()));
     platformModel->transform = MatrixScale(1000,1000,1000);
@@ -178,6 +176,23 @@ int main(int argc, char** argv)
     //Model* rodModel1 = new Model(LoadModelFromMesh(GenMeshCube(4.0f,4.0f,ROD_LENGTH)));
     //Model* rodModel2 = new Model(LoadModelFromMesh(GenMeshCube(4.0f,4.0f,ROD_LENGTH)));
     //Model* rodModel3 = new Model(LoadModelFromMesh(GenMeshCube(4.0f,4.0f,ROD_LENGTH)));
+
+    Matrix arm1InitialMatrix = MatrixScale(1000,1000,1000);
+    arm1InitialMatrix = MatrixMultiply(arm1InitialMatrix,MatrixRotate((Vector3){0,1,0}, M_PI_2));
+    Matrix arm2InitialMatrix = MatrixScale(1000,1000,1000);
+    arm2InitialMatrix = MatrixMultiply(arm2InitialMatrix,MatrixRotate((Vector3){0,1,0}, M_PI_2));
+    arm2InitialMatrix = MatrixMultiply(arm2InitialMatrix,MatrixRotate((Vector3){0.0f,1.0f,0.0f},-120.0f*DEG2RAD));
+    Matrix arm3InitialMatrix = MatrixScale(1000,1000,1000);
+    arm3InitialMatrix = MatrixMultiply(arm3InitialMatrix,MatrixRotate((Vector3){0,1,0}, M_PI_2));
+    arm3InitialMatrix = MatrixMultiply(arm3InitialMatrix, MatrixRotate((Vector3){0.0f,1.0f,0.0f},120.0f*DEG2RAD));
+    Matrix rod1InitialMatrix = MatrixScale(1000,1000,1000);
+    rod1InitialMatrix = MatrixMultiply(rod1InitialMatrix,MatrixRotate((Vector3){0,1,0}, M_PI_2));
+    Matrix rod2InitialMatrix = MatrixScale(1000,1000,1000);
+    rod2InitialMatrix = MatrixMultiply(rod2InitialMatrix,MatrixRotate((Vector3){0,1,0}, M_PI_2));
+    rod2InitialMatrix = MatrixMultiply(rod2InitialMatrix,MatrixRotate((Vector3){0.0f,1.0f,0.0f},-120.0f*DEG2RAD));
+    Matrix rod3InitialMatrix = MatrixScale(1000,1000,1000);
+    rod3InitialMatrix = MatrixMultiply(rod3InitialMatrix,MatrixRotate((Vector3){0,1,0}, M_PI_2));
+    rod3InitialMatrix = MatrixMultiply(rod3InitialMatrix,MatrixRotate((Vector3){0.0f,1.0f,0.0f},120.0f*DEG2RAD));
  
     // Define the camera to look into our 3d world
     //Camera camera = { {-20.0f, 12.0f, 0.0f}, { 0.0f, 4.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, 45.0f, 0 };
@@ -269,10 +284,6 @@ int main(int argc, char** argv)
             rod1Pos = (Vector3){arm1Pos.x,arm1Pos.y-ARM_LENGTH*sin(dk.a*DEG2RAD),arm1Pos.z-ARM_LENGTH*cos(dk.a*DEG2RAD)};
             rod2Pos = (Vector3){arm2Pos.x+ARM_LENGTH*cos(dk.b*DEG2RAD)*cos(30*DEG2RAD),arm2Pos.y-ARM_LENGTH*sin(dk.b*DEG2RAD),arm2Pos.z+ARM_LENGTH*cos(dk.b*DEG2RAD)*sin(30*DEG2RAD)};
             rod3Pos = (Vector3){arm3Pos.x-ARM_LENGTH*cos(dk.c*DEG2RAD)*cos(30*DEG2RAD),arm3Pos.y-ARM_LENGTH*sin(dk.c*DEG2RAD),arm3Pos.z+ARM_LENGTH*cos(dk.c*DEG2RAD)*sin(30*DEG2RAD)};
-        
-            float rod1Dist = sqrt(pow(rod1Pos.x,2.0f)+pow(rod1Pos.z,2.0f))-BASS_TRI;
-            float rod2Dist = sqrt(pow(rod2Pos.x,2.0f)+pow(rod2Pos.z,2.0f))-sqrt(pow(basePos.x,2.0f)+pow(basePos.z,2.0f))-BASS_TRI;
-            float rod3Dist = sqrt(pow(rod3Pos.x,2.0f)+pow(rod3Pos.z,2.0f))-BASS_TRI;
 
             basePos = (Vector3){x,PLATFORM_POS.y+z,y};
 
@@ -318,49 +329,31 @@ int main(int argc, char** argv)
 
             //// arms
 
-            armModel1->transform = MatrixScale(1000,1000,1000);
-            //armModel1->transform = MatrixMultiply(armModel1->transform,MatrixRotate((Vector3){1,0,0}, M_PI_2));
-            armModel1->transform = MatrixMultiply(armModel1->transform,MatrixRotate((Vector3){0,1,0}, M_PI_2));
-            //armModel1->transform = MatrixMultiply(armModel1->transform,MatrixTranslate(0, 0, -ARM_LENGTH/2.0f));
+            armModel1->transform = arm1InitialMatrix;
             armModel1->transform = MatrixMultiply(armModel1->transform,MatrixRotate(arm1Axis,dk.a*DEG2RAD));
             armModel1->transform = MatrixMultiply(armModel1->transform,MatrixTranslate(arm1Pos.x,arm1Pos.y,arm1Pos.z));
 
-            armModel2->transform = MatrixScale(1000,1000,1000);
-            //armModel2->transform = MatrixMultiply(armModel2->transform,MatrixRotate((Vector3){1,0,0}, M_PI_2));
-            armModel2->transform = MatrixMultiply(armModel2->transform,MatrixRotate((Vector3){0,1,0}, M_PI_2));
-            armModel2->transform = MatrixMultiply(armModel2->transform,MatrixRotate((Vector3){0.0f,1.0f,0.0f},-120.0f*DEG2RAD));
+            armModel2->transform = arm2InitialMatrix;
             armModel2->transform = MatrixMultiply(armModel2->transform,MatrixRotate(arm2Axis,dk.b*DEG2RAD));
             armModel2->transform = MatrixMultiply(armModel2->transform,MatrixTranslate(arm2Pos.x,arm2Pos.y,arm2Pos.z));
 
-            armModel3->transform = MatrixScale(1000,1000,1000);
-            //armModel3->transform = MatrixMultiply(armModel3->transform,MatrixRotate((Vector3){1,0,0}, M_PI_2));
-            armModel3->transform = MatrixMultiply(armModel3->transform,MatrixRotate((Vector3){0,1,0}, M_PI_2));
-            armModel3->transform = MatrixMultiply(armModel3->transform, MatrixRotate((Vector3){0.0f,1.0f,0.0f},120.0f*DEG2RAD));
+            armModel3->transform = arm3InitialMatrix;
             armModel3->transform = MatrixMultiply(armModel3->transform,MatrixRotate(arm3Axis,dk.c*DEG2RAD));
             armModel3->transform = MatrixMultiply(armModel3->transform,MatrixTranslate(arm3Pos.x,arm3Pos.y,arm3Pos.z));
 
             //// rods
 
-            rodModel1->transform = MatrixScale(1000,1000,1000);
-            //rodModel1->transform = MatrixMultiply(rodModel1->transform,MatrixRotate((Vector3){1,0,0}, M_PI_2));
-            rodModel1->transform = MatrixMultiply(rodModel1->transform,MatrixRotate((Vector3){0,1,0}, M_PI_2));
-            //rodModel1->transform = MatrixMultiply(rodModel1->transform,MatrixTranslate(0, 0, -ROD_LENGTH/2.0f));
+            rodModel1->transform = rod1InitialMatrix;
             rodModel1->transform = MatrixMultiply(rodModel1->transform,MatrixRotate(arm1Axis,rod1Phi));
             rodModel1->transform = MatrixMultiply(rodModel1->transform,MatrixRotate((Vector3){0,-1,0},rod1Theta));
             rodModel1->transform = MatrixMultiply(rodModel1->transform,MatrixTranslate(rod1Pos.x, rod1Pos.y, rod1Pos.z));
             
-            //rodModel2->transform = MatrixTranslate(0, 0, -ROD_LENGTH/2.0f);
-            rodModel2->transform = MatrixScale(1000,1000,1000);
-            rodModel2->transform = MatrixMultiply(rodModel2->transform,MatrixRotate((Vector3){0,1,0}, M_PI_2));
-            rodModel2->transform = MatrixMultiply(rodModel2->transform,MatrixRotate((Vector3){0.0f,1.0f,0.0f},-120.0f*DEG2RAD));
+            rodModel2->transform = rod2InitialMatrix;
             rodModel2->transform = MatrixMultiply(rodModel2->transform,MatrixRotate(arm2Axis,rod2Phi));
             rodModel2->transform = MatrixMultiply(rodModel2->transform,MatrixRotate((Vector3){0,-1,0},rod2Theta));
             rodModel2->transform = MatrixMultiply(rodModel2->transform,MatrixTranslate(rod2Pos.x, rod2Pos.y, rod2Pos.z));
 
-            //rodModel3->transform = MatrixTranslate(0, 0, -ROD_LENGTH/2.0f);
-            rodModel3->transform = MatrixScale(1000,1000,1000);
-            rodModel3->transform = MatrixMultiply(rodModel3->transform,MatrixRotate((Vector3){0,1,0}, M_PI_2));
-            rodModel3->transform = MatrixMultiply(rodModel3->transform,MatrixRotate((Vector3){0.0f,1.0f,0.0f},120.0f*DEG2RAD));
+            rodModel3->transform = rod3InitialMatrix;
             rodModel3->transform = MatrixMultiply(rodModel3->transform,MatrixRotate(arm3Axis,rod3Phi));
             rodModel3->transform = MatrixMultiply(rodModel3->transform,MatrixRotate((Vector3){0,-1,0},rod3Theta));
             rodModel3->transform = MatrixMultiply(rodModel3->transform,MatrixTranslate(rod3Pos.x, rod3Pos.y, rod3Pos.z));
