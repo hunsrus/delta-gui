@@ -7,9 +7,9 @@
 #include "DeltaKinematics.h"
 
 // deteccion de imagenes
-#include "opencv2/imgcodecs.hpp"
-#include "opencv2/highgui.hpp"
-#include "opencv2/imgproc.hpp"
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
 
 #include <iostream>
 #include <stdio.h>
@@ -23,7 +23,6 @@
 
 #define TARGET_FPS 30
 #define MARGIN 20
-#define STARTING_DELAY 2.0f //[s]
 
 #define CAMERA_FOV 90
 
@@ -34,7 +33,7 @@
 #define PLATFORM_POS (Vector3){0,ARM_LENGTH+ROD_LENGTH,0}
 
 static bool SHOW_FPS = true;
-static bool STARTING_ANIMATION = true;
+static bool STARTING_ANIMATION = false;
 
 static Color COLOR_BG = {34,34,34,255};
 static Color COLOR_FG = {238,238,238,255};
@@ -81,9 +80,9 @@ int captureVideo(void)
         std::cout << "cannot open camera";
     }
 
-    bool bSuccess = capture.read(image); // read a new frame from video 
+    bool bSuccess = capture.read(image); // read a new frame from video
 
-    if (bSuccess == false) 
+    if (bSuccess == false)
     {
         std::cout << "Video camera is disconnected" << std::endl;
         return EXIT_FAILURE;
@@ -95,9 +94,9 @@ int captureVideo(void)
     {
         if(!CAPTURE_READY)
         {
-            bool bSuccess = capture.read(image); // read a new frame from video 
+            bool bSuccess = capture.read(image); // read a new frame from video
 
-            if (bSuccess == false) 
+            if (bSuccess == false)
             {
                 std::cout << "Video camera is disconnected" << std::endl;
                 return EXIT_FAILURE;
@@ -107,14 +106,14 @@ int captureVideo(void)
     }
 
     return EXIT_SUCCESS;
-    
+
 }
 
 int main(int argc, char** argv)
 {
     // Initialization
     //--------------------------------------------------------------------------------------
-    const int screenWidth = 1024;
+    const int screenWidth = 1366;
     const int screenHeight = 768;
 
     int i;
@@ -140,11 +139,11 @@ int main(int argc, char** argv)
     Vector3 arm1Axis = {-1.0f,0.0f,0.0f};
     Vector3 arm2Axis = {1.0f*cos(60*DEG2RAD),0.0f,-1.0f*sin(60*DEG2RAD)};
     Vector3 arm3Axis = {1.0f*cos(60*DEG2RAD),0.0f,1.0f*sin(60*DEG2RAD)};
-    Vector3 rod1Pos = (Vector3){arm2Pos.x,arm2Pos.y+ARM_LENGTH*sin(dk.b*DEG2RAD),arm2Pos.z};
-    Vector3 rod2Pos = (Vector3){arm1Pos.x,arm1Pos.y+ARM_LENGTH*sin(dk.a*DEG2RAD),arm1Pos.z};
-    Vector3 rod3Pos = (Vector3){arm1Pos.x,arm1Pos.y+ARM_LENGTH*sin(dk.c*DEG2RAD),arm1Pos.z};
+    Vector3 rod1Pos = (Vector3){arm2Pos.x,static_cast<float>(arm2Pos.y+ARM_LENGTH*sin(dk.b*DEG2RAD)),arm2Pos.z};
+    Vector3 rod2Pos = (Vector3){arm1Pos.x,static_cast<float>(arm1Pos.y+ARM_LENGTH*sin(dk.a*DEG2RAD)),arm1Pos.z};
+    Vector3 rod3Pos = (Vector3){arm1Pos.x,static_cast<float>(arm1Pos.y+ARM_LENGTH*sin(dk.c*DEG2RAD)),arm1Pos.z};
     Vector3 baseJoint1, baseJoint2, baseJoint3;
-    Vector3 basePos = (Vector3){x,z,y};
+    Vector3 basePos = (Vector3){static_cast<float>(x),static_cast<float>(z),static_cast<float>(y)};
     Vector3 arm1Projection, arm2Projection, arm3Projection;
 
 	//SetConfigFlags(FLAG_FULLSCREEN_MODE);
@@ -158,24 +157,14 @@ int main(int argc, char** argv)
     platformModel->transform = MatrixMultiply(platformModel->transform, MatrixRotate((Vector3){0,1,0},45*DEG2RAD));
     platformModel->transform = MatrixMultiply(platformModel->transform, MatrixTranslate(0,-24,0));
     Model* baseModel = new Model(LoadModelFromMesh(GenMeshPoly(10,BASS_TRI)));
-    Model* armModel = new Model(LoadModel(std::string("../models/arm/arm.obj").c_str()));
-    //Model* armModel = new Model(LoadModelFromMesh(GenMeshCube(4.0f,4.0f,ARM_LENGTH)));
-    Model* armModel1 = new Model(*armModel);
-    Model* armModel2 = new Model(*armModel);
-    Model* armModel3 = new Model(*armModel);
-    Model* rodModel = new Model(LoadModel(std::string("../models/rod/rod.obj").c_str()));
-    //Model* rodModel = new Model(LoadModelFromMesh(GenMeshCube(4.0f,4.0f,ROD_LENGTH)));
-    rodModel->transform = MatrixScale(1000,1000,1000);
-    rodModel->transform = MatrixMultiply(rodModel->transform,MatrixRotate((Vector3){0,1,0}, M_PI_2));
-    Model* rodModel1 = new Model(*rodModel);
-    Model* rodModel2 = new Model(*rodModel);
-    Model* rodModel3 = new Model(*rodModel);
-    //Model* armModel2 = new Model(LoadModelFromMesh(GenMeshCube(4.0f,4.0f,ARM_LENGTH)));
+    Model* armModel1 = new Model(LoadModel(std::string("../models/arm/arm.obj").c_str()));
     //Model* armModel1 = new Model(LoadModelFromMesh(GenMeshCube(4.0f,4.0f,ARM_LENGTH)));
-    //Model* armModel3 = new Model(LoadModelFromMesh(GenMeshCube(4.0f,4.0f,ARM_LENGTH)));    
+    Model* armModel2 = new Model(*armModel1);
+    Model* armModel3 = new Model(*armModel1);
+    Model* rodModel1 = new Model(LoadModel(std::string("../models/rod/rod.obj").c_str()));
     //Model* rodModel1 = new Model(LoadModelFromMesh(GenMeshCube(4.0f,4.0f,ROD_LENGTH)));
-    //Model* rodModel2 = new Model(LoadModelFromMesh(GenMeshCube(4.0f,4.0f,ROD_LENGTH)));
-    //Model* rodModel3 = new Model(LoadModelFromMesh(GenMeshCube(4.0f,4.0f,ROD_LENGTH)));
+    Model* rodModel2 = new Model(*rodModel1);
+    Model* rodModel3 = new Model(*rodModel1);
 
     Matrix arm1InitialMatrix = MatrixScale(1000,1000,1000);
     arm1InitialMatrix = MatrixMultiply(arm1InitialMatrix,MatrixRotate((Vector3){0,1,0}, M_PI_2));
@@ -193,7 +182,7 @@ int main(int argc, char** argv)
     Matrix rod3InitialMatrix = MatrixScale(1000,1000,1000);
     rod3InitialMatrix = MatrixMultiply(rod3InitialMatrix,MatrixRotate((Vector3){0,1,0}, M_PI_2));
     rod3InitialMatrix = MatrixMultiply(rod3InitialMatrix,MatrixRotate((Vector3){0.0f,1.0f,0.0f},120.0f*DEG2RAD));
- 
+
     // Define the camera to look into our 3d world
     //Camera camera = { {-20.0f, 12.0f, 0.0f}, { 0.0f, 4.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, 45.0f, 0 };
     Camera camera = { {-PLATFORM_TRI*10, (ARM_LENGTH+ROD_LENGTH)*1.5f, 0.0f}, {PLATFORM_POS.x, PLATFORM_POS.y/1.5f, PLATFORM_POS.z}, { 0.0f, 1.0f, 0.0f }, 45.0f, 0 };
@@ -232,18 +221,17 @@ int main(int argc, char** argv)
             UpdateTexture(captureTexture,MatToImage(image).data);
             CAPTURE_READY = false;
         }
-        
+
         if(STARTING_ANIMATION)
         {
             animationStep++;
             if(animationState == 1)
             {
-                //camera.position.z = camera.position.z+0.0001f*animationStep/GetFrameTime();
                 camera.fovy = camera.fovy-0.0001f*animationStep/GetFrameTime();
                 if(camera.fovy <= CAMERA_FOV) STARTING_ANIMATION = false;
                 //if(animationStep > 100) STARTING_ANIMATION = false;
             }
-        }
+        }else camera.fovy = CAMERA_FOV;
 
         if(IsKeyDown(KEY_A))
         {
@@ -276,16 +264,16 @@ int main(int argc, char** argv)
             if(auxValue >= 360) auxValue = 0;
         }
 
-        if(lastX != x || lastY != y || lastZ != z)
+        if(lastX != x || lastY != y || lastZ != z) // calcula solo si hubo variaciones
         {
             // Cálculos de cinemática
             dk.inverse(x,y,z);
-            
-            rod1Pos = (Vector3){arm1Pos.x,arm1Pos.y-ARM_LENGTH*sin(dk.a*DEG2RAD),arm1Pos.z-ARM_LENGTH*cos(dk.a*DEG2RAD)};
-            rod2Pos = (Vector3){arm2Pos.x+ARM_LENGTH*cos(dk.b*DEG2RAD)*cos(30*DEG2RAD),arm2Pos.y-ARM_LENGTH*sin(dk.b*DEG2RAD),arm2Pos.z+ARM_LENGTH*cos(dk.b*DEG2RAD)*sin(30*DEG2RAD)};
-            rod3Pos = (Vector3){arm3Pos.x-ARM_LENGTH*cos(dk.c*DEG2RAD)*cos(30*DEG2RAD),arm3Pos.y-ARM_LENGTH*sin(dk.c*DEG2RAD),arm3Pos.z+ARM_LENGTH*cos(dk.c*DEG2RAD)*sin(30*DEG2RAD)};
 
-            basePos = (Vector3){x,PLATFORM_POS.y+z,y};
+            rod1Pos = (Vector3){arm1Pos.x,static_cast<float>(arm1Pos.y-ARM_LENGTH*sin(dk.a*DEG2RAD)),static_cast<float>(arm1Pos.z-ARM_LENGTH*cos(dk.a*DEG2RAD))};
+            rod2Pos = (Vector3){static_cast<float>(arm2Pos.x+ARM_LENGTH*cos(dk.b*DEG2RAD)*cos(30*DEG2RAD)),static_cast<float>(arm2Pos.y-ARM_LENGTH*sin(dk.b*DEG2RAD)),static_cast<float>(arm2Pos.z+ARM_LENGTH*cos(dk.b*DEG2RAD)*sin(30*DEG2RAD))};
+            rod3Pos = (Vector3){static_cast<float>(arm3Pos.x-ARM_LENGTH*cos(dk.c*DEG2RAD)*cos(30*DEG2RAD)),static_cast<float>(arm3Pos.y-ARM_LENGTH*sin(dk.c*DEG2RAD)),static_cast<float>(arm3Pos.z+ARM_LENGTH*cos(dk.c*DEG2RAD)*sin(30*DEG2RAD))};
+
+            basePos = (Vector3){static_cast<float>(x),static_cast<float>(PLATFORM_POS.y+z),static_cast<float>(y)};
 
             // rod 1 angles
             arm1Projection = rod1Pos;
@@ -347,7 +335,7 @@ int main(int argc, char** argv)
             rodModel1->transform = MatrixMultiply(rodModel1->transform,MatrixRotate(arm1Axis,rod1Phi));
             rodModel1->transform = MatrixMultiply(rodModel1->transform,MatrixRotate((Vector3){0,-1,0},rod1Theta));
             rodModel1->transform = MatrixMultiply(rodModel1->transform,MatrixTranslate(rod1Pos.x, rod1Pos.y, rod1Pos.z));
-            
+
             rodModel2->transform = rod2InitialMatrix;
             rodModel2->transform = MatrixMultiply(rodModel2->transform,MatrixRotate(arm2Axis,rod2Phi));
             rodModel2->transform = MatrixMultiply(rodModel2->transform,MatrixRotate((Vector3){0,-1,0},rod2Theta));
@@ -373,69 +361,54 @@ int main(int argc, char** argv)
         BeginTextureMode(target);       // Enable drawing to texture
             ClearBackground(COLOR_BG);  // Clear texture background
             BeginMode3D(camera);        // Begin 3d mode drawing
-                //DrawGrid(20,1.0f);
                 DrawGrid((int)PLATFORM_TRI/1.5f,PLATFORM_TRI);
-                //DrawModel(*platformModel,PLATFORM_POS,1.0f,RED);
                 DrawModel(*platformModel,PLATFORM_POS,1.0f,WHITE);
                 DrawModel(*baseModel,basePos,1.0f,RED);
-                //DrawModelEx(*armModel1, arm1Pos, arm1Axis, dk.a, Vector3One(), YELLOW);
                 DrawModel(*armModel1, Vector3Zero(), 1.0f, WHITE);
                 DrawModel(*armModel2, Vector3Zero(), 1.0f, WHITE);
                 DrawModel(*armModel3, Vector3Zero(), 1.0f, WHITE);
-                //DrawModel(*armModel, Vector3Zero(), 1000.0f, WHITE);
-                //DrawModelEx(*rodModel1, rod1Pos, arm1Axis, rod1Theta, Vector3One(), YELLOW);
-                //DrawModel(*rodModel, Vector3Zero(), 1.0f, WHITE);
                 DrawModel(*rodModel1, Vector3Zero(), 1.0f, WHITE);
                 DrawModel(*rodModel2, Vector3Zero(), 1.0f, WHITE);
                 DrawModel(*rodModel3, Vector3Zero(), 1.0f, WHITE);
-                //DrawModelEx(*rodModel2, rod2Pos, arm2Axis, rod2Theta, Vector3One(), BLUE);
-                //DrawModelEx(*rodModel3, rod3Pos, arm3Axis, rod3Theta, Vector3One(), GREEN);
                 DrawCircle3D(PLATFORM_POS,PLATFORM_TRI,(Vector3){1.0f,0.0f,0.0f},90.0f,WHITE);
-                //DrawModel(*deltaModel,PLATFORM_POS,1000.0f,WHITE);
-                //DrawPlane((Vector3){0.0f,0.0f,0.0f},(Vector2){100.0f,100.0f},WHITE);
-                DrawLine3D(auxVector,rod3Pos, ORANGE);
-                DrawLine3D(baseJoint3,rod3Pos, GREEN);
             EndMode3D();                // End 3d mode drawing, returns to orthographic 2d mode
         EndTextureMode();               // End drawing to texture (now we have a texture available for next passes)
 
         BeginDrawing();
             ClearBackground(COLOR_BG);
-            if(GetTime() > STARTING_DELAY)
+            // BeginShaderMode(shader_pixel);
+                // NOTE: Render texture must be y-flipped due to default OpenGL coordinates (left-bottom)
+                Vector2 viewSize = {(float)target.texture.width/4, (float)target.texture.height/2};
+                Rectangle viewRectangle = {(float)target.texture.width/2-viewSize.x/2, (float)target.texture.height/2-viewSize.y/2, viewSize.x, -viewSize.y};
+                Vector2 viewPos = { screenWidth-viewSize.x-MARGIN, MARGIN};
+                DrawTextureRec(target.texture, viewRectangle, viewPos, WHITE);
+                Rectangle viewBorderRectangle = {viewPos.x, viewPos.y, viewSize.x, viewSize.y};
+                DrawRectangleLinesEx(viewBorderRectangle,2.0f,COLOR_FG);
+            // EndShaderMode();
+
+            Vector2 captureViewPos = { viewPos.x, viewPos.y+viewSize.y+MARGIN};
+            DrawTextureEx(captureTexture, captureViewPos, 0, viewSize.x/captureTexture.width,WHITE);
+            Rectangle captureViewRectangle = {captureViewPos.x, captureViewPos.y, captureTexture.width*(viewSize.x/captureTexture.width), captureTexture.height*(viewSize.x/captureTexture.width)};
+            DrawRectangleLinesEx(captureViewRectangle,2.0f,COLOR_FG);
+
+            //sprintf(c,"ANGLE: %f",auxValue);
+            //DrawText(c, MARGIN, MARGIN*5, MARGIN, COLOR_FG);
+
+            if(SHOW_FPS)
             {
-                // BeginShaderMode(shader_pixel);
-                    // NOTE: Render texture must be y-flipped due to default OpenGL coordinates (left-bottom)
-                    Vector2 viewSize = {(float)target.texture.width/4, (float)target.texture.height/2};
-                    Rectangle viewRectangle = {(float)target.texture.width/2-viewSize.x/2, (float)target.texture.height/2-viewSize.y/2, viewSize.x, -viewSize.y};
-                    Vector2 viewPos = { screenWidth-viewSize.x-MARGIN, MARGIN};
-                    DrawTextureRec(target.texture, viewRectangle, viewPos, WHITE);
-                    Rectangle viewBorderRectangle = {viewPos.x, viewPos.y, viewSize.x, viewSize.y};
-                    DrawRectangleLinesEx(viewBorderRectangle,2.0f,COLOR_FG);
-                // EndShaderMode();
-
-                Vector2 captureViewPos = { viewPos.x, viewPos.y+viewSize.y+MARGIN};
-                DrawTextureEx(captureTexture, captureViewPos, 0, viewSize.x/captureTexture.width,WHITE);
-                Rectangle captureViewRectangle = {captureViewPos.x, captureViewPos.y, captureTexture.width*(viewSize.x/captureTexture.width), captureTexture.height*(viewSize.x/captureTexture.width)};
-                DrawRectangleLinesEx(captureViewRectangle,2.0f,COLOR_FG);
-
-                //sprintf(c,"ANGLE: %f",auxValue);
-                //DrawText(c, MARGIN, MARGIN*5, MARGIN, COLOR_FG);
-
-                if(SHOW_FPS)
+                sprintf(c,"FPS %d",GetFPS());
+                DrawText(c, MARGIN, MARGIN, MARGIN, COLOR_FG);
+                sprintf(c,"STARTING_ANIMATION %i",STARTING_ANIMATION);
+                DrawText(c, MARGIN, MARGIN*3, MARGIN, COLOR_FG);
+            }
+            if(STARTING_ANIMATION && animationState == 0)
+            {
+                int startingCoverX = 0.1f*animationStep/GetFrameTime();
+                DrawRectangle(startingCoverX,0,screenWidth,screenHeight,COLOR_BG);
+                if(startingCoverX >= screenWidth)
                 {
-                    sprintf(c,"FPS %d",GetFPS());
-                    DrawText(c, MARGIN, MARGIN, MARGIN, COLOR_FG);
-                    sprintf(c,"STARTING_ANIMATION %i",STARTING_ANIMATION);
-                    DrawText(c, MARGIN, MARGIN*3, MARGIN, COLOR_FG);
-                }
-                if(STARTING_ANIMATION && animationState == 0)
-                {
-                    int startingCoverX = 0.1f*animationStep/GetFrameTime();
-                    DrawRectangle(startingCoverX,0,screenWidth,screenHeight,COLOR_BG);
-                    if(startingCoverX >= screenWidth)
-                    {
-                        animationState = 1;
-                        animationStep = 0;
-                    }
+                    animationState = 1;
+                    animationStep = 0;
                 }
             }
         EndDrawing();
@@ -449,7 +422,10 @@ int main(int argc, char** argv)
 
 	///-----cleanup_start-----
 
-    //UnloadModel(*deltaModel);
+    UnloadModel(*platformModel);
+    UnloadModel(*baseModel);
+    UnloadModel(*armModel1);
+    UnloadModel(*rodModel1);
 
     std::cout << "Joining capture thread...";
 	while(!t1.joinable()){}
