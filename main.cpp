@@ -15,6 +15,9 @@
 #include <stdio.h>
 #include <thread>
 
+// manejo de i/o
+#include <pigpio.h>
+
 //#if defined(PLATFORM_DESKTOP)
 //    #define GLSL_VERSION            330
 //#else   // PLATFORM_RPI, PLATFORM_ANDROID, PLATFORM_WEB
@@ -198,12 +201,21 @@ int main(int argc, char** argv)
     HideCursor();
     SetTargetFPS(TARGET_FPS);
 
+
+    // inicio captura de video
     Texture2D captureTexture;
 
     std::thread t1(captureVideo);
 
     while(!CAPTURE_READY){};
     captureTexture = LoadTextureFromImage(MatToImage(image));
+
+    // inicio control de i/o
+    if (gpioInitialise() < 0)
+    {
+        fprintf(stderr, "pigpio initialisation failed\n");
+        return 1;
+    }
 
     //--------------------------------------------------------------------------------------
     //--------------------------------------------------------------------------------------
@@ -213,8 +225,8 @@ int main(int argc, char** argv)
 		{
 			EXIT = true;
 		}
-        //update image----------------------------------------
-        UpdateCamera(&camera);      // Actualizar camara interna y mi camara
+
+        UpdateCamera(&camera);      // Actualizar camara 3D
 
         if(CAPTURE_READY)
         {

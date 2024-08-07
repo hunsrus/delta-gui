@@ -39,4 +39,4 @@ ${SOURCES}
 )
 
 #set(raylib_VERBOSE 1)
-target_link_libraries(${PROJECT_NAME} raylib ${OpenCV_LIBS})
+target_link_libraries(${PROJECT_NAME} raylib ${OpenCV_LIBS} pigpio rt pthread)
