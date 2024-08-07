@@ -14,6 +14,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <thread>
+#include <unistd.h>
 
 //#if defined(PLATFORM_DESKTOP)
 //    #define GLSL_VERSION            330
@@ -22,7 +23,7 @@
 //#endif
 
 // manejo de i/o
-#if defined(__arm__) || defined(__thumb__) || defined(_M_ARM)
+#if defined(__aarch64__) || defined(_M_ARM64)
     #include <pigpio.h>
     #define ARCH_ARM true
 #else
@@ -40,6 +41,13 @@
 #define PLATFORM_TRI 42.0f
 #define PLATFORM_POS (Vector3){0,ARM_LENGTH+ROD_LENGTH,0}
 
+#define STEPS_PER_REV 200 // 1.8 grados
+
+#define PIN_BOB1 12
+#define PIN_BOB2 16
+#define PIN_BOB3 20
+#define PIN_BOB4 21
+
 static bool SHOW_FPS = true;
 static bool STARTING_ANIMATION = false;
 
@@ -50,6 +58,9 @@ static cv::Mat image;
 static bool CAPTURE_READY = false;
 
 static bool EXIT = false;
+
+// Determinar el paso actual
+static int stepIndex = 0;
 
 Image MatToImage(const cv::Mat &mat) {
     // Asegúrate de que la imagen está en formato RGB
@@ -117,6 +128,50 @@ int captureVideo(void)
 
 }
 
+// Definir la secuencia de pasos para un motor paso a paso unipolar de 4 bobinas
+int stepSequence[4][4] = {
+    {1, 0, 0, 1}, // Paso 1
+    {0, 1, 0, 1}, // Paso 2
+    {0, 1, 1, 0}, // Paso 3
+    {1, 0, 1, 0}  // Paso 4
+};
+
+// Función para establecer el estado de las bobinas
+void setCoils(int coil1, int coil2, int coil3, int coil4) {
+    #if ARCH_ARM
+        gpioWrite(PIN_BOB1, coil1);
+        gpioWrite(PIN_BOB2, coil2);
+        gpioWrite(PIN_BOB3, coil3);
+        gpioWrite(PIN_BOB4, coil4);
+    #else
+        printf("Bobinas: %d %d %d %d\n", coil1, coil2, coil3, coil4);
+    #endif
+}
+
+// Función para mover el motor de un ángulo actual a un ángulo objetivo
+void moveToAngle(double currentAngle, double targetAngle) {
+    // Calcular la diferencia de ángulo
+    double angleDiff = targetAngle - currentAngle;
+
+    // Calcular el número de pasos necesarios
+    int steps = (int)round(angleDiff * STEPS_PER_REV / 360.0);
+
+    // Determinar la dirección del movimiento
+    int direction = (steps > 0) ? 1 : -1;
+
+    // Hacer los pasos necesarios
+    for (int i = 0; i < abs(steps); i++) {
+        stepIndex++;
+        if (stepIndex > 3) stepIndex = 0;
+
+        // Activar las bobinas para el paso actual
+        setCoils(stepSequence[stepIndex][0], stepSequence[stepIndex][1], stepSequence[stepIndex][2], stepSequence[stepIndex][3]);
+
+        // Añadir un pequeño retraso para permitir que el motor se mueva (ajustar según sea necesario)
+        usleep(1000); // 1000 microsegundos = 1 milisegundo
+    }
+}
+
 int main(int argc, char** argv)
 {
     // Initialization
@@ -134,6 +189,7 @@ int main(int argc, char** argv)
     DeltaKinematics dk = DeltaKinematics(ARM_LENGTH, ROD_LENGTH, BASS_TRI, PLATFORM_TRI);
     double x = 0, y = 0, z = -ROD_LENGTH/2.0f;
     double lastX = -1, lastY = -1, lastZ = -1;
+    double lastA, lastB, lastC;
     double thetaA, thetaB, thetaC;
     double rod1Phi, rod1Theta;
     double rod2Phi, rod2Theta;
@@ -221,10 +277,13 @@ int main(int argc, char** argv)
         {
             fprintf(stderr, "pigpio initialisation failed\n");
             return 1;
-        }else
-        {
-            fprintf(stdout, "pigpio initialisation complete\n");
         }
+        fprintf(stdout, "pigpio initialisation complete\n");
+        
+        gpioSetMode(PIN_BOB1, PI_OUTPUT);
+        gpioSetMode(PIN_BOB2, PI_OUTPUT);
+        gpioSetMode(PIN_BOB3, PI_OUTPUT);
+        gpioSetMode(PIN_BOB4, PI_OUTPUT);
     #endif
 
     //--------------------------------------------------------------------------------------
@@ -369,6 +428,15 @@ int main(int argc, char** argv)
             rodModel3->transform = MatrixMultiply(rodModel3->transform,MatrixRotate(arm3Axis,rod3Phi));
             rodModel3->transform = MatrixMultiply(rodModel3->transform,MatrixRotate((Vector3){0,-1,0},rod3Theta));
             rodModel3->transform = MatrixMultiply(rodModel3->transform,MatrixTranslate(rod3Pos.x, rod3Pos.y, rod3Pos.z));
+
+            if(fabs(dk.a - lastA) > 1.8)
+            {
+                moveToAngle(lastA, dk.a);
+
+                lastA = dk.a;
+                lastB = dk.b;
+                lastC = dk.c;
+            }
         }
 
         lastX = x;
