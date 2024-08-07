@@ -130,10 +130,10 @@ int captureVideo(void)
 
 // Definir la secuencia de pasos para un motor paso a paso unipolar de 4 bobinas
 int stepSequence[4][4] = {
-    {1, 0, 0, 1}, // Paso 1
-    {0, 1, 0, 1}, // Paso 2
-    {0, 1, 1, 0}, // Paso 3
-    {1, 0, 1, 0}  // Paso 4
+    {0, 0, 1, 1}, // Paso 1
+    {1, 0, 0, 1}, // Paso 2
+    {1, 1, 0, 0}, // Paso 3
+    {0, 1, 1, 0}  // Paso 4
 };
 
 // Función para establecer el estado de las bobinas
@@ -284,6 +284,18 @@ int main(int argc, char** argv)
         gpioSetMode(PIN_BOB2, PI_OUTPUT);
         gpioSetMode(PIN_BOB3, PI_OUTPUT);
         gpioSetMode(PIN_BOB4, PI_OUTPUT);
+
+        for(int i=0;i<50;i++){
+            setCoils(0, 0, 1, 1);
+            usleep(100000);
+            setCoils(1, 0, 0, 1);
+            usleep(100000);
+            setCoils(1, 1, 0, 0);
+            usleep(100000);
+            setCoils(0, 1, 1, 0);
+        }
+        usleep(5000);
+        setCoils(1, 1, 1, 1);
     #endif
 
     //--------------------------------------------------------------------------------------
@@ -431,7 +443,7 @@ int main(int argc, char** argv)
 
             if(fabs(dk.a - lastA) > 1.8)
             {
-                moveToAngle(lastA, dk.a);
+                //moveToAngle(lastA, dk.a);
 
                 lastA = dk.a;
                 lastB = dk.b;
