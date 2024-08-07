@@ -15,14 +15,19 @@
 #include <stdio.h>
 #include <thread>
 
-// manejo de i/o
-#include <pigpio.h>
-
 //#if defined(PLATFORM_DESKTOP)
 //    #define GLSL_VERSION            330
 //#else   // PLATFORM_RPI, PLATFORM_ANDROID, PLATFORM_WEB
 //    #define GLSL_VERSION            100
 //#endif
+
+// manejo de i/o
+#if defined(__arm__) || defined(__thumb__) || defined(_M_ARM)
+    #include <pigpio.h>
+    #define ARCH_ARM true
+#else
+    #define ARCH_ARM false
+#endif
 
 #define TARGET_FPS 30
 #define MARGIN 20
@@ -211,11 +216,16 @@ int main(int argc, char** argv)
     captureTexture = LoadTextureFromImage(MatToImage(image));
 
     // inicio control de i/o
-    if (gpioInitialise() < 0)
-    {
-        fprintf(stderr, "pigpio initialisation failed\n");
-        return 1;
-    }
+    #if ARCH_ARM
+        if (gpioInitialise() < 0)
+        {
+            fprintf(stderr, "pigpio initialisation failed\n");
+            return 1;
+        }else
+        {
+            fprintf(stdout, "pigpio initialisation complete\n");
+        }
+    #endif
 
     //--------------------------------------------------------------------------------------
     //--------------------------------------------------------------------------------------
@@ -275,6 +285,8 @@ int main(int argc, char** argv)
             auxValue += 1.0f;
             if(auxValue >= 360) auxValue = 0;
         }
+
+        z = -ROD_LENGTH+sin(GetTime()*2.0f)*40.0f;
 
         if(lastX != x || lastY != y || lastZ != z) // calcula solo si hubo variaciones
         {

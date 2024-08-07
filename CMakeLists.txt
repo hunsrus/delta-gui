@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.11) # FetchContent is available in 3.11+
+cmake_minimum_required(VERSION 3.5) # FetchContent is available in 3.11+
 project(example)
 
 # Generate compile_commands.json
@@ -38,5 +38,15 @@ ADD_EXECUTABLE(${PROJECT_NAME}
 ${SOURCES}
 )
 
-#set(raylib_VERBOSE 1)
-target_link_libraries(${PROJECT_NAME} raylib ${OpenCV_LIBS} pigpio rt pthread)
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
+    message(STATUS "Detected architecture: x86_64")
+    target_link_libraries(${PROJECT_NAME} raylib ${OpenCV_LIBS})
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
+    message(STATUS "Detected architecture: ARM")
+    target_link_libraries(${PROJECT_NAME} raylib ${OpenCV_LIBS} pigpio rt pthread)
+    # Aquí puedes agregar bibliotecas específicas para ARM si es necesario
+    # target_link_libraries(pulse biblioteca_especifica_arm)
+else()
+    message(WARNING "Unknown architecture: ${CMAKE_SYSTEM_PROCESSOR}")
+    target_link_libraries(${PROJECT_NAME} raylib ${OpenCV_LIBS} pigpio rt pthread)
+endif()
