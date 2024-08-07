@@ -289,7 +289,7 @@ int main(int argc, char** argv)
             usleep(10000);
             stepIndex++;
             setCoils(stepSequence[stepIndex][0], stepSequence[stepIndex][1], stepSequence[stepIndex][2], stepSequence[stepIndex][3]);
-            usleep(10000)
+            usleep(10000);
         }
         usleep(10000);
         for(int i=0;i<50;i++){
@@ -304,7 +304,7 @@ int main(int argc, char** argv)
             usleep(10000);
             stepIndex--;
             setCoils(stepSequence[stepIndex][0], stepSequence[stepIndex][1], stepSequence[stepIndex][2], stepSequence[stepIndex][3]);
-            usleep(10000)
+            usleep(10000);
         }
         usleep(10000);
         setCoils(1, 1, 1, 1);
