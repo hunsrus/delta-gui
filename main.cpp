@@ -262,15 +262,6 @@ int main(int argc, char** argv)
     HideCursor();
     SetTargetFPS(TARGET_FPS);
 
-
-    // inicio captura de video
-    Texture2D captureTexture;
-
-    std::thread t1(captureVideo);
-
-    while(!CAPTURE_READY){};
-    captureTexture = LoadTextureFromImage(MatToImage(image));
-
     // inicio control de i/o
     #if ARCH_ARM
         if (gpioInitialise() < 0)
@@ -285,18 +276,47 @@ int main(int argc, char** argv)
         gpioSetMode(PIN_BOB3, PI_OUTPUT);
         gpioSetMode(PIN_BOB4, PI_OUTPUT);
 
+        // vueltas de testeo
         for(int i=0;i<50;i++){
-            setCoils(0, 0, 1, 1);
-            usleep(100000);
-            setCoils(1, 0, 0, 1);
-            usleep(100000);
-            setCoils(1, 1, 0, 0);
-            usleep(100000);
-            setCoils(0, 1, 1, 0);
+            stepIndex = 0;
+            setCoils(stepSequence[stepIndex][0], stepSequence[stepIndex][1], stepSequence[stepIndex][2], stepSequence[stepIndex][3]);
+            usleep(10000);
+            stepIndex++;
+            setCoils(stepSequence[stepIndex][0], stepSequence[stepIndex][1], stepSequence[stepIndex][2], stepSequence[stepIndex][3]);
+            usleep(10000);
+            stepIndex++;
+            setCoils(stepSequence[stepIndex][0], stepSequence[stepIndex][1], stepSequence[stepIndex][2], stepSequence[stepIndex][3]);
+            usleep(10000);
+            stepIndex++;
+            setCoils(stepSequence[stepIndex][0], stepSequence[stepIndex][1], stepSequence[stepIndex][2], stepSequence[stepIndex][3]);
+            usleep(10000)
         }
-        usleep(5000);
+        usleep(10000);
+        for(int i=0;i<50;i++){
+            stepIndex = 3;
+            setCoils(stepSequence[stepIndex][0], stepSequence[stepIndex][1], stepSequence[stepIndex][2], stepSequence[stepIndex][3]);
+            usleep(10000);
+            stepIndex--;
+            setCoils(stepSequence[stepIndex][0], stepSequence[stepIndex][1], stepSequence[stepIndex][2], stepSequence[stepIndex][3]);
+            usleep(10000);
+            stepIndex--;
+            setCoils(stepSequence[stepIndex][0], stepSequence[stepIndex][1], stepSequence[stepIndex][2], stepSequence[stepIndex][3]);
+            usleep(10000);
+            stepIndex--;
+            setCoils(stepSequence[stepIndex][0], stepSequence[stepIndex][1], stepSequence[stepIndex][2], stepSequence[stepIndex][3]);
+            usleep(10000)
+        }
+        usleep(10000);
         setCoils(1, 1, 1, 1);
     #endif
+
+    // inicio captura de video
+    Texture2D captureTexture;
+
+    std::thread t1(captureVideo);
+
+    while(!CAPTURE_READY){};
+    captureTexture = LoadTextureFromImage(MatToImage(image));
 
     //--------------------------------------------------------------------------------------
     //--------------------------------------------------------------------------------------
@@ -443,7 +463,7 @@ int main(int argc, char** argv)
 
             if(fabs(dk.a - lastA) > 1.8)
             {
-                //moveToAngle(lastA, dk.a);
+                moveToAngle(lastA, dk.a);
 
                 lastA = dk.a;
                 lastB = dk.b;
