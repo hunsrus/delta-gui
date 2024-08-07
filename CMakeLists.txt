@@ -41,6 +41,9 @@ ${SOURCES}
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
     message(STATUS "Detected architecture: x86_64")
     target_link_libraries(${PROJECT_NAME} raylib ${OpenCV_LIBS})
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")  # raspberry pi zero 2 w
+    message(STATUS "Detected architecture: aarch46")
+    target_link_libraries(${PROJECT_NAME} raylib ${OpenCV_LIBS} pigpio rt pthread)
 elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
     message(STATUS "Detected architecture: ARM")
     target_link_libraries(${PROJECT_NAME} raylib ${OpenCV_LIBS} pigpio rt pthread)
