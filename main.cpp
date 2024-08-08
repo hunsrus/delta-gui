@@ -159,12 +159,6 @@ void moveToAngle(double currentAngle, double targetAngle) {
     // Determinar la dirección del movimiento
     int direction = (steps > 0) ? 1 : -1;
 
-    std::cout << "TARGET: \t" << targetAngle << std::endl;
-    std::cout << "CURRENT: \t" << currentAngle << std::endl;
-    std::cout << "DIFF: \t" << angleDiff << std::endl;
-    std::cout << "STEPS: \t" << steps << std::endl;
-    std::cout << "DIRECTION: \t" << direction << std::endl;
-
     // Hacer los pasos necesarios
     for (int i = 0; i < abs(steps); i++) {
         stepIndex += direction;
@@ -183,7 +177,7 @@ int main(int argc, char** argv)
 {
     // Initialization
     //--------------------------------------------------------------------------------------
-    const int screenWidth = 1366;
+    const int screenWidth = 1024;
     const int screenHeight = 768;
 
     int i;
