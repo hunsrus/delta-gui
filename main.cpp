@@ -268,8 +268,8 @@ int main(int argc, char** argv)
     // Create a RenderTexture2D to be used for render to texture
     RenderTexture2D renderTextureModel = LoadRenderTexture(screenWidth, screenHeight);
     RenderTexture2D renderTextureBackground = LoadRenderTexture(screenWidth, screenHeight);
-    // cargar shader para outline
-    Shader shader = LoadShader(0, TextFormat("resources/shaders/glsl%i/sobel_colors.fs", GLSL_VERSION));
+    // cargar shader para outline 
+    Shader shader = LoadShader(TextFormat("resources/shaders/glsl%i/base.vs", GLSL_VERSION), TextFormat("resources/shaders/glsl%i/sobel_colors.fs", GLSL_VERSION));
     // // Get shader locations
     Vector4 normalizedFGColor = ColorNormalize(COLOR_FG);
     Vector4 normalizedBGColor = ColorNormalize(COLOR_BG);
