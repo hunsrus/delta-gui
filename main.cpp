@@ -16,11 +16,12 @@
 #include <thread>
 #include <unistd.h>
 
-//#if defined(PLATFORM_DESKTOP)
-//    #define GLSL_VERSION            330
-//#else   // PLATFORM_RPI, PLATFORM_ANDROID, PLATFORM_WEB
-//    #define GLSL_VERSION            100
-//#endif
+// versión de glsl para shaders
+#if defined(PLATFORM_DESKTOP)
+    #define GLSL_VERSION            330
+#else   // PLATFORM_RPI, PLATFORM_ANDROID, PLATFORM_WEB
+    #define GLSL_VERSION            100
+#endif
 
 // manejo de i/o
 #if defined(__aarch64__) || defined(_M_ARM64)
@@ -144,7 +145,7 @@ void setCoils(int coil1, int coil2, int coil3, int coil4) {
         gpioWrite(PIN_BOB3, coil3);
         gpioWrite(PIN_BOB4, coil4);
     #else
-        printf("Bobinas: %d %d %d %d\n", coil1, coil2, coil3, coil4);
+        //printf("Bobinas: %d %d %d %d\n", coil1, coil2, coil3, coil4);
     #endif
 }
 
@@ -255,7 +256,23 @@ int main(int argc, char** argv)
     camera.projection = CAMERA_PERSPECTIVE;
 
     // Create a RenderTexture2D to be used for render to texture
-    RenderTexture2D target = LoadRenderTexture(screenWidth, screenHeight);
+    RenderTexture2D renderTextureModel = LoadRenderTexture(screenWidth, screenHeight);
+    RenderTexture2D renderTextureBackground = LoadRenderTexture(screenWidth, screenHeight);
+    // cargar shader para outline
+    Shader shader = LoadShader(0, TextFormat("resources/shaders/glsl%i/sobel_colors.fs", GLSL_VERSION));
+    // // Get shader locations
+    Vector4 normalizedFGColor = ColorNormalize(COLOR_FG);
+    Vector4 normalizedBGColor = ColorNormalize(COLOR_BG);
+    float edgeColor[3] = {normalizedFGColor.x, normalizedFGColor.y, normalizedFGColor.z};
+    float backgroundColor[3] = {normalizedBGColor.x, normalizedBGColor.y, normalizedBGColor.z};
+    float shaderResolution[2] = {840, 840};
+    int edgeColorLoc = GetShaderLocation(shader, "edgeColor");
+    int backgroundColorLoc = GetShaderLocation(shader, "backgroundColor");
+    int resolutionLoc = GetShaderLocation(shader, "resolution");
+    SetShaderValue(shader, edgeColorLoc, edgeColor, SHADER_UNIFORM_VEC3);
+    SetShaderValue(shader, backgroundColorLoc, backgroundColor, SHADER_UNIFORM_VEC3);
+    SetShaderValue(shader, resolutionLoc, shaderResolution, SHADER_UNIFORM_VEC2);
+
 
     //SetCameraMode(camera, CAMERA_THIRD_PERSON);
 	//SetCameraMode(camera, CAMERA_ORBITAL);
@@ -329,6 +346,12 @@ int main(int argc, char** argv)
 		}
 
         UpdateCamera(&camera);      // Actualizar camara 3D
+
+        shaderResolution[0] += GetMouseWheelMove()*10.0f;
+        shaderResolution[1] = shaderResolution[0];
+        // if (outlineSize < 1.0f) outlineSize = 1.0f;
+
+        SetShaderValue(shader, resolutionLoc, shaderResolution, SHADER_UNIFORM_VEC2);
 
         if(CAPTURE_READY)
         {
@@ -481,35 +504,40 @@ int main(int argc, char** argv)
         // Dibuja
         //----------------------------------------------------------------------------------
 
-        ClearBackground(COLOR_BG);  // Clear texture background
-
-        BeginTextureMode(target);       // Enable drawing to texture
-            ClearBackground(COLOR_BG);  // Clear texture background
+        BeginTextureMode(renderTextureModel);       // Enable drawing to texture
+            ClearBackground((Color){0,0,0,0});  // Clear texture background
             BeginMode3D(camera);        // Begin 3d mode drawing
-                DrawGrid((int)PLATFORM_TRI/1.5f,PLATFORM_TRI);
                 DrawModel(*platformModel,PLATFORM_POS,1.0f,WHITE);
-                DrawModel(*baseModel,basePos,1.0f,RED);
+                DrawModel(*baseModel,basePos,1.0f,WHITE);
                 DrawModel(*armModel1, Vector3Zero(), 1.0f, WHITE);
                 DrawModel(*armModel2, Vector3Zero(), 1.0f, WHITE);
                 DrawModel(*armModel3, Vector3Zero(), 1.0f, WHITE);
                 DrawModel(*rodModel1, Vector3Zero(), 1.0f, WHITE);
                 DrawModel(*rodModel2, Vector3Zero(), 1.0f, WHITE);
                 DrawModel(*rodModel3, Vector3Zero(), 1.0f, WHITE);
-                DrawCircle3D(PLATFORM_POS,PLATFORM_TRI,(Vector3){1.0f,0.0f,0.0f},90.0f,WHITE);
+                //DrawCircle3D(PLATFORM_POS,PLATFORM_TRI,(Vector3){1.0f,0.0f,0.0f},90.0f,WHITE);
             EndMode3D();                // End 3d mode drawing, returns to orthographic 2d mode
         EndTextureMode();               // End drawing to texture (now we have a texture available for next passes)
+        BeginTextureMode(renderTextureBackground);
+        ClearBackground(COLOR_BG);  // Clear texture background
+            BeginMode3D(camera);        // Begin 3d mode drawing
+                DrawGrid((int)PLATFORM_TRI/1.5f,PLATFORM_TRI);
+            EndMode3D();
+        EndTextureMode();
 
         BeginDrawing();
             ClearBackground(COLOR_BG);
-            // BeginShaderMode(shader_pixel);
+            
+            Vector2 viewSize = {(float)renderTextureModel.texture.width/4, (float)renderTextureModel.texture.height/2};
+            Rectangle viewRectangle = {(float)renderTextureModel.texture.width/2-viewSize.x/2, (float)renderTextureModel.texture.height/2-viewSize.y/2, viewSize.x, -viewSize.y};
+            Vector2 viewPos = { screenWidth-viewSize.x-MARGIN, MARGIN};
+            DrawTextureRec(renderTextureBackground.texture, viewRectangle, viewPos, WHITE);
+            BeginShaderMode(shader);
                 // NOTE: Render texture must be y-flipped due to default OpenGL coordinates (left-bottom)
-                Vector2 viewSize = {(float)target.texture.width/4, (float)target.texture.height/2};
-                Rectangle viewRectangle = {(float)target.texture.width/2-viewSize.x/2, (float)target.texture.height/2-viewSize.y/2, viewSize.x, -viewSize.y};
-                Vector2 viewPos = { screenWidth-viewSize.x-MARGIN, MARGIN};
-                DrawTextureRec(target.texture, viewRectangle, viewPos, WHITE);
-                Rectangle viewBorderRectangle = {viewPos.x, viewPos.y, viewSize.x, viewSize.y};
-                DrawRectangleLinesEx(viewBorderRectangle,2.0f,COLOR_FG);
-            // EndShaderMode();
+                DrawTextureRec(renderTextureModel.texture, viewRectangle, viewPos, WHITE);
+            EndShaderMode();
+            Rectangle viewBorderRectangle = {viewPos.x, viewPos.y, viewSize.x, viewSize.y};
+            DrawRectangleLinesEx(viewBorderRectangle,2.0f,COLOR_FG);
 
             Vector2 captureViewPos = { viewPos.x, viewPos.y+viewSize.y+MARGIN};
             DrawTextureEx(captureTexture, captureViewPos, 0, viewSize.x/captureTexture.width,WHITE);
@@ -525,6 +553,8 @@ int main(int argc, char** argv)
                 DrawText(c, MARGIN, MARGIN, MARGIN, COLOR_FG);
                 sprintf(c,"STARTING_ANIMATION %i",STARTING_ANIMATION);
                 DrawText(c, MARGIN, MARGIN*3, MARGIN, COLOR_FG);
+                sprintf(c,"SHADER_RESOLUTION %.2f",shaderResolution[0]);
+                DrawText(c, MARGIN, MARGIN*5, MARGIN, COLOR_FG);
             }
             if(STARTING_ANIMATION && animationState == 0)
             {
@@ -551,6 +581,8 @@ int main(int argc, char** argv)
     UnloadModel(*baseModel);
     UnloadModel(*armModel1);
     UnloadModel(*rodModel1);
+
+    UnloadShader(shader);
 
     std::cout << "Joining capture thread...";
 	while(!t1.joinable()){}
