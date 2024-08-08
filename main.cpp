@@ -159,10 +159,17 @@ void moveToAngle(double currentAngle, double targetAngle) {
     // Determinar la dirección del movimiento
     int direction = (steps > 0) ? 1 : -1;
 
+    std::cout << "TARGET: \t" << targetAngle << std::endl;
+    std::cout << "CURRENT: \t" << currentAngle << std::endl;
+    std::cout << "DIFF: \t" << angleDiff << std::endl;
+    std::cout << "STEPS: \t" << steps << std::endl;
+    std::cout << "DIRECTION: \t" << direction << std::endl;
+
     // Hacer los pasos necesarios
     for (int i = 0; i < abs(steps); i++) {
-        stepIndex++;
+        stepIndex += direction;
         if (stepIndex > 3) stepIndex = 0;
+        if (stepIndex < 0) stepIndex = 3;
 
         // Activar las bobinas para el paso actual
         setCoils(stepSequence[stepIndex][0], stepSequence[stepIndex][1], stepSequence[stepIndex][2], stepSequence[stepIndex][3]);
