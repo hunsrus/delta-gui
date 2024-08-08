@@ -53,3 +53,10 @@ else()
     message(WARNING "Unknown architecture: ${CMAKE_SYSTEM_PROCESSOR}")
     target_link_libraries(${PROJECT_NAME} raylib ${OpenCV_LIBS} pigpio rt pthread)
 endif()
+
+add_custom_command(
+  TARGET example POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+          ${CMAKE_CURRENT_SOURCE_DIR}/resources
+          ${CMAKE_CURRENT_BINARY_DIR}/resources
+)

@@ -217,16 +217,16 @@ int main(int argc, char** argv)
 
     // CARGAR LOS MODELOS DESPUÉS DE INICIAR LA VENTANA
     //Model* platformModel = new Model(LoadModelFromMesh(GenMeshPoly(10,PLATFORM_TRI)));
-    Model* platformModel = new Model(LoadModel(std::string("../models/platform/platform.obj").c_str()));
+    Model* platformModel = new Model(LoadModel(std::string("resources/models/platform/platform.obj").c_str()));
     platformModel->transform = MatrixScale(1000,1000,1000);
     platformModel->transform = MatrixMultiply(platformModel->transform, MatrixRotate((Vector3){0,1,0},45*DEG2RAD));
     platformModel->transform = MatrixMultiply(platformModel->transform, MatrixTranslate(0,-24,0));
     Model* baseModel = new Model(LoadModelFromMesh(GenMeshPoly(10,BASS_TRI)));
-    Model* armModel1 = new Model(LoadModel(std::string("../models/arm/arm.obj").c_str()));
+    Model* armModel1 = new Model(LoadModel(std::string("resources/models/arm/arm.obj").c_str()));
     //Model* armModel1 = new Model(LoadModelFromMesh(GenMeshCube(4.0f,4.0f,ARM_LENGTH)));
     Model* armModel2 = new Model(*armModel1);
     Model* armModel3 = new Model(*armModel1);
-    Model* rodModel1 = new Model(LoadModel(std::string("../models/rod/rod.obj").c_str()));
+    Model* rodModel1 = new Model(LoadModel(std::string("resources/models/rod/rod.obj").c_str()));
     //Model* rodModel1 = new Model(LoadModelFromMesh(GenMeshCube(4.0f,4.0f,ROD_LENGTH)));
     Model* rodModel2 = new Model(*rodModel1);
     Model* rodModel3 = new Model(*rodModel1);
