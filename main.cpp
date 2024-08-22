@@ -31,8 +31,10 @@
     #define ARCH_ARM false
 #endif
 
+#define DISPLAY_WIDTH 320
+#define DISPLAY_HEIGHT 240
 #define TARGET_FPS 30
-#define MARGIN 20
+#define MARGIN 20*(DISPLAY_HEIGHT/768.0f)
 
 #define CAMERA_FOV 90
 
@@ -56,6 +58,7 @@ static Color COLOR_BG = {34,34,34,255};
 static Color COLOR_FG = {238,238,238,255};
 
 static cv::Mat image;
+static bool CAMERA_AVAILABLE = true;
 static bool CAPTURE_READY = false;
 
 static bool EXIT = false;
@@ -105,6 +108,7 @@ int captureVideo(void)
     if (bSuccess == false)
     {
         std::cout << "Video camera is disconnected" << std::endl;
+        CAMERA_AVAILABLE = false;
         return EXIT_FAILURE;
     }
 
@@ -112,13 +116,14 @@ int captureVideo(void)
 
     while (!EXIT)
     {
-        if(!CAPTURE_READY)
+        if(!CAPTURE_READY && CAMERA_AVAILABLE)
         {
             bool bSuccess = capture.read(image); // read a new frame from video
 
             if (bSuccess == false)
             {
                 std::cout << "Video camera is disconnected" << std::endl;
+                CAMERA_AVAILABLE = false;
                 return EXIT_FAILURE;
             }
             CAPTURE_READY = true;
@@ -178,8 +183,8 @@ int main(int argc, char** argv)
 {
     // Initialization
     //--------------------------------------------------------------------------------------
-    const int screenWidth = 1024;
-    const int screenHeight = 768;
+    const int screenWidth = DISPLAY_WIDTH;
+    const int screenHeight = DISPLAY_HEIGHT;
 
     int i;
     char c[100];
@@ -343,8 +348,9 @@ int main(int argc, char** argv)
 
     std::thread t1(captureVideo);
 
-    while(!CAPTURE_READY){};
-    captureTexture = LoadTextureFromImage(MatToImage(image));
+    while(!CAPTURE_READY && CAMERA_AVAILABLE){};
+    if(CAMERA_AVAILABLE)
+        captureTexture = LoadTextureFromImage(MatToImage(image));
 
     //--------------------------------------------------------------------------------------
     //--------------------------------------------------------------------------------------
