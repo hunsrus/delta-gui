@@ -38,7 +38,7 @@ build/*
 .cache/*
 
 # 3d models .zip files
-models/BACKUPS/*
+resources/models/BACKUPS/*
 
 # dependencias
 deps/*
