@@ -231,21 +231,6 @@ void do16Steps(int cnt, bool forwards){
   }  
 }
   
-// microstepping >16 steps :
-void doMoreSteps(int cnt, bool forwards){
-  const int list1[] = {1,11,2,12,3,13,4,14};
-  const int list2[] = {21,31,22,32,23,33,24,34};
-  
-  for (int i = 0; i < cnt; i++){
-
-    duty = 50;
-    if (forwards)
-      {for (int j = 0; j <= 7; j++){doStep(list1[j]); doSteps(list2[j], forwards);}}
-    else
-      {for (int j = 7; j >= 0; j--){doSteps(list2[j], forwards); doStep(list1[j]);}}
-     
-  }
-}
 
 // this routine handles >16 microsteps 
 // uncomment sections to choose # steps
@@ -308,6 +293,23 @@ void doSteps(int st, bool forwards){
     for (int i = 1; i <= 9; i++){duty = 10 * i; doStep(st);}
   }*/
 
+}
+
+
+// microstepping >16 steps :
+void doMoreSteps(int cnt, bool forwards){
+  const int list1[] = {1,11,2,12,3,13,4,14};
+  const int list2[] = {21,31,22,32,23,33,24,34};
+  
+  for (int i = 0; i < cnt; i++){
+
+    duty = 50;
+    if (forwards)
+      {for (int j = 0; j <= 7; j++){doStep(list1[j]); doSteps(list2[j], forwards);}}
+    else
+      {for (int j = 7; j >= 0; j--){doSteps(list2[j], forwards); doStep(list1[j]);}}
+     
+  }
 }
 
 #endif //STEPPER_H
