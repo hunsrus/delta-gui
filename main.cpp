@@ -17,11 +17,7 @@
 #include <unistd.h>
 
 // versión de glsl para shaders
-#if defined(PLATFORM_DESKTOP)
-    #define GLSL_VERSION            330
-#else   // PLATFORM_RPI, PLATFORM_ANDROID, PLATFORM_WEB
-    #define GLSL_VERSION            100
-#endif
+#define GLSL_VERSION 100
 
 // manejo de i/o
 #if defined(__aarch64__) || defined(_M_ARM64)
@@ -31,8 +27,13 @@
     #define ARCH_ARM false
 #endif
 
-#define DISPLAY_WIDTH 320
-#define DISPLAY_HEIGHT 240
+#if ARCH_ARM
+    #define DISPLAY_WIDTH 320
+    #define DISPLAY_HEIGHT 240
+#else
+    #define DISPLAY_WIDTH 1024
+    #define DISPLAY_HEIGHT 768
+#endif
 #define TARGET_FPS 30
 #define MARGIN 20*(DISPLAY_HEIGHT/768.0f)
 
