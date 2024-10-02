@@ -227,7 +227,11 @@ int main(int argc, char** argv)
     //SetConfigFlags(FLAG_MSAA_4X_HINT);
     InitWindow(screenWidth, screenHeight, "delta gui test");
 
-    std::cout << "ARCHITECTURE: " << getBuild() << std::endl;
+    #if ARCH_ARM
+        std::cout << "ARCHITECTURE: ARM" << std::endl;
+    #else
+        std::cout << "ARCHITECTURE: x86_64" << std::endl;
+    #endif
 
     // CARGAR LOS MODELOS DESPUÉS DE INICIAR LA VENTANA
     Model* platformModel = new Model(LoadModelFromMesh(GenMeshPoly(10,PLATFORM_TRI)));
