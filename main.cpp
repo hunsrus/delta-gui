@@ -1,5 +1,53 @@
 #define RLIGHTS_IMPLEMENTATION      //Importante para que defina las funciones de rlights y eso
 
+extern "C" {
+	const char *getBuild() { //Get current architecture, detectx nearly every architecture. Coded by Freak
+	#if defined(__x86_64__) || defined(_M_X64)
+		return "x86_64";
+	#elif defined(i386) || defined(__i386__) || defined(__i386) || defined(_M_IX86)
+		return "x86_32";
+	#elif defined(__ARM_ARCH_2__)
+		return "ARM2";
+	#elif defined(__ARM_ARCH_3__) || defined(__ARM_ARCH_3M__)
+		return "ARM3";
+	#elif defined(__ARM_ARCH_4T__) || defined(__TARGET_ARM_4T)
+		return "ARM4T";
+	#elif defined(__ARM_ARCH_5_) || defined(__ARM_ARCH_5E_)
+		return "ARM5"
+	#elif defined(__ARM_ARCH_6T2_) || defined(__ARM_ARCH_6T2_)
+		return "ARM6T2";
+	#elif defined(__ARM_ARCH_6__) || defined(__ARM_ARCH_6J__) || defied(__ARM_ARCH_6K__) || defined(__ARM_ARCH_6Z__) || defined(__ARM_ARCH_6ZK__)
+		return "ARM6";
+	#elif defined(__ARM_ARCH_7__) || defined(__ARM_ARCH_7A__) || defined(__ARM_ARCH_7R__) || defined(__ARM_ARCH_7M__) || defined(__ARM_ARCH_7S__)
+		return "ARM7";
+	#elif defined(__ARM_ARCH_7A__) || defined(__ARM_ARCH_7R__) || defined(__ARM_ARCH_7M__) || defined(__ARM_ARCH_7S__)
+		return "ARM7A";
+	#elif defined(__ARM_ARCH_7R__) || defined(__ARM_ARCH_7M__) || defined(__ARM_ARCH_7S__)
+		return "ARM7R";
+	#elif defined(__ARM_ARCH_7M__)
+		return "ARM7M";
+	#elif defined(__ARM_ARCH_7S__)
+		return "ARM7S";
+	#elif defined(__aarch64__) || defined(_M_ARM64)
+		return "ARM64";
+	#elif defined(mips) || defined(__mips__) || defined(__mips)
+		return "MIPS";
+	#elif defined(__sh__)
+		return "SUPERH";
+	#elif defined(__powerpc) || defined(__powerpc__) || defined(__powerpc64__) || defied(__POWERPC__) || defined(__ppc__) || defined(__PPC__) || defined(_ARCH_PPC)
+		return "POWERPC";
+	#elif defined(__PPC64__) || defined(__ppc64__) || defined(_ARCH_PPC64)
+		return "POWERPC64";
+	#elif defined(__sparc__) || defined(__sparc)
+		return "SPARC";
+	#elif defined(__m68k__)
+		return "M68K";
+	#else
+		return "UNKNOWN";
+	#endif
+	}
+}
+
 // detección de la arquitectura
 #if defined(__aarch64__) || defined(_M_ARM64)
     #define ARCH_ARM true
@@ -227,24 +275,52 @@ int main(int argc, char** argv)
     //SetConfigFlags(FLAG_MSAA_4X_HINT);
     InitWindow(screenWidth, screenHeight, "delta gui test");
 
+    std::cout << "ARCHITECTURE: " << getBuild() << std::endl;
+
     // CARGAR LOS MODELOS DESPUÉS DE INICIAR LA VENTANA
-    //Model* platformModel = new Model(LoadModelFromMesh(GenMeshPoly(10,PLATFORM_TRI)));
-    Model* platformModel = new Model(LoadModel(std::string("resources/models/platform/platform.obj").c_str()));
-    platformModel->transform = MatrixScale(1000,1000,1000);
-    platformModel->transform = MatrixMultiply(platformModel->transform, MatrixRotate((Vector3){0,1,0},45*DEG2RAD));
-    platformModel->transform = MatrixMultiply(platformModel->transform, MatrixTranslate(0,-24,0));
+    Model* platformModel = new Model(LoadModelFromMesh(GenMeshPoly(10,PLATFORM_TRI)));
+    //Model* platformModel = new Model(LoadModel(std::string("resources/models/platform/platform.obj").c_str()));
+    //platformModel->transform = MatrixScale(1000,1000,1000);
+    //platformModel->transform = MatrixMultiply(platformModel->transform, MatrixRotate((Vector3){0,1,0},45*DEG2RAD));
+    //platformModel->transform = MatrixMultiply(platformModel->transform, MatrixTranslate(0,-24,0));
     Model* baseModel = new Model(LoadModelFromMesh(GenMeshPoly(10,BASS_TRI)));
     //Model* baseModel = new Model(LoadModel(std::string("resources/models/effector/effector.obj").c_str()));
     //baseModel->transform = MatrixScale(1000,1000,1000);
     //baseModel->transform = MatrixMultiply(baseModel->transform, MatrixRotate((Vector3){0,1,0},45*DEG2RAD));
+    Model* armModel1 = new Model(LoadModelFromMesh(GenMeshCube(4.0f,ARM_LENGTH,4.0f)));
+    Model* armModel2 = new Model(LoadModelFromMesh(GenMeshCube(4.0f,ARM_LENGTH,4.0f)));
+    Model* armModel3 = new Model(LoadModelFromMesh(GenMeshCube(4.0f,ARM_LENGTH,4.0f)));
+    Matrix arm1InitialMatrix = MatrixIdentity();
+    Matrix arm2InitialMatrix = MatrixIdentity();
+    Matrix arm3InitialMatrix = MatrixIdentity();
+    arm1InitialMatrix = MatrixMultiply(arm1InitialMatrix,MatrixTranslate(0,ARM_LENGTH/2.0f,0));
+    arm2InitialMatrix = MatrixMultiply(arm2InitialMatrix,MatrixTranslate(0,ARM_LENGTH/2.0f,0));
+    arm3InitialMatrix = MatrixMultiply(arm3InitialMatrix,MatrixTranslate(0,ARM_LENGTH/2.0f,0));
+    arm1InitialMatrix = MatrixMultiply(arm1InitialMatrix,MatrixRotate((Vector3){0,0,1}, -M_PI_2));
+    arm2InitialMatrix = MatrixMultiply(arm2InitialMatrix,MatrixRotate((Vector3){0,0,1}, -M_PI_2));
+    arm3InitialMatrix = MatrixMultiply(arm3InitialMatrix,MatrixRotate((Vector3){0,0,1}, -M_PI_2));
+    /*
     Model* armModel1 = new Model(LoadModel(std::string("resources/models/arm/simplify_arm.obj").c_str()));
-    //Model* armModel1 = new Model(LoadModelFromMesh(GenMeshCube(4.0f,4.0f,ARM_LENGTH)));
     Model* armModel2 = new Model(LoadModel(std::string("resources/models/arm/simplify_arm.obj").c_str()));
     Model* armModel3 = new Model(LoadModel(std::string("resources/models/arm/simplify_arm.obj").c_str()));
+    */
+    Model* rodModel1 = new Model(LoadModelFromMesh(GenMeshCube(4.0f,ROD_LENGTH,4.0f)));
+    Model* rodModel2 = new Model(LoadModelFromMesh(GenMeshCube(4.0f,ROD_LENGTH,4.0f)));
+    Model* rodModel3 = new Model(LoadModelFromMesh(GenMeshCube(4.0f,ROD_LENGTH,4.0f)));
+    Matrix rod1InitialMatrix = MatrixIdentity();
+    Matrix rod2InitialMatrix = MatrixIdentity();
+    Matrix rod3InitialMatrix = MatrixIdentity();
+    rod1InitialMatrix = MatrixMultiply(rod1InitialMatrix,MatrixTranslate(0,ROD_LENGTH/2.0f,0));
+    rod2InitialMatrix = MatrixMultiply(rod2InitialMatrix,MatrixTranslate(0,ROD_LENGTH/2.0f,0));
+    rod3InitialMatrix = MatrixMultiply(rod3InitialMatrix,MatrixTranslate(0,ROD_LENGTH/2.0f,0));
+    rod1InitialMatrix = MatrixMultiply(rod1InitialMatrix,MatrixRotate((Vector3){0,0,1}, -M_PI_2));
+    rod2InitialMatrix = MatrixMultiply(rod2InitialMatrix,MatrixRotate((Vector3){0,0,1}, -M_PI_2));
+    rod3InitialMatrix = MatrixMultiply(rod3InitialMatrix,MatrixRotate((Vector3){0,0,1}, -M_PI_2));
+    /*
     Model* rodModel1 = new Model(LoadModel(std::string("resources/models/rod/simplify_rod.obj").c_str()));
-    //Model* rodModel1 = new Model(LoadModelFromMesh(GenMeshCube(4.0f,4.0f,ROD_LENGTH)));
     Model* rodModel2 = new Model(LoadModel(std::string("resources/models/rod/simplify_rod.obj").c_str()));
     Model* rodModel3 = new Model(LoadModel(std::string("resources/models/rod/simplify_rod.obj").c_str()));
+    */
 
     armModel1->materials[0].maps[MATERIAL_MAP_DIFFUSE].color = YELLOW;
     armModel2->materials[0].maps[MATERIAL_MAP_DIFFUSE].color = ORANGE;
@@ -253,20 +329,20 @@ int main(int argc, char** argv)
     rodModel2->materials[0].maps[MATERIAL_MAP_DIFFUSE].color = GREEN;
     rodModel3->materials[0].maps[MATERIAL_MAP_DIFFUSE].color = BLUE;
 
-    Matrix arm1InitialMatrix = MatrixScale(1000,1000,1000);
+    //Matrix arm1InitialMatrix = MatrixScale(1000,1000,1000);
     arm1InitialMatrix = MatrixMultiply(arm1InitialMatrix,MatrixRotate((Vector3){0,1,0}, M_PI_2));
-    Matrix arm2InitialMatrix = MatrixScale(1000,1000,1000);
+    //Matrix arm2InitialMatrix = MatrixScale(1000,1000,1000);
     arm2InitialMatrix = MatrixMultiply(arm2InitialMatrix,MatrixRotate((Vector3){0,1,0}, M_PI_2));
     arm2InitialMatrix = MatrixMultiply(arm2InitialMatrix,MatrixRotate((Vector3){0.0f,1.0f,0.0f},-120.0f*DEG2RAD));
-    Matrix arm3InitialMatrix = MatrixScale(1000,1000,1000);
+    //Matrix arm3InitialMatrix = MatrixScale(1000,1000,1000);
     arm3InitialMatrix = MatrixMultiply(arm3InitialMatrix,MatrixRotate((Vector3){0,1,0}, M_PI_2));
     arm3InitialMatrix = MatrixMultiply(arm3InitialMatrix, MatrixRotate((Vector3){0.0f,1.0f,0.0f},120.0f*DEG2RAD));
-    Matrix rod1InitialMatrix = MatrixScale(1000,1000,1000);
+    //Matrix rod1InitialMatrix = MatrixScale(1000,1000,1000);
     rod1InitialMatrix = MatrixMultiply(rod1InitialMatrix,MatrixRotate((Vector3){0,1,0}, M_PI_2));
-    Matrix rod2InitialMatrix = MatrixScale(1000,1000,1000);
+    //Matrix rod2InitialMatrix = MatrixScale(1000,1000,1000);
     rod2InitialMatrix = MatrixMultiply(rod2InitialMatrix,MatrixRotate((Vector3){0,1,0}, M_PI_2));
     rod2InitialMatrix = MatrixMultiply(rod2InitialMatrix,MatrixRotate((Vector3){0.0f,1.0f,0.0f},-120.0f*DEG2RAD));
-    Matrix rod3InitialMatrix = MatrixScale(1000,1000,1000);
+    //Matrix rod3InitialMatrix = MatrixScale(1000,1000,1000);
     rod3InitialMatrix = MatrixMultiply(rod3InitialMatrix,MatrixRotate((Vector3){0,1,0}, M_PI_2));
     rod3InitialMatrix = MatrixMultiply(rod3InitialMatrix,MatrixRotate((Vector3){0.0f,1.0f,0.0f},120.0f*DEG2RAD));
 
