@@ -1,4 +1,11 @@
 #define RLIGHTS_IMPLEMENTATION      //Importante para que defina las funciones de rlights y eso
+
+// detección de la arquitectura
+#if defined(__aarch64__) || defined(_M_ARM64)
+    #define ARCH_ARM true
+#else
+    #define ARCH_ARM false
+#endif
 //#define PLATFORM_DESKTOP
 #include "raylib.h"
 #include "raymath.h"
@@ -16,16 +23,13 @@
 #include <thread>
 #include <unistd.h>
 
+#if ARCH_ARM
+    #include <stepper.h>
+#endif
+
 // versión de glsl para shaders
 #define GLSL_VERSION 100
 
-// manejo de i/o
-#if defined(__aarch64__) || defined(_M_ARM64)
-    #include <pigpio.h>
-    #define ARCH_ARM true
-#else
-    #define ARCH_ARM false
-#endif
 
 #if ARCH_ARM
     #define DISPLAY_WIDTH 320
@@ -46,11 +50,6 @@
 #define PLATFORM_POS (Vector3){0,ARM_LENGTH+ROD_LENGTH,0}
 
 #define STEPS_PER_REV 200 // 1.8 grados
-
-#define PIN_BOB1 12
-#define PIN_BOB2 16
-#define PIN_BOB3 20
-#define PIN_BOB4 21
 
 static bool SHOW_FPS = true;
 static bool STARTING_ANIMATION = false;
@@ -164,20 +163,26 @@ void moveToAngle(double currentAngle, double targetAngle) {
     int steps = (int)round(angleDiff * STEPS_PER_REV / 360.0);
 
     // Determinar la dirección del movimiento
-    int direction = (steps > 0) ? 1 : -1;
+    bool direction = (steps > 0) ? 1 : 0;
 
     // Hacer los pasos necesarios
-    for (int i = 0; i < abs(steps); i++) {
-        stepIndex += direction;
-        if (stepIndex > 3) stepIndex = 0;
-        if (stepIndex < 0) stepIndex = 3;
+    #if ARCH_ARM
+        do4Steps(abs(steps), direction);
+    #else
+    /*
+        for (int i = 0; i < abs(steps); i++) {
+            stepIndex += direction;
+            if (stepIndex > 3) stepIndex = 0;
+            if (stepIndex < 0) stepIndex = 3;
 
-        // Activar las bobinas para el paso actual
-        setCoils(stepSequence[stepIndex][0], stepSequence[stepIndex][1], stepSequence[stepIndex][2], stepSequence[stepIndex][3]);
+            // Activar las bobinas para el paso actual
+            setCoils(stepSequence[stepIndex][0], stepSequence[stepIndex][1], stepSequence[stepIndex][2], stepSequence[stepIndex][3]);
 
-        // Añadir un pequeño retraso para permitir que el motor se mueva (ajustar según sea necesario)
-        usleep(1000); // 1000 microsegundos = 1 milisegundo
-    }
+            // Añadir un pequeño retraso para permitir que el motor se mueva (ajustar según sea necesario)
+            usleep(1000); // 1000 microsegundos = 1 milisegundo
+        }
+    */
+    #endif
 }
 
 int main(int argc, char** argv)
@@ -304,13 +309,26 @@ int main(int argc, char** argv)
             return 1;
         }
         fprintf(stdout, "pigpio initialisation complete\n");
-        
-        gpioSetMode(PIN_BOB1, PI_OUTPUT);
-        gpioSetMode(PIN_BOB2, PI_OUTPUT);
-        gpioSetMode(PIN_BOB3, PI_OUTPUT);
-        gpioSetMode(PIN_BOB4, PI_OUTPUT);
+
+        gpioSetMode(DS,PI_OUTPUT);
+        gpioSetMode(SHCP,PI_OUTPUT);
+        gpioSetMode(STCP,PI_OUTPUT);
+        gpioSetMode(OE,PI_OUTPUT);
+        gpioSetMode(MR, PI_OUTPUT);
+        gpioSetMode(VACUUM, PI_OUTPUT);
+
+        gpioWrite(MR, 1);
+        gpioWrite(OE, 0);
+        gpioWrite(DS, 0);
+        gpioWrite(SHCP, 0);
+        gpioWrite(STCP, 0);
+        gpioWrite(VACUUM, 0);
+
+        waitMicroSeconds = 500; 
+        pulseCount = 5;
 
         // vueltas de testeo
+        /*
         for(int i=0;i<50;i++){
             stepIndex = 0;
             setCoils(stepSequence[stepIndex][0], stepSequence[stepIndex][1], stepSequence[stepIndex][2], stepSequence[stepIndex][3]);
@@ -342,6 +360,7 @@ int main(int argc, char** argv)
         }
         usleep(10000);
         setCoils(1, 1, 1, 1);
+        */
     #endif
 
     // inicio captura de video
