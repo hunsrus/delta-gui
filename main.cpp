@@ -555,10 +555,23 @@ int main(int argc, char** argv)
 
             if(fabs(dk.a - lastA) > 1.8)
             {
+                motorID = 0;
                 moveToAngle(lastA, dk.a);
 
                 lastA = dk.a;
+            }
+            if(fabs(dk.b - lastB) > 1.8)
+            {
+                motorID = 1;
+                moveToAngle(lastB, dk.b);
+
                 lastB = dk.b;
+            }
+            if(fabs(dk.c - lastC) > 1.8)
+            {
+                motorID = 2;
+                moveToAngle(lastC, dk.c);
+
                 lastC = dk.c;
             }
         }
