@@ -553,27 +553,26 @@ int main(int argc, char** argv)
             rodModel3->transform = MatrixMultiply(rodModel3->transform,MatrixRotate((Vector3){0,-1,0},rod3Theta));
             rodModel3->transform = MatrixMultiply(rodModel3->transform,MatrixTranslate(rod3Pos.x, rod3Pos.y, rod3Pos.z));
 
+            #if ARCH_ARM
             if(fabs(dk.a - lastA) > 1.8)
             {
                 motorID = 0;
                 moveToAngle(lastA, dk.a);
-
-                lastA = dk.a;
             }
             if(fabs(dk.b - lastB) > 1.8)
             {
                 motorID = 1;
                 moveToAngle(lastB, dk.b);
-
-                lastB = dk.b;
             }
             if(fabs(dk.c - lastC) > 1.8)
             {
                 motorID = 2;
                 moveToAngle(lastC, dk.c);
-
-                lastC = dk.c;
             }
+            lastA = dk.a;
+            lastB = dk.b;
+            lastC = dk.c;
+            #endif
         }
 
         lastX = x;
