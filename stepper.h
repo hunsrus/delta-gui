@@ -31,14 +31,13 @@ void secuencia(){
   int i,j;
   for(i = 0; i < MOTORS_N; i++)
   {
-    for(j = 0; j < 4; j++)
+    for(j = 3; j > -1; j--)
     {
       gpioWrite(DS, coils[i][j]);
-      if((i < MOTORS_N-1) && (j < COILS_N-1)){
-        gpioWrite(SHCP, 0);
-        gpioWrite(SHCP, 1);
-        gpioWrite(SHCP, 0);
-      }
+      
+      gpioWrite(SHCP, 0);
+      gpioWrite(SHCP, 1);
+      gpioWrite(SHCP, 0);
     }
   }
   gpioWrite(STCP, 0);
