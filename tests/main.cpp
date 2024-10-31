@@ -19,8 +19,8 @@
 #define MS1B 35
 #define MS2B 36
 #define MS3B 37
-#define BOMBA 39
 */
+#define BOMBA 27
 
 int main(int argc, char** argv)
 {
@@ -50,8 +50,8 @@ int main(int argc, char** argv)
     gpioSetMode(MS1B,PI_OUTPUT);
     gpioSetMode(MS2B,PI_OUTPUT);
     gpioSetMode(MS3B,PI_OUTPUT);
-    gpioSetMode(BOMBA,PI_OUTPUT);
     */
+    gpioSetMode(BOMBA,PI_OUTPUT);
 
     gpioWrite(MS1,1);
     gpioWrite(MS2,1);
@@ -60,12 +60,12 @@ int main(int argc, char** argv)
     gpioWrite(MS1B,0);
     gpioWrite(MS2B,0);
     gpioWrite(MS3B,0);
-    gpioWrite(BOMBA,0);
     */
+    gpioWrite(BOMBA,0);
 
     while(true)
     {
-        //gpioWrite(BOMBA, 0);
+        gpioWrite(BOMBA, 0);
         gpioWrite(DIR1, 0);
         //gpioWrite(DIR2, 0);
         //gpioWrite(DIR3, 0);
@@ -83,8 +83,8 @@ int main(int argc, char** argv)
             usleep(1500);
         }
         i = 0;
-        //gpioWrite(BOMBA, 1);
-            usleep(2000);
+        gpioWrite(BOMBA, 1);
+        usleep(2000);
         //  gpioWrite(GATE, 1);
         gpioWrite(DIR1, 1);
         //gpioWrite(DIR2, 1);
