@@ -49,7 +49,9 @@
 #define PLATFORM_TRI 42.0f
 #define PLATFORM_POS (Vector3){0,ARM_LENGTH+ROD_LENGTH,0}
 
-#define STEPS_PER_REV 200 // 1.8 grados
+#define STEPS_NUM 4
+#define STEPS_PER_REV 200*STEPS_NUM/4 // 1.8 grados
+#define STEP_ANGLE 360.0/STEPS_PER_REV*1.0
 
 static bool SHOW_FPS = true;
 static bool STARTING_ANIMATION = false;
