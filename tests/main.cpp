@@ -21,8 +21,9 @@
 #define MS1B 35
 #define MS2B 36
 #define MS3B 37
-*/
+
 #define BOMBA 27
+*/
 
 int main(int argc, char** argv)
 {
