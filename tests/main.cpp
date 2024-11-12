@@ -37,11 +37,11 @@ int main(int argc, char** argv)
     
     gpioSetMode(DIR1,PI_OUTPUT);
     gpioSetMode(STEP1,PI_OUTPUT);
-    /*
     gpioSetMode(DIR2,PI_OUTPUT);
     gpioSetMode(STEP2,PI_OUTPUT);
     gpioSetMode(DIR3,PI_OUTPUT);
     gpioSetMode(STEP3,PI_OUTPUT);
+    /*
     gpioSetMode(DIR4,PI_OUTPUT);
     gpioSetMode(STEP4,PI_OUTPUT);
     */
@@ -69,18 +69,18 @@ int main(int argc, char** argv)
     {
         gpioWrite(BOMBA, 0);
         gpioWrite(DIR1, 0);
-        //gpioWrite(DIR2, 0);
-        //gpioWrite(DIR3, 0);
+        gpioWrite(DIR2, 0);
+        gpioWrite(DIR3, 0);
         //gpioWrite(DIR4, 0);
         for(i=0; i<1000; i++){
             gpioWrite(STEP1, 1);
-            //gpioWrite(STEP2, 1);
-            //gpioWrite(STEP3, 1);
+            gpioWrite(STEP2, 1);
+            gpioWrite(STEP3, 1);
             //gpioWrite(STEP4, 1);
             usleep(1500);
             gpioWrite(STEP1, 0);
-            //gpioWrite(STEP2, 0);
-            //gpioWrite(STEP3, 0);
+            gpioWrite(STEP2, 0);
+            gpioWrite(STEP3, 0);
             //gpioWrite(STEP4, 0);
             usleep(1500);
         }
@@ -89,18 +89,18 @@ int main(int argc, char** argv)
         usleep(2000);
         //  gpioWrite(GATE, 1);
         gpioWrite(DIR1, 1);
-        //gpioWrite(DIR2, 1);
-        //gpioWrite(DIR3, 1);
+        gpioWrite(DIR2, 1);
+        gpioWrite(DIR3, 1);
         //gpioWrite(DIR4, 1);
         for(i=0; i<1000; i++){
             gpioWrite(STEP1, 1);
-            //gpioWrite(STEP2, 1);
-            //gpioWrite(STEP3, 1);
+            gpioWrite(STEP2, 1);
+            gpioWrite(STEP3, 1);
             //gpioWrite(STEP4, 1);
             usleep(1500);
             gpioWrite(STEP1, 0);
-            //gpioWrite(STEP2, 0);
-            //gpioWrite(STEP3, 0);
+            gpioWrite(STEP2, 0);
+            gpioWrite(STEP3, 0);
             //gpioWrite(STEP4, 0);
             usleep(1500); 
         }
