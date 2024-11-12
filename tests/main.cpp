@@ -4,17 +4,19 @@
 
 #define DIR1 22
 #define STEP1 23
-/*
 #define DIR2 24
 #define STEP2 25
 #define DIR3 26
 #define STEP3 27
+/*
 #define DIR4 33
 #define STEP4 32
 */
-#define MS1 24
-#define MS2 25
-#define MS3 26
+
+#define MS1 16
+#define MS2 20
+#define MS3 21
+
 /*
 #define MS1B 35
 #define MS2B 36
