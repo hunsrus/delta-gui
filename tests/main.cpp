@@ -4,7 +4,7 @@
 
 #define DIR1 22
 #define STEP1 23
-#define DIR2 24
+#define DIR2 5
 #define STEP2 25
 #define DIR3 26
 #define STEP3 27
