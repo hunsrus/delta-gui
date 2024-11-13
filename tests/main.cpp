@@ -2,8 +2,8 @@
 #include <unistd.h> // para usleep
 #include <pigpio.h>
 
-#define DIR1 15
-#define STEP1 14
+#define DIR1 6
+#define STEP1 5
 #define DIR2 18
 #define STEP2 17
 #define DIR3 22
