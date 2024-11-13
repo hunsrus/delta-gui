@@ -23,10 +23,6 @@
 #include <thread>
 #include <unistd.h>
 
-#if ARCH_ARM
-    #include "stepper.h"
-#endif
-
 #define PIN_DIR1 6
 #define PIN_STEP1 5
 #define PIN_DIR2 18
@@ -60,9 +56,9 @@
 #define PLATFORM_TRI 42.0f
 #define PLATFORM_POS (Vector3){0,ARM_LENGTH+ROD_LENGTH,0}
 
-#define STEPS_NUM 16
-#define STEPS_PER_REV 200*STEPS_NUM/4 // 1.8 grados
-#define STEP_ANGLE 360.0/STEPS_PER_REV*1.0
+#define STEPS_NUM 4
+#define STEPS_PER_REV 200*STEPS_NUM // 1.8 grados
+#define STEP_ANGLE 1.8
 
 static bool SHOW_FPS = true;
 static bool STARTING_ANIMATION = false;
@@ -173,7 +169,7 @@ void moveToAngle(int motorID, double currentAngle, double targetAngle) {
     double angleDiff = targetAngle - currentAngle;
 
     // Calcular el número de pasos necesarios
-    int steps = (int)round(angleDiff * STEPS_PER_REV / 360.0);
+    int steps = (int)round(angleDiff/1.8);
 
     // Determinar la dirección del movimiento
     bool direction = (steps > 0) ? 1 : 0;
@@ -183,23 +179,32 @@ void moveToAngle(int motorID, double currentAngle, double targetAngle) {
         if(motorID = 1)
         {
             gpioWrite(PIN_DIR1, direction);
-            gpioWrite(PIN_STEP1, 1);
-            usleep(1500);
-            gpioWrite(PIN_STEP1, 0);
+            for (int i = 0; i < abs(steps); i++)
+            {
+                gpioWrite(PIN_STEP1, 1);
+                usleep(1500);
+                gpioWrite(PIN_STEP1, 0);
+            }
         }
         if(motorID = 2)
         {
             gpioWrite(PIN_DIR2, direction);
-            gpioWrite(PIN_STEP2, 1);
-            usleep(1500);
-            gpioWrite(PIN_STEP2, 0);
+            for (int i = 0; i < abs(steps); i++)
+            {
+                gpioWrite(PIN_STEP2, 1);
+                usleep(1500);
+                gpioWrite(PIN_STEP2, 0);
+            }
         }
         if(motorID = 3)
         {
-            gpioWrite(PIN_DIR2, direction);
-            gpioWrite(PIN_STEP2, 1);
-            usleep(1500);
-            gpioWrite(PIN_STEP, 0);
+            gpioWrite(PIN_DIR3, direction);
+            for (int i = 0; i < abs(steps); i++)
+            {
+                gpioWrite(PIN_STEP3, 1);
+                usleep(1500);
+                gpioWrite(PIN_STEP3, 0);
+            }
         }
     #else
     /*
@@ -386,9 +391,9 @@ int main(int argc, char** argv)
         gpioSetMode(PIN_MS2,PI_OUTPUT);
         gpioSetMode(PIN_MS3,PI_OUTPUT);
 
-        gpioWrite(MS1,1);
-        gpioWrite(MS2,1);
-        gpioWrite(MS3,1);
+        gpioWrite(PIN_MS1,1);
+        gpioWrite(PIN_MS2,1);
+        gpioWrite(PIN_MS3,1);
     #endif
 
     // inicio captura de video
@@ -552,15 +557,15 @@ int main(int argc, char** argv)
             #if ARCH_ARM
             if(fabs(dk.a - lastA) > 1.8)
             {
-                moveToAngle(lastA, dk.a);
+                moveToAngle(1,lastA, dk.a);
             }
             if(fabs(dk.b - lastB) > 1.8)
             {
-                moveToAngle(lastB, dk.b);
+                moveToAngle(2,lastB, dk.b);
             }
             if(fabs(dk.c - lastC) > 1.8)
             {
-                moveToAngle(lastC, dk.c);
+                moveToAngle(3,lastC, dk.c);
             }
             lastA = dk.a;
             lastB = dk.b;
