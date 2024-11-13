@@ -23,6 +23,10 @@
 #include <thread>
 #include <unistd.h>
 
+#if ARCH_ARM
+    #include <pigpio.h>
+#endif
+
 #define PIN_DIR1 6
 #define PIN_STEP1 5
 #define PIN_DIR2 18
@@ -391,9 +395,9 @@ int main(int argc, char** argv)
         gpioSetMode(PIN_MS2,PI_OUTPUT);
         gpioSetMode(PIN_MS3,PI_OUTPUT);
 
-        gpioWrite(PIN_MS1,1);
-        gpioWrite(PIN_MS2,1);
-        gpioWrite(PIN_MS3,1);
+        gpioWrite(PIN_MS1,0);
+        gpioWrite(PIN_MS2,0);
+        gpioWrite(PIN_MS3,0);
     #endif
 
     // inicio captura de video
@@ -404,6 +408,11 @@ int main(int argc, char** argv)
     while(!CAPTURE_READY && CAMERA_AVAILABLE){};
     if(CAMERA_AVAILABLE)
         captureTexture = LoadTextureFromImage(MatToImage(image));
+
+    dk.inverse(x,y,z);
+    lastA = dk.a;
+    lastB = dk.b;
+    lastC = dk.c;
 
     //--------------------------------------------------------------------------------------
     //--------------------------------------------------------------------------------------
@@ -558,18 +567,18 @@ int main(int argc, char** argv)
             if(fabs(dk.a - lastA) > 1.8)
             {
                 moveToAngle(1,lastA, dk.a);
+                lastA = dk.a;
             }
             if(fabs(dk.b - lastB) > 1.8)
             {
                 moveToAngle(2,lastB, dk.b);
+                lastB = dk.b;
             }
             if(fabs(dk.c - lastC) > 1.8)
             {
                 moveToAngle(3,lastC, dk.c);
+                lastC = dk.c;
             }
-            lastA = dk.a;
-            lastB = dk.b;
-            lastC = dk.c;
             #endif
         }
 
