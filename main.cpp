@@ -27,6 +27,17 @@
     #include "stepper.h"
 #endif
 
+#define PIN_DIR1 6
+#define PIN_STEP1 5
+#define PIN_DIR2 18
+#define PIN_STEP2 17
+#define PIN_DIR3 22
+#define PIN_STEP3 23
+
+#define PIN_MS1 2
+#define PIN_MS2 3
+#define PIN_MS3 4
+
 // versión de glsl para shaders
 #define GLSL_VERSION 100
 
@@ -49,7 +60,7 @@
 #define PLATFORM_TRI 42.0f
 #define PLATFORM_POS (Vector3){0,ARM_LENGTH+ROD_LENGTH,0}
 
-#define STEPS_NUM 4
+#define STEPS_NUM 16
 #define STEPS_PER_REV 200*STEPS_NUM/4 // 1.8 grados
 #define STEP_ANGLE 360.0/STEPS_PER_REV*1.0
 
@@ -157,7 +168,7 @@ void setCoils(int coil1, int coil2, int coil3, int coil4) {
 }
 
 // Función para mover el motor de un ángulo actual a un ángulo objetivo
-void moveToAngle(double currentAngle, double targetAngle) {
+void moveToAngle(int motorID, double currentAngle, double targetAngle) {
     // Calcular la diferencia de ángulo
     double angleDiff = targetAngle - currentAngle;
 
@@ -169,7 +180,27 @@ void moveToAngle(double currentAngle, double targetAngle) {
 
     // Hacer los pasos necesarios
     #if ARCH_ARM
-        do4Steps(abs(steps), direction);
+        if(motorID = 1)
+        {
+            gpioWrite(PIN_DIR1, direction);
+            gpioWrite(PIN_STEP1, 1);
+            usleep(1500);
+            gpioWrite(PIN_STEP1, 0);
+        }
+        if(motorID = 2)
+        {
+            gpioWrite(PIN_DIR2, direction);
+            gpioWrite(PIN_STEP2, 1);
+            usleep(1500);
+            gpioWrite(PIN_STEP2, 0);
+        }
+        if(motorID = 3)
+        {
+            gpioWrite(PIN_DIR2, direction);
+            gpioWrite(PIN_STEP2, 1);
+            usleep(1500);
+            gpioWrite(PIN_STEP, 0);
+        }
     #else
     /*
         for (int i = 0; i < abs(steps); i++) {
@@ -344,57 +375,20 @@ int main(int argc, char** argv)
         }
         fprintf(stdout, "pigpio initialisation complete\n");
 
-        gpioSetMode(DS,PI_OUTPUT);
-        gpioSetMode(SHCP,PI_OUTPUT);
-        gpioSetMode(STCP,PI_OUTPUT);
-        gpioSetMode(OE,PI_OUTPUT);
-        gpioSetMode(MR, PI_OUTPUT);
-        gpioSetMode(VACUUM, PI_OUTPUT);
+        gpioSetMode(PIN_DIR1,PI_OUTPUT);
+        gpioSetMode(PIN_STEP1,PI_OUTPUT);
+        gpioSetMode(PIN_DIR2,PI_OUTPUT);
+        gpioSetMode(PIN_STEP2,PI_OUTPUT);
+        gpioSetMode(PIN_DIR3,PI_OUTPUT);
+        gpioSetMode(PIN_STEP3,PI_OUTPUT);
+        
+        gpioSetMode(PIN_MS1,PI_OUTPUT);
+        gpioSetMode(PIN_MS2,PI_OUTPUT);
+        gpioSetMode(PIN_MS3,PI_OUTPUT);
 
-        gpioWrite(MR, 1);
-        gpioWrite(OE, 0);
-        gpioWrite(DS, 0);
-        gpioWrite(SHCP, 0);
-        gpioWrite(STCP, 0);
-        gpioWrite(VACUUM, 0);
-
-        waitMicroSeconds = 500; 
-        pulseCount = 5;
-
-        // vueltas de testeo
-        /*
-        for(int i=0;i<50;i++){
-            stepIndex = 0;
-            setCoils(stepSequence[stepIndex][0], stepSequence[stepIndex][1], stepSequence[stepIndex][2], stepSequence[stepIndex][3]);
-            usleep(10000);
-            stepIndex++;
-            setCoils(stepSequence[stepIndex][0], stepSequence[stepIndex][1], stepSequence[stepIndex][2], stepSequence[stepIndex][3]);
-            usleep(10000);
-            stepIndex++;
-            setCoils(stepSequence[stepIndex][0], stepSequence[stepIndex][1], stepSequence[stepIndex][2], stepSequence[stepIndex][3]);
-            usleep(10000);
-            stepIndex++;
-            setCoils(stepSequence[stepIndex][0], stepSequence[stepIndex][1], stepSequence[stepIndex][2], stepSequence[stepIndex][3]);
-            usleep(10000);
-        }
-        usleep(10000);
-        for(int i=0;i<50;i++){
-            stepIndex = 3;
-            setCoils(stepSequence[stepIndex][0], stepSequence[stepIndex][1], stepSequence[stepIndex][2], stepSequence[stepIndex][3]);
-            usleep(10000);
-            stepIndex--;
-            setCoils(stepSequence[stepIndex][0], stepSequence[stepIndex][1], stepSequence[stepIndex][2], stepSequence[stepIndex][3]);
-            usleep(10000);
-            stepIndex--;
-            setCoils(stepSequence[stepIndex][0], stepSequence[stepIndex][1], stepSequence[stepIndex][2], stepSequence[stepIndex][3]);
-            usleep(10000);
-            stepIndex--;
-            setCoils(stepSequence[stepIndex][0], stepSequence[stepIndex][1], stepSequence[stepIndex][2], stepSequence[stepIndex][3]);
-            usleep(10000);
-        }
-        usleep(10000);
-        setCoils(1, 1, 1, 1);
-        */
+        gpioWrite(MS1,1);
+        gpioWrite(MS2,1);
+        gpioWrite(MS3,1);
     #endif
 
     // inicio captura de video
@@ -558,17 +552,14 @@ int main(int argc, char** argv)
             #if ARCH_ARM
             if(fabs(dk.a - lastA) > 1.8)
             {
-                motorID = 0;
                 moveToAngle(lastA, dk.a);
             }
             if(fabs(dk.b - lastB) > 1.8)
             {
-                motorID = 1;
                 moveToAngle(lastB, dk.b);
             }
             if(fabs(dk.c - lastC) > 1.8)
             {
-                motorID = 2;
                 moveToAngle(lastC, dk.c);
             }
             lastA = dk.a;
