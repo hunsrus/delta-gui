@@ -2,27 +2,27 @@
 #include <unistd.h> // para usleep
 #include <pigpio.h>
 
-#define DIR1 22
-#define STEP1 23
-#define DIR2 5
-#define STEP2 25
-#define DIR3 26
-#define STEP3 27
+#define DIR1 15
+#define STEP1 14
+#define DIR2 18
+#define STEP2 17
+#define DIR3 22
+#define STEP3 23
 /*
 #define DIR4 33
 #define STEP4 32
 */
 
-#define MS1 16
-#define MS2 20
-#define MS3 21
+#define MS1 2
+#define MS2 3
+#define MS3 4
 
 /*
 #define MS1B 35
 #define MS2B 36
 #define MS3B 37
 */
-#define BOMBA 8
+//#define BOMBA 8
 
 
 int main(int argc, char** argv)
@@ -54,7 +54,7 @@ int main(int argc, char** argv)
     gpioSetMode(MS2B,PI_OUTPUT);
     gpioSetMode(MS3B,PI_OUTPUT);
     */
-    gpioSetMode(BOMBA,PI_OUTPUT);
+    //gpioSetMode(BOMBA,PI_OUTPUT);
 
     gpioWrite(MS1,1);
     gpioWrite(MS2,1);
@@ -64,11 +64,11 @@ int main(int argc, char** argv)
     gpioWrite(MS2B,0);
     gpioWrite(MS3B,0);
     */
-    gpioWrite(BOMBA,0);
+    //gpioWrite(BOMBA,0);
 
     while(true)
     {
-        gpioWrite(BOMBA, 0);
+        //gpioWrite(BOMBA, 0);
         gpioWrite(DIR1, 0);
         gpioWrite(DIR2, 0);
         gpioWrite(DIR3, 0);
@@ -86,7 +86,7 @@ int main(int argc, char** argv)
             usleep(1500);
         }
         i = 0;
-        gpioWrite(BOMBA, 1);
+        //gpioWrite(BOMBA, 1);
         usleep(2000);
         //  gpioWrite(GATE, 1);
         gpioWrite(DIR1, 1);
