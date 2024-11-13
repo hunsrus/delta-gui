@@ -60,9 +60,8 @@
 #define PLATFORM_TRI 42.0f
 #define PLATFORM_POS (Vector3){0,ARM_LENGTH+ROD_LENGTH,0}
 
-#define STEPS_NUM 4
-#define STEPS_PER_REV 200*STEPS_NUM // 1.8 grados
-#define STEP_ANGLE 1.8
+#define STEPS_NUM 1
+#define STEP_ANGLE 1.8/STEPS_NUM*1.0
 
 static bool SHOW_FPS = true;
 static bool STARTING_ANIMATION = false;
@@ -155,25 +154,13 @@ int stepSequence[4][4] = {
     {0, 1, 1, 0}  // Paso 4
 };
 
-// Función para establecer el estado de las bobinas
-void setCoils(int coil1, int coil2, int coil3, int coil4) {
-    #if ARCH_ARM
-        // gpioWrite(PIN_BOB1, coil1);
-        // gpioWrite(PIN_BOB2, coil2);
-        // gpioWrite(PIN_BOB3, coil3);
-        // gpioWrite(PIN_BOB4, coil4);
-    #else
-        //printf("Bobinas: %d %d %d %d\n", coil1, coil2, coil3, coil4);
-    #endif
-}
-
 // Función para mover el motor de un ángulo actual a un ángulo objetivo
 void moveToAngle(int motorID, double currentAngle, double targetAngle) {
     // Calcular la diferencia de ángulo
     double angleDiff = targetAngle - currentAngle;
 
     // Calcular el número de pasos necesarios
-    int steps = (int)round(angleDiff/1.8);
+    int steps = (int)round(angleDiff/STEP_ANGLE);
 
     // Determinar la dirección del movimiento
     bool direction = (steps > 0) ? 1 : 0;
@@ -395,9 +382,28 @@ int main(int argc, char** argv)
         gpioSetMode(PIN_MS2,PI_OUTPUT);
         gpioSetMode(PIN_MS3,PI_OUTPUT);
 
-        gpioWrite(PIN_MS1,0);
-        gpioWrite(PIN_MS2,0);
-        gpioWrite(PIN_MS3,0);
+        if(STEPS_NUM == 1)
+        {
+            gpioWrite(PIN_MS1,0);
+            gpioWrite(PIN_MS2,0);
+            gpioWrite(PIN_MS3,0);
+        }else if(STEPS_NUM == 2){
+            gpioWrite(PIN_MS1,1);
+            gpioWrite(PIN_MS2,0);
+            gpioWrite(PIN_MS3,0);
+        }else if(STEPS_NUM == 4){
+            gpioWrite(PIN_MS1,0);
+            gpioWrite(PIN_MS2,1);
+            gpioWrite(PIN_MS3,0);
+        }else if(STEPS_NUM == 8){
+            gpioWrite(PIN_MS1,1);
+            gpioWrite(PIN_MS2,1);
+            gpioWrite(PIN_MS3,0);
+        }else if(STEPS_NUM == 16){
+            gpioWrite(PIN_MS1,1);
+            gpioWrite(PIN_MS2,1);
+            gpioWrite(PIN_MS3,1);
+        }
     #endif
 
     // inicio captura de video
@@ -564,17 +570,17 @@ int main(int argc, char** argv)
             rodModel3->transform = MatrixMultiply(rodModel3->transform,MatrixTranslate(rod3Pos.x, rod3Pos.y, rod3Pos.z));
 
             #if ARCH_ARM
-            if(fabs(dk.a - lastA) > 1.8)
+            if(fabs(dk.a - lastA) > STEP_ANGLE)
             {
                 moveToAngle(1,lastA, dk.a);
                 lastA = dk.a;
             }
-            if(fabs(dk.b - lastB) > 1.8)
+            if(fabs(dk.b - lastB) > STEP_ANGLE)
             {
                 moveToAngle(2,lastB, dk.b);
                 lastB = dk.b;
             }
-            if(fabs(dk.c - lastC) > 1.8)
+            if(fabs(dk.c - lastC) > STEP_ANGLE)
             {
                 moveToAngle(3,lastC, dk.c);
                 lastC = dk.c;
