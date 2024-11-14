@@ -258,6 +258,9 @@ int main(int argc, char** argv)
     //SetConfigFlags(FLAG_MSAA_4X_HINT);
     InitWindow(screenWidth, screenHeight, "delta gui test");
 
+    Font font = LoadFont("resources/fonts/JetBrainsMono/JetBrainsMono-Bold.ttf");
+    float fontSize = MARGIN;//font.baseSize;
+
     #if ARCH_ARM
         std::cout << "ARCHITECTURE: ARM" << std::endl;
     #else
@@ -638,18 +641,20 @@ int main(int argc, char** argv)
             DrawTextureEx(captureTexture, captureViewPos, 0, viewSize.x/captureTexture.width,WHITE);
             Rectangle captureViewRectangle = {captureViewPos.x, captureViewPos.y, captureTexture.width*(viewSize.x/captureTexture.width), captureTexture.height*(viewSize.x/captureTexture.width)};
             DrawRectangleLinesEx(captureViewRectangle,2.0f,COLOR_FG);
-
-            //sprintf(c,"ANGLE: %f",auxValue);
-            //DrawText(c, MARGIN, MARGIN*5, MARGIN, COLOR_FG);
+            
+            sprintf(c,"ANG\t-\tM1:\t%+03.2f\tM2:\t%+03.2f\tM3:\t%+03.2f",dk.a, dk.b, dk.c);
+            DrawTextEx(font,c,(Vector2){MARGIN,MARGIN*7},fontSize,1,COLOR_FG);
+            sprintf(c,"POS\t-\tX:\t%+03.2f\tY:\t%+03.2f\tZ:\t%+03.2f",x, y, z);
+            DrawTextEx(font,c,(Vector2){MARGIN,MARGIN*9},fontSize,1,COLOR_FG);
 
             if(SHOW_FPS)
             {
                 sprintf(c,"FPS %d",GetFPS());
-                DrawText(c, MARGIN, MARGIN, MARGIN, COLOR_FG);
+                DrawTextEx(font,c,(Vector2){MARGIN,MARGIN},fontSize,1,COLOR_FG);
                 sprintf(c,"STARTING_ANIMATION %i",STARTING_ANIMATION);
-                DrawText(c, MARGIN, MARGIN*3, MARGIN, COLOR_FG);
+                DrawTextEx(font,c,(Vector2){MARGIN,MARGIN*3},fontSize,1,COLOR_FG);
                 sprintf(c,"SHADER_RESOLUTION %.2f",shaderResolution[0]);
-                DrawText(c, MARGIN, MARGIN*5, MARGIN, COLOR_FG);
+                DrawTextEx(font,c,(Vector2){MARGIN,MARGIN*5},fontSize,1,COLOR_FG);
             }
             if(STARTING_ANIMATION && animationState == 0)
             {
