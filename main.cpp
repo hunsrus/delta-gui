@@ -38,10 +38,11 @@
 #define PIN_MS2 3
 #define PIN_MS3 4
 
-#define PIN_JOY_X0
-#define PIN_JOY_X1
-#define PIN_JOY_Y0
-#define PIN_JOY_Y1
+#define PIN_JOY_X0 19
+#define PIN_JOY_X1 26
+#define PIN_JOY_Y0 20
+#define PIN_JOY_Y1 16
+#define PIN_JOY_PB 21
 
 // versión de glsl para shaders
 #define GLSL_VERSION 100
@@ -470,19 +471,20 @@ int main(int argc, char** argv)
         }else camera.fovy = CAMERA_FOV;
 
         #if ARCH_ARM
-            if(gpioRead(PIN_JOY_X0) == 0 && gpioRead(PIN_JOY_X1) == 0)
+            // centro x0=1 x1=0 / y0=1 y1=0
+            if(gpioRead(PIN_JOY_X0) == 0 && gpioRead(PIN_JOY_X1) == 0) //izq
             {
                 y -= 1.0f;
             }
-            if(gpioRead(PIN_JOY_X0) == 0 && gpioRead(PIN_JOY_X1) == 0)
+            if(gpioRead(PIN_JOY_X0) == 1 && gpioRead(PIN_JOY_X1) == 1) //der
             {
                 y += 1.0f;
             }
-            if(gpioRead(PIN_JOY_Y0) == 0 && gpioRead(PIN_JOY_Y1) == 0)
+            if(gpioRead(PIN_JOY_Y0) == 1 && gpioRead(PIN_JOY_Y1) == 1) //abajo
             {
                 x -= 1.0f;
             }
-            if(gpioRead(PIN_JOY_Y0) == 0 && gpioRead(PIN_JOY_Y1) == 0)
+            if(gpioRead(PIN_JOY_Y0) == 0 && gpioRead(PIN_JOY_Y1) == 0) //arriba
             {
                 x += 1.0f;
             }
