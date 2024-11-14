@@ -46,8 +46,8 @@
     #define DISPLAY_WIDTH 320
     #define DISPLAY_HEIGHT 240
 #else
-    #define DISPLAY_WIDTH 1024
-    #define DISPLAY_HEIGHT 768
+    #define DISPLAY_WIDTH 320
+    #define DISPLAY_HEIGHT 240
 #endif
 #define TARGET_FPS 30
 #define MARGIN 20*(DISPLAY_HEIGHT/768.0f)
@@ -259,7 +259,7 @@ int main(int argc, char** argv)
     InitWindow(screenWidth, screenHeight, "delta gui test");
 
     Font font = LoadFont("resources/fonts/JetBrainsMono/JetBrainsMono-Bold.ttf");
-    float fontSize = MARGIN;//font.baseSize;
+    float fontSize = DISPLAY_HEIGHT/20;//font.baseSize;
 
     #if ARCH_ARM
         std::cout << "ARCHITECTURE: ARM" << std::endl;
@@ -277,9 +277,9 @@ int main(int argc, char** argv)
     //Model* baseModel = new Model(LoadModel(std::string("resources/models/effector/effector.obj").c_str()));
     //baseModel->transform = MatrixScale(1000,1000,1000);
     //baseModel->transform = MatrixMultiply(baseModel->transform, MatrixRotate((Vector3){0,1,0},45*DEG2RAD));
-    Model* armModel1 = new Model(LoadModelFromMesh(GenMeshCube(4.0f,ARM_LENGTH,4.0f)));
-    Model* armModel2 = new Model(LoadModelFromMesh(GenMeshCube(4.0f,ARM_LENGTH,4.0f)));
-    Model* armModel3 = new Model(LoadModelFromMesh(GenMeshCube(4.0f,ARM_LENGTH,4.0f)));
+    Model* armModel1 = new Model(LoadModelFromMesh(GenMeshCube(8.0f,ARM_LENGTH,8.0f)));
+    Model* armModel2 = new Model(LoadModelFromMesh(GenMeshCube(8.0f,ARM_LENGTH,8.0f)));
+    Model* armModel3 = new Model(LoadModelFromMesh(GenMeshCube(8.0f,ARM_LENGTH,8.0f)));
     Matrix arm1InitialMatrix = MatrixIdentity();
     Matrix arm2InitialMatrix = MatrixIdentity();
     Matrix arm3InitialMatrix = MatrixIdentity();
@@ -294,9 +294,9 @@ int main(int argc, char** argv)
     Model* armModel2 = new Model(LoadModel(std::string("resources/models/arm/simplify_arm.obj").c_str()));
     Model* armModel3 = new Model(LoadModel(std::string("resources/models/arm/simplify_arm.obj").c_str()));
     */
-    Model* rodModel1 = new Model(LoadModelFromMesh(GenMeshCube(4.0f,ROD_LENGTH,4.0f)));
-    Model* rodModel2 = new Model(LoadModelFromMesh(GenMeshCube(4.0f,ROD_LENGTH,4.0f)));
-    Model* rodModel3 = new Model(LoadModelFromMesh(GenMeshCube(4.0f,ROD_LENGTH,4.0f)));
+    Model* rodModel1 = new Model(LoadModelFromMesh(GenMeshCube(8.0f,ROD_LENGTH,8.0f)));
+    Model* rodModel2 = new Model(LoadModelFromMesh(GenMeshCube(8.0f,ROD_LENGTH,8.0f)));
+    Model* rodModel3 = new Model(LoadModelFromMesh(GenMeshCube(8.0f,ROD_LENGTH,8.0f)));
     Matrix rod1InitialMatrix = MatrixIdentity();
     Matrix rod2InitialMatrix = MatrixIdentity();
     Matrix rod3InitialMatrix = MatrixIdentity();
@@ -338,7 +338,7 @@ int main(int argc, char** argv)
 
     // Define the camera to look into our 3d world
     //Camera camera = { {-20.0f, 12.0f, 0.0f}, { 0.0f, 4.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, 45.0f, 0 };
-    Camera camera = { {-PLATFORM_TRI*3.5f, (ARM_LENGTH+ROD_LENGTH)*1.0f, 0.0f}, {PLATFORM_POS.x, PLATFORM_POS.y/2.0f, PLATFORM_POS.z}, { 0.0f, 1.0f, 0.0f }, 45.0f, 0 };
+    Camera camera = { {-PLATFORM_TRI*2.0f, (ARM_LENGTH+ROD_LENGTH)*0.7f, 0.0f}, {PLATFORM_POS.x, PLATFORM_POS.y/3.0f, PLATFORM_POS.z}, { 0.0f, 1.0f, 0.0f }, 45.0f, 0 };
     camera.fovy = 180.0f;
     camera.projection = CAMERA_PERSPECTIVE;
 
@@ -362,8 +362,8 @@ int main(int argc, char** argv)
 
 
     //SetCameraMode(camera, CAMERA_THIRD_PERSON);
-	SetCameraMode(camera, CAMERA_ORBITAL);
-    //SetCameraMode(camera, CAMERA_CUSTOM);
+	//SetCameraMode(camera, CAMERA_ORBITAL);
+    SetCameraMode(camera, CAMERA_CUSTOM);
     HideCursor();
     SetTargetFPS(TARGET_FPS);
 
@@ -626,14 +626,14 @@ int main(int argc, char** argv)
         BeginDrawing();
             ClearBackground(COLOR_BG);
             
-            Vector2 viewSize = {(float)renderTextureModel.texture.width/4, (float)renderTextureModel.texture.height/2};
+            Vector2 viewSize = {(float)renderTextureModel.texture.width/3, (float)renderTextureModel.texture.height/2};
             Rectangle viewRectangle = {(float)renderTextureModel.texture.width/2-viewSize.x/2, (float)renderTextureModel.texture.height/2-viewSize.y/2, viewSize.x, -viewSize.y};
             Vector2 viewPos = { screenWidth-viewSize.x-MARGIN, MARGIN};
             DrawTextureRec(renderTextureBackground.texture, viewRectangle, viewPos, WHITE);
-            BeginShaderMode(shader);
+            //BeginShaderMode(shader);
                 // NOTE: Render texture must be y-flipped due to default OpenGL coordinates (left-bottom)
                 DrawTextureRec(renderTextureModel.texture, viewRectangle, viewPos, WHITE);
-            EndShaderMode();
+            //EndShaderMode();
             Rectangle viewBorderRectangle = {viewPos.x, viewPos.y, viewSize.x, viewSize.y};
             DrawRectangleLinesEx(viewBorderRectangle,2.0f,COLOR_FG);
 
@@ -642,9 +642,9 @@ int main(int argc, char** argv)
             Rectangle captureViewRectangle = {captureViewPos.x, captureViewPos.y, captureTexture.width*(viewSize.x/captureTexture.width), captureTexture.height*(viewSize.x/captureTexture.width)};
             DrawRectangleLinesEx(captureViewRectangle,2.0f,COLOR_FG);
             
-            sprintf(c,"ANG\t-\tM1:\t%+03.2f\tM2:\t%+03.2f\tM3:\t%+03.2f",dk.a, dk.b, dk.c);
+            sprintf(c,"A:\t%+03.2f\tB:\t%+03.2f\tC:\t%+03.2f",dk.a, dk.b, dk.c);
             DrawTextEx(font,c,(Vector2){MARGIN,MARGIN*7},fontSize,1,COLOR_FG);
-            sprintf(c,"POS\t-\tX:\t%+03.2f\tY:\t%+03.2f\tZ:\t%+03.2f",x, y, z);
+            sprintf(c,"X:\t%+03.2f\tY:\t%+03.2f\tZ:\t%+03.2f",x, y, z);
             DrawTextEx(font,c,(Vector2){MARGIN,MARGIN*9},fontSize,1,COLOR_FG);
 
             if(SHOW_FPS)
