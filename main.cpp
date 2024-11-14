@@ -38,6 +38,11 @@
 #define PIN_MS2 3
 #define PIN_MS3 4
 
+#define PIN_JOY_X0
+#define PIN_JOY_X1
+#define PIN_JOY_Y0
+#define PIN_JOY_Y1
+
 // versión de glsl para shaders
 #define GLSL_VERSION 100
 
@@ -66,7 +71,7 @@
 double STEP_ANGLE = 1.8/(STEPS_NUM*TRANS_MULTIPLIER*1.0);
 
 static bool SHOW_FPS = true;
-static bool STARTING_ANIMATION = false;
+static bool STARTING_ANIMATION = true;
 
 static Color COLOR_BG = {34,34,34,255};
 static Color COLOR_FG = {238,238,238,255};
@@ -339,7 +344,7 @@ int main(int argc, char** argv)
     // Define the camera to look into our 3d world
     //Camera camera = { {-20.0f, 12.0f, 0.0f}, { 0.0f, 4.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, 45.0f, 0 };
     Camera camera = { {-PLATFORM_TRI*2.0f, (ARM_LENGTH+ROD_LENGTH)*0.7f, 0.0f}, {PLATFORM_POS.x, PLATFORM_POS.y/3.0f, PLATFORM_POS.z}, { 0.0f, 1.0f, 0.0f }, 45.0f, 0 };
-    camera.fovy = 180.0f;
+    camera.fovy = 179.0f;
     camera.projection = CAMERA_PERSPECTIVE;
 
     // Create a RenderTexture2D to be used for render to texture
@@ -386,6 +391,11 @@ int main(int argc, char** argv)
         gpioSetMode(PIN_MS1,PI_OUTPUT);
         gpioSetMode(PIN_MS2,PI_OUTPUT);
         gpioSetMode(PIN_MS3,PI_OUTPUT);
+
+        gpioSetMode(PIN_JOY_X0,PI_INPUT);
+        gpioSetMode(PIN_JOY_X1,PI_INPUT);
+        gpioSetMode(PIN_JOY_Y0,PI_INPUT);
+        gpioSetMode(PIN_JOY_Y1,PI_INPUT);
 
         if(STEPS_NUM == 1)
         {
@@ -453,36 +463,55 @@ int main(int argc, char** argv)
             animationStep++;
             if(animationState == 1)
             {
-                camera.fovy = camera.fovy-0.0001f*animationStep/GetFrameTime();
+                camera.fovy = camera.fovy-0.001f*animationStep/GetFrameTime();
                 if(camera.fovy <= CAMERA_FOV) STARTING_ANIMATION = false;
                 //if(animationStep > 100) STARTING_ANIMATION = false;
             }
         }else camera.fovy = CAMERA_FOV;
 
-        if(IsKeyDown(KEY_A))
-        {
-            y -= 1.0f;
-        }
-        if(IsKeyDown(KEY_D))
-        {
-            y += 1.0f;
-        }
-        if(IsKeyDown(KEY_S))
-        {
-            x -= 1.0f;
-        }
-        if(IsKeyDown(KEY_W))
-        {
-            x += 1.0f;
-        }
-        if(IsKeyDown(KEY_LEFT_SHIFT))
-        {
-            z -= 1.0f;
-        }
-        if(IsKeyDown(KEY_LEFT_CONTROL))
-        {
-            z += 1.0f;
-        }
+        #if ARCH_ARM
+            if(gpioRead(PIN_JOY_X0) == 0 && gpioRead(PIN_JOY_X1) == 0)
+            {
+                y -= 1.0f;
+            }
+            if(gpioRead(PIN_JOY_X0) == 0 && gpioRead(PIN_JOY_X1) == 0)
+            {
+                y += 1.0f;
+            }
+            if(gpioRead(PIN_JOY_Y0) == 0 && gpioRead(PIN_JOY_Y1) == 0)
+            {
+                x -= 1.0f;
+            }
+            if(gpioRead(PIN_JOY_Y0) == 0 && gpioRead(PIN_JOY_Y1) == 0)
+            {
+                x += 1.0f;
+            }
+        #else
+            if(IsKeyDown(KEY_A))
+            {
+                y -= 1.0f;
+            }
+            if(IsKeyDown(KEY_D))
+            {
+                y += 1.0f;
+            }
+            if(IsKeyDown(KEY_S))
+            {
+                x -= 1.0f;
+            }
+            if(IsKeyDown(KEY_W))
+            {
+                x += 1.0f;
+            }
+            if(IsKeyDown(KEY_LEFT_SHIFT))
+            {
+                z -= 1.0f;
+            }
+            if(IsKeyDown(KEY_LEFT_CONTROL))
+            {
+                z += 1.0f;
+            }
+        #endif
 
         if(IsKeyDown(KEY_SPACE))
         {
@@ -643,27 +672,39 @@ int main(int argc, char** argv)
             DrawRectangleLinesEx(captureViewRectangle,2.0f,COLOR_FG);
             
             sprintf(c,"A:\t%+03.2f\tB:\t%+03.2f\tC:\t%+03.2f",dk.a, dk.b, dk.c);
-            DrawTextEx(font,c,(Vector2){MARGIN,MARGIN*7},fontSize,1,COLOR_FG);
+            DrawTextEx(font,c,(Vector2){MARGIN,MARGIN*4+fontSize*3},fontSize,1,COLOR_FG);
             sprintf(c,"X:\t%+03.2f\tY:\t%+03.2f\tZ:\t%+03.2f",x, y, z);
-            DrawTextEx(font,c,(Vector2){MARGIN,MARGIN*9},fontSize,1,COLOR_FG);
+            DrawTextEx(font,c,(Vector2){MARGIN,MARGIN*5+fontSize*4},fontSize,1,COLOR_FG);
 
             if(SHOW_FPS)
             {
                 sprintf(c,"FPS %d",GetFPS());
                 DrawTextEx(font,c,(Vector2){MARGIN,MARGIN},fontSize,1,COLOR_FG);
                 sprintf(c,"STARTING_ANIMATION %i",STARTING_ANIMATION);
-                DrawTextEx(font,c,(Vector2){MARGIN,MARGIN*3},fontSize,1,COLOR_FG);
+                DrawTextEx(font,c,(Vector2){MARGIN,MARGIN*2+fontSize},fontSize,1,COLOR_FG);
                 sprintf(c,"SHADER_RESOLUTION %.2f",shaderResolution[0]);
-                DrawTextEx(font,c,(Vector2){MARGIN,MARGIN*5},fontSize,1,COLOR_FG);
+                DrawTextEx(font,c,(Vector2){MARGIN,MARGIN*3+fontSize*2},fontSize,1,COLOR_FG);
             }
             if(STARTING_ANIMATION && animationState == 0)
             {
+                /*
                 int startingCoverX = 0.1f*animationStep/GetFrameTime();
                 DrawRectangle(startingCoverX,0,screenWidth,screenHeight,COLOR_BG);
                 if(startingCoverX >= screenWidth)
                 {
                     animationState = 1;
                     animationStep = 0;
+                }
+                */
+                int alpha = 255;
+                if(GetFrameTime() > 0)
+                    alpha = 255-0.2f*animationStep/GetFrameTime();
+                if(alpha <= 0)
+                {
+                    animationState = 1;
+                    animationStep = 0;
+                }else{
+                    DrawRectangle(0,0,screenWidth,screenHeight,(Color){COLOR_BG.r,COLOR_BG.g,COLOR_BG.b,alpha});
                 }
             }
         EndDrawing();
