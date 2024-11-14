@@ -61,7 +61,7 @@
 #define PLATFORM_POS (Vector3){0,ARM_LENGTH+ROD_LENGTH,0}
 
 #define STEPS_NUM 1
-#define STEP_ANGLE 1.8/STEPS_NUM*1.0
+double STEP_ANGLE = 1.8/STEPS_NUM*1.0;
 
 static bool SHOW_FPS = true;
 static bool STARTING_ANIMATION = false;
