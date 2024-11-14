@@ -53,15 +53,17 @@
 #define MARGIN 20*(DISPLAY_HEIGHT/768.0f)
 
 #define CAMERA_FOV 90
+#define DRAW_SCALE 0.5
 
-#define ARM_LENGTH 90.0f
+#define ARM_LENGTH 130.0f
 #define ROD_LENGTH 166.0f
 #define BASS_TRI 35.0f
-#define PLATFORM_TRI 42.0f
+#define PLATFORM_TRI 115.45f
 #define PLATFORM_POS (Vector3){0,ARM_LENGTH+ROD_LENGTH,0}
 
+#define TRANS_MULTIPLIER 3
 #define STEPS_NUM 1
-double STEP_ANGLE = 1.8/STEPS_NUM*1.0;
+double STEP_ANGLE = 1.8/(STEPS_NUM*TRANS_MULTIPLIER*1.0);
 
 static bool SHOW_FPS = true;
 static bool STARTING_ANIMATION = false;
@@ -333,7 +335,7 @@ int main(int argc, char** argv)
 
     // Define the camera to look into our 3d world
     //Camera camera = { {-20.0f, 12.0f, 0.0f}, { 0.0f, 4.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, 45.0f, 0 };
-    Camera camera = { {-PLATFORM_TRI*10, (ARM_LENGTH+ROD_LENGTH)*1.5f, 0.0f}, {PLATFORM_POS.x, PLATFORM_POS.y/1.5f, PLATFORM_POS.z}, { 0.0f, 1.0f, 0.0f }, 45.0f, 0 };
+    Camera camera = { {-PLATFORM_TRI*3.5f, (ARM_LENGTH+ROD_LENGTH)*1.0f, 0.0f}, {PLATFORM_POS.x, PLATFORM_POS.y/2.0f, PLATFORM_POS.z}, { 0.0f, 1.0f, 0.0f }, 45.0f, 0 };
     camera.fovy = 180.0f;
     camera.projection = CAMERA_PERSPECTIVE;
 
@@ -357,8 +359,8 @@ int main(int argc, char** argv)
 
 
     //SetCameraMode(camera, CAMERA_THIRD_PERSON);
-	//SetCameraMode(camera, CAMERA_ORBITAL);
-    SetCameraMode(camera, CAMERA_CUSTOM);
+	SetCameraMode(camera, CAMERA_ORBITAL);
+    //SetCameraMode(camera, CAMERA_CUSTOM);
     HideCursor();
     SetTargetFPS(TARGET_FPS);
 
@@ -600,21 +602,21 @@ int main(int argc, char** argv)
         BeginTextureMode(renderTextureModel);       // Enable drawing to texture
             ClearBackground((Color){0,0,0,0});  // Clear texture background
             BeginMode3D(camera);        // Begin 3d mode drawing
-                DrawModel(*platformModel,PLATFORM_POS,1.0f,WHITE);
-                DrawModel(*baseModel,basePos,1.0f,WHITE);
-                DrawModel(*armModel1, Vector3Zero(), 1.0f, WHITE);
-                DrawModel(*armModel2, Vector3Zero(), 1.0f, WHITE);
-                DrawModel(*armModel3, Vector3Zero(), 1.0f, WHITE);
-                DrawModel(*rodModel1, Vector3Zero(), 1.0f, WHITE);
-                DrawModel(*rodModel2, Vector3Zero(), 1.0f, WHITE);
-                DrawModel(*rodModel3, Vector3Zero(), 1.0f, WHITE);
+                DrawModel(*platformModel,Vector3Scale(PLATFORM_POS,DRAW_SCALE),DRAW_SCALE,WHITE);
+                DrawModel(*baseModel,Vector3Scale(basePos,DRAW_SCALE),DRAW_SCALE,WHITE);
+                DrawModel(*armModel1, Vector3Zero(), DRAW_SCALE, WHITE);
+                DrawModel(*armModel2, Vector3Zero(), DRAW_SCALE, WHITE);
+                DrawModel(*armModel3, Vector3Zero(), DRAW_SCALE, WHITE);
+                DrawModel(*rodModel1, Vector3Zero(), DRAW_SCALE, WHITE);
+                DrawModel(*rodModel2, Vector3Zero(), DRAW_SCALE, WHITE);
+                DrawModel(*rodModel3, Vector3Zero(), DRAW_SCALE, WHITE);
                 //DrawCircle3D(PLATFORM_POS,PLATFORM_TRI,(Vector3){1.0f,0.0f,0.0f},90.0f,WHITE);
             EndMode3D();                // End 3d mode drawing, returns to orthographic 2d mode
         EndTextureMode();               // End drawing to texture (now we have a texture available for next passes)
         BeginTextureMode(renderTextureBackground);
         ClearBackground(COLOR_BG);  // Clear texture background
             BeginMode3D(camera);        // Begin 3d mode drawing
-                DrawGrid((int)PLATFORM_TRI/1.5f,PLATFORM_TRI);
+                DrawGrid((int)PLATFORM_TRI/1.5f,PLATFORM_TRI/2.0f);
             EndMode3D();
         EndTextureMode();
 
