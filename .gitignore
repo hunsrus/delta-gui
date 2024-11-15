@@ -33,6 +33,7 @@
 
 # Build folders
 build/*
+tests/build/*
 
 # cached files?
 .cache/*
