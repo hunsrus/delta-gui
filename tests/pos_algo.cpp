@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <chrono>
 #include <math.h>
+#include <list>
 
 #include <pigpio.h>
 
@@ -44,6 +45,10 @@ double STEP_ANGLE = 1.8/(STEPS_NUM*TRANS_MULTIPLIER*1.0);
 
 static bool EXIT = false;
 
+std::list<int> buffer1;
+std::list<int> buffer2;
+std::list<int> buffer3;
+
 // Función para mover el motor de un ángulo actual a un ángulo objetivo
 void moveToAngle(int motorID, double currentAngle, double targetAngle) {
     // Calcular la diferencia de ángulo
@@ -61,9 +66,10 @@ void moveToAngle(int motorID, double currentAngle, double targetAngle) {
         gpioWrite(PIN_DIR1, direction);
         for (int i = 0; i < abs(steps); i++)
         {
-            gpioWrite(PIN_STEP1, 1);
-            usleep(1500);
-            gpioWrite(PIN_STEP1, 0);
+            //gpioWrite(PIN_STEP1, 1);
+            //usleep(1500);
+            //gpioWrite(PIN_STEP1, 0);
+            buffer1.push_back(STEPS_NUM);
         }
     }
     if(motorID = 2)
@@ -71,9 +77,10 @@ void moveToAngle(int motorID, double currentAngle, double targetAngle) {
         gpioWrite(PIN_DIR2, direction);
         for (int i = 0; i < abs(steps); i++)
         {
-            gpioWrite(PIN_STEP2, 1);
-            usleep(1500);
-            gpioWrite(PIN_STEP2, 0);
+            //gpioWrite(PIN_STEP2, 1);
+            //usleep(1500);
+            //gpioWrite(PIN_STEP2, 0);
+            buffer2.push_back(STEPS_NUM);
         }
     }
     if(motorID = 3)
@@ -81,9 +88,10 @@ void moveToAngle(int motorID, double currentAngle, double targetAngle) {
         gpioWrite(PIN_DIR3, direction);
         for (int i = 0; i < abs(steps); i++)
         {
-            gpioWrite(PIN_STEP3, 1);
-            usleep(1500);
-            gpioWrite(PIN_STEP3, 0);
+            //gpioWrite(PIN_STEP3, 1);
+            //usleep(1500);
+            //gpioWrite(PIN_STEP3, 0);
+            buffer3.push_back(STEPS_NUM);
         }
     }
 }
@@ -153,7 +161,8 @@ int main(int argc, char** argv)
     const std::chrono::milliseconds targetPeriod = std::chrono::milliseconds(10);
     std::chrono::milliseconds elapsedTime = std::chrono::milliseconds(0);
     std::chrono::milliseconds calcTime = std::chrono::milliseconds(0);
-    std::chrono::milliseconds moveTime = std::chrono::milliseconds(0);
+    std::chrono::milliseconds loadTime = std::chrono::milliseconds(0);
+    std::chrono::milliseconds stepTime = std::chrono::milliseconds(0);
     std::chrono::high_resolution_clock::time_point time0;
     std::chrono::high_resolution_clock::time_point time1;
     std::chrono::high_resolution_clock::time_point initTime = std::chrono::high_resolution_clock::now();
@@ -190,7 +199,35 @@ int main(int argc, char** argv)
                 lastC = dk.c;
             }
             time1 = std::chrono::high_resolution_clock::now();
-            moveTime = std::chrono::duration_cast<std::chrono::milliseconds>(time1 - time0);
+            loadTime = std::chrono::duration_cast<std::chrono::milliseconds>(time1 - time0);
+
+            time0 = std::chrono::high_resolution_clock::now();
+            if(!buffer1.empty())
+            {
+                gpioWrite(PIN_STEP1, 1);
+                usleep(1500);
+                gpioWrite(PIN_STEP1, 0);
+                //buffer1.front();
+                buffer1.pop_front();
+            }
+            if(!buffer2.empty())
+            {
+                gpioWrite(PIN_STEP2, 1);
+                usleep(1500);
+                gpioWrite(PIN_STEP2, 0);
+                //buffer1.front();
+                buffer2.pop_front();
+            }
+            if(!buffer2.empty())
+            {
+                gpioWrite(PIN_STEP3, 1);
+                usleep(1500);
+                gpioWrite(PIN_STEP3, 0);
+                //buffer1.front();
+                buffer2.pop_front();
+            }
+            time1 = std::chrono::high_resolution_clock::now();
+            stepTime = std::chrono::duration_cast<std::chrono::milliseconds>(time1 - time0);
 
         }
 
@@ -201,9 +238,10 @@ int main(int argc, char** argv)
         std::chrono::high_resolution_clock::time_point endTime = std::chrono::high_resolution_clock::now();
         elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
 
-        std::cout << "ELA_T " << elapsedTime.count() << "[ms]" << std::endl;
-        std::cout << "CAL_T " << calcTime.count() << "[ms]" << std::endl;
-        std::cout << "MOV_T " << moveTime.count() << "[ms]" << std::endl;
+        std::cout << "ELAP_T " << elapsedTime.count() << "[ms]" << std::endl;
+        std::cout << "CALC_T " << calcTime.count() << "[ms]" << std::endl;
+        std::cout << "LOAD_T " << loadTime.count() << "[ms]" << std::endl;
+        std::cout << "STEP_T " << stepTime.count() << "[ms]" << std::endl;
 
         if (elapsedTime < targetPeriod) {
             // Espera el tiempo restante para completar el periodo deseado
