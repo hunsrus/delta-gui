@@ -40,12 +40,10 @@
 #define PLATFORM_POS (Vector3){0,ARM_LENGTH+ROD_LENGTH,0}
 
 #define TRANS_MULTIPLIER 3
-#define STEPS_NUM 1
+#define STEPS_NUM 16
 double STEP_ANGLE = 1.8/(STEPS_NUM*TRANS_MULTIPLIER*1.0);
 
 static bool EXIT = false;
-
-std::list<int> buffer;
 
 // Función para mover el motor de un ángulo actual a un ángulo objetivo
 void moveToAngle(int motorID, double currentAngle, double targetAngle) {
@@ -98,6 +96,7 @@ int main(int argc, char** argv)
     double lastX = -1, lastY = -1, lastZ = -1;
     double lastA, lastB, lastC;
     double thetaA, thetaB, thetaC;
+    double diffA, diffB, diffC;
 
     // inicio control de i/o
     if (gpioInitialise() < 0)
@@ -166,8 +165,26 @@ int main(int argc, char** argv)
     {
         std::chrono::high_resolution_clock::time_point startTime = std::chrono::high_resolution_clock::now();
 
-        x = sin(timestep*0.5f)*30.0f;
-        y = cos(timestep*0.5f)*30.0f;
+        // centro x0=1 x1=0 / y0=1 y1=0
+        if(gpioRead(PIN_JOY_X0) == 0 && gpioRead(PIN_JOY_X1) == 0) //izq
+        {
+            x -= 1.0f;
+        }
+        if(gpioRead(PIN_JOY_X0) == 1 && gpioRead(PIN_JOY_X1) == 1) //der
+        {
+            x += 1.0f;
+        }
+        if(gpioRead(PIN_JOY_Y0) == 1 && gpioRead(PIN_JOY_Y1) == 1) //abajo
+        {
+            y -= 1.0f;
+        }
+        if(gpioRead(PIN_JOY_Y0) == 0 && gpioRead(PIN_JOY_Y1) == 0) //arriba
+        {
+            y += 1.0f;
+        }
+
+        x = sin(timestep*0.05f)*30.0f;
+        y = cos(timestep*0.05f)*30.0f;
 
         if(lastX != x || lastY != y || lastZ != z) // calcula solo si hubo variaciones
         {
@@ -182,15 +199,14 @@ int main(int argc, char** argv)
 
             while(!reached)
             {
-                double diffA = dk.a - lastA;
-                double diffB = dk.b - lastB;
-                double diffC = dk.c - lastC;
+                diffA = dk.a - lastA;
+                diffB = dk.b - lastB;
+                diffC = dk.c - lastC;
 
                 reached = true;
                 if(diffA > STEP_ANGLE)
                 {
-                    buffer.push_back(1);
-                    lastA = dk.a + STEP_ANGLE;
+                    lastA += STEP_ANGLE;
                     gpioWrite(PIN_DIR1, 1);
                     gpioWrite(PIN_STEP1, 1);
                     usleep(1500);
@@ -198,8 +214,7 @@ int main(int argc, char** argv)
                     reached = false;
                 }else if(diffA < -STEP_ANGLE)
                 {
-                    buffer.push_back(-1);
-                    lastA = dk.a - STEP_ANGLE;
+                    lastA -= STEP_ANGLE;
                     gpioWrite(PIN_DIR1, 0);
                     gpioWrite(PIN_STEP1, 1);
                     usleep(1500);
@@ -208,8 +223,7 @@ int main(int argc, char** argv)
                 }
                 if(diffB > STEP_ANGLE)
                 {
-                    buffer.push_back(2);
-                    lastA = dk.b + STEP_ANGLE;
+                    lastB += STEP_ANGLE;
                     gpioWrite(PIN_DIR2, 1);
                     gpioWrite(PIN_STEP2, 1);
                     usleep(1500);
@@ -217,8 +231,7 @@ int main(int argc, char** argv)
                     reached = false;
                 }else if(diffB < -STEP_ANGLE)
                 {
-                    buffer.push_back(-2);
-                    lastA = dk.b - STEP_ANGLE;
+                    lastB -= STEP_ANGLE;
                     gpioWrite(PIN_DIR2, 0);
                     gpioWrite(PIN_STEP2, 1);
                     usleep(1500);
@@ -227,8 +240,7 @@ int main(int argc, char** argv)
                 }
                 if(diffC > STEP_ANGLE)
                 {
-                    buffer.push_back(3);
-                    lastA = dk.c + STEP_ANGLE;
+                    lastC += STEP_ANGLE;
                     gpioWrite(PIN_DIR3, 1);
                     gpioWrite(PIN_STEP3, 1);
                     usleep(1500);
@@ -236,8 +248,7 @@ int main(int argc, char** argv)
                     reached = false;
                 }else if(diffC < -STEP_ANGLE)
                 {
-                    buffer.push_back(-3);
-                    lastA = dk.c - STEP_ANGLE;
+                    lastC -= STEP_ANGLE;
                     gpioWrite(PIN_DIR3, 0);
                     gpioWrite(PIN_STEP3, 1);
                     usleep(1500);
@@ -264,10 +275,10 @@ int main(int argc, char** argv)
 
         if (elapsedTime < targetPeriod) {
             // Espera el tiempo restante para completar el periodo deseado
-            std::this_thread::sleep_for(targetPeriod - elapsedTime);
+            //std::this_thread::sleep_for(targetPeriod - elapsedTime);
         } else {
             // Si la iteración tardó más tiempo del permitido
-            std::cerr << "Advertencia: Iteración excedió el tiempo deseado!" << std::endl;
+            //std::cerr << "Advertencia: Iteración excedió el tiempo deseado!" << std::endl;
         }
         
         timestep++;
