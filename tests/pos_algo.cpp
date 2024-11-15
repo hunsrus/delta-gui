@@ -45,9 +45,7 @@ double STEP_ANGLE = 1.8/(STEPS_NUM*TRANS_MULTIPLIER*1.0);
 
 static bool EXIT = false;
 
-std::list<int> buffer1;
-std::list<int> buffer2;
-std::list<int> buffer3;
+std::list<int> buffer;
 
 // Función para mover el motor de un ángulo actual a un ángulo objetivo
 void moveToAngle(int motorID, double currentAngle, double targetAngle) {
@@ -69,7 +67,6 @@ void moveToAngle(int motorID, double currentAngle, double targetAngle) {
             //gpioWrite(PIN_STEP1, 1);
             //usleep(1500);
             //gpioWrite(PIN_STEP1, 0);
-            buffer1.push_back(STEPS_NUM);
         }
     }
     if(motorID = 2)
@@ -80,7 +77,6 @@ void moveToAngle(int motorID, double currentAngle, double targetAngle) {
             //gpioWrite(PIN_STEP2, 1);
             //usleep(1500);
             //gpioWrite(PIN_STEP2, 0);
-            buffer2.push_back(STEPS_NUM);
         }
     }
     if(motorID = 3)
@@ -91,7 +87,6 @@ void moveToAngle(int motorID, double currentAngle, double targetAngle) {
             //gpioWrite(PIN_STEP3, 1);
             //usleep(1500);
             //gpioWrite(PIN_STEP3, 0);
-            buffer3.push_back(STEPS_NUM);
         }
     }
 }
@@ -183,51 +178,75 @@ int main(int argc, char** argv)
             calcTime = std::chrono::duration_cast<std::chrono::milliseconds>(time1 - time0);
 
             time0 = std::chrono::high_resolution_clock::now();
-            if(fabs(dk.a - lastA) > STEP_ANGLE)
+            bool reached = false;
+
+            while(!reached)
             {
-                moveToAngle(1,lastA, dk.a);
-                lastA = dk.a;
-            }
-            if(fabs(dk.b - lastB) > STEP_ANGLE)
-            {
-                moveToAngle(2,lastB, dk.b);
-                lastB = dk.b;
-            }
-            if(fabs(dk.c - lastC) > STEP_ANGLE)
-            {
-                moveToAngle(3,lastC, dk.c);
-                lastC = dk.c;
+                double diffA = dk.a - lastA;
+                double diffB = dk.b - lastB;
+                double diffC = dk.c - lastC;
+
+                reached = true;
+                if(diffA > STEP_ANGLE)
+                {
+                    buffer.push_back(1);
+                    lastA = dk.a + STEP_ANGLE;
+                    gpioWrite(PIN_DIR1, 1);
+                    gpioWrite(PIN_STEP1, 1);
+                    usleep(1500);
+                    gpioWrite(PIN_STEP1, 0);
+                    reached = false;
+                }else if(diffA < -STEP_ANGLE)
+                {
+                    buffer.push_back(-1);
+                    lastA = dk.a - STEP_ANGLE;
+                    gpioWrite(PIN_DIR1, 0);
+                    gpioWrite(PIN_STEP1, 1);
+                    usleep(1500);
+                    gpioWrite(PIN_STEP1, 0);
+                    reached = false;
+                }
+                if(diffB > STEP_ANGLE)
+                {
+                    buffer.push_back(2);
+                    lastA = dk.b + STEP_ANGLE;
+                    gpioWrite(PIN_DIR2, 1);
+                    gpioWrite(PIN_STEP2, 1);
+                    usleep(1500);
+                    gpioWrite(PIN_STEP2, 0);
+                    reached = false;
+                }else if(diffB < -STEP_ANGLE)
+                {
+                    buffer.push_back(-2);
+                    lastA = dk.b - STEP_ANGLE;
+                    gpioWrite(PIN_DIR2, 0);
+                    gpioWrite(PIN_STEP2, 1);
+                    usleep(1500);
+                    gpioWrite(PIN_STEP2, 0);
+                    reached = false;
+                }
+                if(diffC > STEP_ANGLE)
+                {
+                    buffer.push_back(3);
+                    lastA = dk.c + STEP_ANGLE;
+                    gpioWrite(PIN_DIR3, 1);
+                    gpioWrite(PIN_STEP3, 1);
+                    usleep(1500);
+                    gpioWrite(PIN_STEP3, 0);
+                    reached = false;
+                }else if(diffC < -STEP_ANGLE)
+                {
+                    buffer.push_back(-3);
+                    lastA = dk.c - STEP_ANGLE;
+                    gpioWrite(PIN_DIR3, 0);
+                    gpioWrite(PIN_STEP3, 1);
+                    usleep(1500);
+                    gpioWrite(PIN_STEP3, 0);
+                    reached = false;
+                }
             }
             time1 = std::chrono::high_resolution_clock::now();
             loadTime = std::chrono::duration_cast<std::chrono::milliseconds>(time1 - time0);
-
-            time0 = std::chrono::high_resolution_clock::now();
-            if(!buffer1.empty())
-            {
-                gpioWrite(PIN_STEP1, 1);
-                usleep(1500);
-                gpioWrite(PIN_STEP1, 0);
-                //buffer1.front();
-                buffer1.pop_front();
-            }
-            if(!buffer2.empty())
-            {
-                gpioWrite(PIN_STEP2, 1);
-                usleep(1500);
-                gpioWrite(PIN_STEP2, 0);
-                //buffer1.front();
-                buffer2.pop_front();
-            }
-            if(!buffer2.empty())
-            {
-                gpioWrite(PIN_STEP3, 1);
-                usleep(1500);
-                gpioWrite(PIN_STEP3, 0);
-                //buffer1.front();
-                buffer2.pop_front();
-            }
-            time1 = std::chrono::high_resolution_clock::now();
-            stepTime = std::chrono::duration_cast<std::chrono::milliseconds>(time1 - time0);
 
         }
 
