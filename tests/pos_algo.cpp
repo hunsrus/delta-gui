@@ -40,7 +40,7 @@
 #define PLATFORM_POS (Vector3){0,ARM_LENGTH+ROD_LENGTH,0}
 
 #define TRANS_MULTIPLIER 3
-#define STEPS_NUM 16
+#define STEPS_NUM 4
 double STEP_ANGLE = 1.8/(STEPS_NUM*TRANS_MULTIPLIER*1.0);
 
 static bool EXIT = false;
@@ -92,11 +92,13 @@ void moveToAngle(int motorID, double currentAngle, double targetAngle) {
 int main(int argc, char** argv)
 {
     DeltaKinematics dk = DeltaKinematics(ARM_LENGTH, ROD_LENGTH, BASS_TRI, PLATFORM_TRI);
-    double x = 0, y = 0, z = -ROD_LENGTH/2.0f;
+    double x = 0, y = 0, z = -ROD_LENGTH;
     double lastX = -1, lastY = -1, lastZ = -1;
     double lastA, lastB, lastC;
     double thetaA, thetaB, thetaC;
     double diffA, diffB, diffC;
+
+    bool mode = 0;
 
     // inicio control de i/o
     if (gpioInitialise() < 0)
@@ -121,6 +123,7 @@ int main(int argc, char** argv)
     gpioSetMode(PIN_JOY_X1,PI_INPUT);
     gpioSetMode(PIN_JOY_Y0,PI_INPUT);
     gpioSetMode(PIN_JOY_Y1,PI_INPUT);
+    gpioSetMode(PIN_JOY_PB,PI_INPUT);
 
     if(STEPS_NUM == 1)
     {
@@ -182,9 +185,13 @@ int main(int argc, char** argv)
         {
             y += 1.0f;
         }
+        if(gpioRead(PIN_JOY_PB)) mode = !mode;
 
-        x = sin(timestep*0.05f)*30.0f;
-        y = cos(timestep*0.05f)*30.0f;
+        if(mode == 1)
+        {
+            x = sin(timestep*0.05f)*30.0f;
+            y = cos(timestep*0.05f)*30.0f;
+        }
 
         if(lastX != x || lastY != y || lastZ != z) // calcula solo si hubo variaciones
         {
