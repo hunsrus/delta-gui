@@ -158,29 +158,8 @@ int main(int argc, char** argv)
     {
         std::chrono::high_resolution_clock::time_point startTime = std::chrono::high_resolution_clock::now();
 
-        // *** Aquí realiza los cálculos de cinemática y control del motor ***
-        std::cout << "Calculando cinemática y actualizando motores..." << std::endl;
-
-        // centro x0=1 x1=0 / y0=1 y1=0
-        if(gpioRead(PIN_JOY_X0) == 0 && gpioRead(PIN_JOY_X1) == 0) //izq
-        {
-            x -= 1.0f;
-        }
-        if(gpioRead(PIN_JOY_X0) == 1 && gpioRead(PIN_JOY_X1) == 1) //der
-        {
-            x += 1.0f;
-        }
-        if(gpioRead(PIN_JOY_Y0) == 1 && gpioRead(PIN_JOY_Y1) == 1) //abajo
-        {
-            y -= 1.0f;
-        }
-        if(gpioRead(PIN_JOY_Y0) == 0 && gpioRead(PIN_JOY_Y1) == 0) //arriba
-        {
-            y += 1.0f;
-        }
-
-        x = sin(timestep*1.0f)*30.0f;
-        y = cos(timestep*1.0f)*30.0f;
+        x = sin(timestep*0.5f)*30.0f;
+        y = cos(timestep*0.5f)*30.0f;
 
         if(lastX != x || lastY != y || lastZ != z) // calcula solo si hubo variaciones
         {
@@ -209,9 +188,10 @@ int main(int argc, char** argv)
         lastY = y;
         lastZ = z;
 
-        // Marca de tiempo al final de la iteración
         std::chrono::high_resolution_clock::time_point endTime = std::chrono::high_resolution_clock::now();
         elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+
+        std::cout << "ET " << elapsedTime.count() << "[ms]" << std::endl;
 
         if (elapsedTime < targetPeriod) {
             // Espera el tiempo restante para completar el periodo deseado
