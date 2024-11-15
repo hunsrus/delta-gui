@@ -152,6 +152,10 @@ int main(int argc, char** argv)
 
     const std::chrono::milliseconds targetPeriod = std::chrono::milliseconds(10);
     std::chrono::milliseconds elapsedTime = std::chrono::milliseconds(0);
+    std::chrono::milliseconds calcTime = std::chrono::milliseconds(0);
+    std::chrono::milliseconds moveTime = std::chrono::milliseconds(0);
+    std::chrono::high_resolution_clock::time_point time0;
+    std::chrono::high_resolution_clock::time_point time1;
     std::chrono::high_resolution_clock::time_point initTime = std::chrono::high_resolution_clock::now();
 
     while(!EXIT)
@@ -164,8 +168,12 @@ int main(int argc, char** argv)
         if(lastX != x || lastY != y || lastZ != z) // calcula solo si hubo variaciones
         {
             // Cálculos de cinemática
+            time0 = std::chrono::high_resolution_clock::now();
             dk.inverse(x,y,z);
+            time1 = std::chrono::high_resolution_clock::now();
+            calcTime = std::chrono::duration_cast<std::chrono::milliseconds>(time1 - time0);
 
+            time0 = std::chrono::high_resolution_clock::now();
             if(fabs(dk.a - lastA) > STEP_ANGLE)
             {
                 moveToAngle(1,lastA, dk.a);
@@ -181,6 +189,8 @@ int main(int argc, char** argv)
                 moveToAngle(3,lastC, dk.c);
                 lastC = dk.c;
             }
+            time1 = std::chrono::high_resolution_clock::now();
+            moveTime = std::chrono::duration_cast<std::chrono::milliseconds>(time1 - time0);
 
         }
 
@@ -191,7 +201,9 @@ int main(int argc, char** argv)
         std::chrono::high_resolution_clock::time_point endTime = std::chrono::high_resolution_clock::now();
         elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
 
-        std::cout << "ET " << elapsedTime.count() << "[ms]" << std::endl;
+        std::cout << "ELA_T " << elapsedTime.count() << "[ms]" << std::endl;
+        std::cout << "CAL_T " << calcTime.count() << "[ms]" << std::endl;
+        std::cout << "MOV_T " << moveTime.count() << "[ms]" << std::endl;
 
         if (elapsedTime < targetPeriod) {
             // Espera el tiempo restante para completar el periodo deseado
