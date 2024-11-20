@@ -45,50 +45,6 @@ double STEP_ANGLE = 1.8/(STEPS_NUM*TRANS_MULTIPLIER*1.0);
 
 static bool EXIT = false;
 
-// Función para mover el motor de un ángulo actual a un ángulo objetivo
-void moveToAngle(int motorID, double currentAngle, double targetAngle) {
-    // Calcular la diferencia de ángulo
-    double angleDiff = targetAngle - currentAngle;
-
-    // Calcular el número de pasos necesarios
-    int steps = (int)round(angleDiff/STEP_ANGLE);
-
-    // Determinar la dirección del movimiento
-    bool direction = (steps > 0) ? 1 : 0;
-
-    // Hacer los pasos necesarios
-    if(motorID = 1)
-    {
-        gpioWrite(PIN_DIR1, direction);
-        for (int i = 0; i < abs(steps); i++)
-        {
-            //gpioWrite(PIN_STEP1, 1);
-            //usleep(1500);
-            //gpioWrite(PIN_STEP1, 0);
-        }
-    }
-    if(motorID = 2)
-    {
-        gpioWrite(PIN_DIR2, direction);
-        for (int i = 0; i < abs(steps); i++)
-        {
-            //gpioWrite(PIN_STEP2, 1);
-            //usleep(1500);
-            //gpioWrite(PIN_STEP2, 0);
-        }
-    }
-    if(motorID = 3)
-    {
-        gpioWrite(PIN_DIR3, direction);
-        for (int i = 0; i < abs(steps); i++)
-        {
-            //gpioWrite(PIN_STEP3, 1);
-            //usleep(1500);
-            //gpioWrite(PIN_STEP3, 0);
-        }
-    }
-}
-
 int main(int argc, char** argv)
 {
     DeltaKinematics dk = DeltaKinematics(ARM_LENGTH, ROD_LENGTH, BASS_TRI, PLATFORM_TRI);
@@ -185,7 +141,7 @@ int main(int argc, char** argv)
         {
             y += 1.0f;
         }
-        if(gpioRead(PIN_JOY_PB)) mode = !mode;
+        mode = gpioRead(PIN_JOY_PB);
 
         if(mode == 1)
         {
