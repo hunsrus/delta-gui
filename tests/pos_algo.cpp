@@ -40,10 +40,11 @@
 #define PIN_BOMBA 0
 
 #define ARM_LENGTH 130.0f
-#define ROD_LENGTH 166.0f
+#define ROD_LENGTH 310.0f
 #define BASS_TRI 35.0f
-#define PLATFORM_TRI 115.45f
+#define PLATFORM_TRI 130.0f
 #define PLATFORM_POS (Vector3){0,ARM_LENGTH+ROD_LENGTH,0}
+#define HOME_Z 166.0f
 
 #define TRANS_MULTIPLIER 3
 #define STEPS_NUM 4
@@ -166,7 +167,7 @@ void updateKinematics(DeltaKinematics dk, double *lastA, double *lastB, double *
 int main(int argc, char** argv)
 {
     DeltaKinematics dk = DeltaKinematics(ARM_LENGTH, ROD_LENGTH, BASS_TRI, PLATFORM_TRI);
-    double x = 0, y = 0, z = -ROD_LENGTH;
+    double x = 0, y = 0, z = -HOME_Z;
     double lastX = -1, lastY = -1, lastZ = -1;
     double lastA, lastB, lastC;
     double thetaA, thetaB, thetaC;
@@ -206,6 +207,8 @@ int main(int argc, char** argv)
 
     home();
 
+    x = 0, y = 0, z = -HOME_Z;
+
     dk.inverse(x,y,z);
     lastA = dk.a;
     lastB = dk.b;
@@ -234,7 +237,7 @@ int main(int argc, char** argv)
         gpioWrite(PIN_MS3,1);
     }
 
-    z += 50;
+    z += 10;
 
     dk.inverse(x,y,z);
     updateKinematics(dk, &lastA, &lastB, &lastC);
@@ -281,6 +284,8 @@ int main(int argc, char** argv)
             
             home();
 
+            x = 0, y = 0, z = -HOME_Z;
+
             dk.inverse(x,y,z);
             lastA = dk.a;
             lastB = dk.b;
@@ -309,7 +314,7 @@ int main(int argc, char** argv)
                 gpioWrite(PIN_MS3,1);
             }
 
-            z += 50;
+            z += 10;
 
             dk.inverse(x,y,z);
             updateKinematics(dk, &lastA, &lastB, &lastC);
