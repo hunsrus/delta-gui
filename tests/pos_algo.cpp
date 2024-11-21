@@ -211,10 +211,6 @@ int main(int argc, char** argv)
     lastB = dk.b;
     lastC = dk.c;
 
-    z += 80;
-
-    updateKinematics(dk, &lastA, &lastB, &lastC);
-
     if(STEPS_NUM == 1)
     {
         gpioWrite(PIN_MS1,0);
@@ -237,6 +233,14 @@ int main(int argc, char** argv)
         gpioWrite(PIN_MS2,1);
         gpioWrite(PIN_MS3,1);
     }
+
+    z += 50;
+
+    dk.inverse(x,y,z);
+    updateKinematics(dk, &lastA, &lastB, &lastC);
+    lastX = x;
+    lastY = y;
+    lastZ = z;
 
     unsigned int timestep = 0;
 
@@ -282,9 +286,36 @@ int main(int argc, char** argv)
             lastB = dk.b;
             lastC = dk.c;
 
-            z += 80;
+            if(STEPS_NUM == 1)
+            {
+                gpioWrite(PIN_MS1,0);
+                gpioWrite(PIN_MS2,0);
+                gpioWrite(PIN_MS3,0);
+            }else if(STEPS_NUM == 2){
+                gpioWrite(PIN_MS1,1);
+                gpioWrite(PIN_MS2,0);
+                gpioWrite(PIN_MS3,0);
+            }else if(STEPS_NUM == 4){
+                gpioWrite(PIN_MS1,0);
+                gpioWrite(PIN_MS2,1);
+                gpioWrite(PIN_MS3,0);
+            }else if(STEPS_NUM == 8){
+                gpioWrite(PIN_MS1,1);
+                gpioWrite(PIN_MS2,1);
+                gpioWrite(PIN_MS3,0);
+            }else if(STEPS_NUM == 16){
+                gpioWrite(PIN_MS1,1);
+                gpioWrite(PIN_MS2,1);
+                gpioWrite(PIN_MS3,1);
+            }
 
+            z += 50;
+
+            dk.inverse(x,y,z);
             updateKinematics(dk, &lastA, &lastB, &lastC);
+            lastX = x;
+            lastY = y;
+            lastZ = z;
 
             ERROR = 0;
         }
