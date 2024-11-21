@@ -18,10 +18,10 @@
 
 #define PIN_DIR1 6
 #define PIN_STEP1 5
-#define PIN_DIR2 18
-#define PIN_STEP2 17
-#define PIN_DIR3 22
-#define PIN_STEP3 23
+#define PIN_DIR2 22
+#define PIN_STEP2 23
+#define PIN_DIR3 18
+#define PIN_STEP3 17
 
 #define PIN_MS1 2
 #define PIN_MS2 3
@@ -61,7 +61,7 @@ void step(int step_pin, int dir_pin, bool dir)
 
 int home(void)
 {
-    std::cout << "Homing... ";
+    fprintf(stdout, "Homing...\n");
     // paso completo
     gpioWrite(PIN_MS1,0);
     gpioWrite(PIN_MS2,0);
@@ -71,17 +71,17 @@ int home(void)
     {
         step(PIN_STEP1, PIN_DIR1, 1);
     }
-    std::cout << " M1 Listo...";
+    fprintf(stdout, "M1 Listo\n");
     while(!gpioRead(PIN_FC_M2))
     {
         step(PIN_STEP2, PIN_DIR2, 1);
     }
-    std::cout << " M2 Listo...";
+    fprintf(stdout, "M2 Listo\n");
     while(!gpioRead(PIN_FC_M3))
     {
         step(PIN_STEP3, PIN_DIR3, 1);
     }
-    std::cout << " M3 Listo...";
+    fprintf(stdout, "M3 Listo\n");
 
     return EXIT_SUCCESS;
 }
