@@ -34,10 +34,10 @@
 #define PIN_JOY_PB 21
 
 #define PIN_FC_M1 12
-#define PIN_FC_M2 0
-#define PIN_FC_M3 1
+#define PIN_FC_M2 13
+#define PIN_FC_M3 27
 
-#define PIN_BOMBA 27
+#define PIN_BOMBA 0
 
 #define ARM_LENGTH 130.0f
 #define ROD_LENGTH 166.0f
@@ -61,6 +61,7 @@ void step(int step_pin, int dir_pin, bool dir)
 
 int home(void)
 {
+    std::cout << "Homing... ";
     // paso completo
     gpioWrite(PIN_MS1,0);
     gpioWrite(PIN_MS2,0);
@@ -68,16 +69,19 @@ int home(void)
 
     while(!gpioRead(PIN_FC_M1))
     {
-        step(PIN_STEP1, PIN_DIR1, 0);
+        step(PIN_STEP1, PIN_DIR1, 1);
     }
+    std::cout << " M1 Listo...";
     while(!gpioRead(PIN_FC_M2))
     {
-        step(PIN_STEP2, PIN_DIR2, 0);
+        step(PIN_STEP2, PIN_DIR2, 1);
     }
+    std::cout << " M2 Listo...";
     while(!gpioRead(PIN_FC_M3))
     {
-        step(PIN_STEP3, PIN_DIR3, 0);
+        step(PIN_STEP3, PIN_DIR3, 1);
     }
+    std::cout << " M3 Listo...";
 
     return EXIT_SUCCESS;
 }
