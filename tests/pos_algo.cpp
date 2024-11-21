@@ -33,6 +33,12 @@
 #define PIN_JOY_Y1 16
 #define PIN_JOY_PB 21
 
+#define PIN_FC_M1 12
+#define PIN_FC_M2 0
+#define PIN_FC_M3 1
+
+#define PIN_BOMBA 27
+
 #define ARM_LENGTH 130.0f
 #define ROD_LENGTH 166.0f
 #define BASS_TRI 35.0f
@@ -44,6 +50,37 @@
 double STEP_ANGLE = 1.8/(STEPS_NUM*TRANS_MULTIPLIER*1.0);
 
 static bool EXIT = false;
+
+void step(int step_pin, int dir_pin, bool dir)
+{
+    gpioWrite(dir_pin, dir);
+    gpioWrite(step_pin, 1);
+    usleep(1500);
+    gpioWrite(step_pin, 0);
+}
+
+int home(void)
+{
+    // paso completo
+    gpioWrite(PIN_MS1,0);
+    gpioWrite(PIN_MS2,0);
+    gpioWrite(PIN_MS3,0);
+
+    while(!gpioRead(PIN_FC_M1))
+    {
+        step(PIN_STEP1, PIN_DIR1, 0);
+    }
+    while(!gpioRead(PIN_FC_M2))
+    {
+        step(PIN_STEP2, PIN_DIR2, 0);
+    }
+    while(!gpioRead(PIN_FC_M3))
+    {
+        step(PIN_STEP3, PIN_DIR3, 0);
+    }
+
+    return EXIT_SUCCESS;
+}
 
 int main(int argc, char** argv)
 {
@@ -81,6 +118,19 @@ int main(int argc, char** argv)
     gpioSetMode(PIN_JOY_Y1,PI_INPUT);
     gpioSetMode(PIN_JOY_PB,PI_INPUT);
 
+    gpioSetMode(PIN_FC_M1,PI_INPUT);
+    gpioSetMode(PIN_FC_M2,PI_INPUT);
+    gpioSetMode(PIN_FC_M3,PI_INPUT);
+
+    gpioSetMode(PIN_BOMBA,PI_OUTPUT);
+
+    home();
+
+    dk.inverse(x,y,z);
+    lastA = dk.a;
+    lastB = dk.b;
+    lastC = dk.c;
+
     if(STEPS_NUM == 1)
     {
         gpioWrite(PIN_MS1,0);
@@ -103,11 +153,6 @@ int main(int argc, char** argv)
         gpioWrite(PIN_MS2,1);
         gpioWrite(PIN_MS3,1);
     }
-
-    dk.inverse(x,y,z);
-    lastA = dk.a;
-    lastB = dk.b;
-    lastC = dk.c;
 
     unsigned int timestep = 0;
 
@@ -170,52 +215,34 @@ int main(int argc, char** argv)
                 if(diffA > STEP_ANGLE)
                 {
                     lastA += STEP_ANGLE;
-                    gpioWrite(PIN_DIR1, 1);
-                    gpioWrite(PIN_STEP1, 1);
-                    usleep(1500);
-                    gpioWrite(PIN_STEP1, 0);
+                    step(PIN_STEP1, PIN_DIR1, 1);
                     reached = false;
                 }else if(diffA < -STEP_ANGLE)
                 {
                     lastA -= STEP_ANGLE;
-                    gpioWrite(PIN_DIR1, 0);
-                    gpioWrite(PIN_STEP1, 1);
-                    usleep(1500);
-                    gpioWrite(PIN_STEP1, 0);
+                    step(PIN_STEP1, PIN_DIR1, 0);
                     reached = false;
                 }
                 if(diffB > STEP_ANGLE)
                 {
                     lastB += STEP_ANGLE;
-                    gpioWrite(PIN_DIR2, 1);
-                    gpioWrite(PIN_STEP2, 1);
-                    usleep(1500);
-                    gpioWrite(PIN_STEP2, 0);
+                    step(PIN_STEP2, PIN_DIR2, 1);
                     reached = false;
                 }else if(diffB < -STEP_ANGLE)
                 {
                     lastB -= STEP_ANGLE;
-                    gpioWrite(PIN_DIR2, 0);
-                    gpioWrite(PIN_STEP2, 1);
-                    usleep(1500);
-                    gpioWrite(PIN_STEP2, 0);
+                    step(PIN_STEP2, PIN_DIR2, 0);
                     reached = false;
                 }
                 if(diffC > STEP_ANGLE)
                 {
                     lastC += STEP_ANGLE;
-                    gpioWrite(PIN_DIR3, 1);
-                    gpioWrite(PIN_STEP3, 1);
-                    usleep(1500);
-                    gpioWrite(PIN_STEP3, 0);
+                    step(PIN_STEP3, PIN_DIR3, 1);
                     reached = false;
                 }else if(diffC < -STEP_ANGLE)
                 {
                     lastC -= STEP_ANGLE;
-                    gpioWrite(PIN_DIR3, 0);
-                    gpioWrite(PIN_STEP3, 1);
-                    usleep(1500);
-                    gpioWrite(PIN_STEP3, 0);
+                    step(PIN_STEP3, PIN_DIR3, 0);
                     reached = false;
                 }
             }
