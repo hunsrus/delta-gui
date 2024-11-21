@@ -111,7 +111,7 @@ int home(void)
     return EXIT_SUCCESS;
 }
 
-void updateKinematics(DeltaKinematics dk, double lastA, double lastB, double lastC)
+void updateKinematics(DeltaKinematics dk, double *lastA, double *lastB, double *lastC)
 {
     double diffA, diffB, diffC;
 
@@ -120,41 +120,41 @@ void updateKinematics(DeltaKinematics dk, double lastA, double lastB, double las
 
     while(!reached)
     {
-        diffA = dk.a - lastA;
-        diffB = dk.b - lastB;
-        diffC = dk.c - lastC;
+        diffA = dk.a - *lastA;
+        diffB = dk.b - *lastB;
+        diffC = dk.c - *lastC;
 
         reached = true;
         if(diffA > STEP_ANGLE)
         {
-            lastA += STEP_ANGLE;
+            *lastA += STEP_ANGLE;
             step(PIN_STEP1, PIN_DIR1, 1);
             reached = false;
         }else if(diffA < -STEP_ANGLE)
         {
-            lastA -= STEP_ANGLE;
+            *lastA -= STEP_ANGLE;
             step(PIN_STEP1, PIN_DIR1, 0);
             reached = false;
         }
         if(diffB > STEP_ANGLE)
         {
-            lastB += STEP_ANGLE;
+            *lastB += STEP_ANGLE;
             step(PIN_STEP2, PIN_DIR2, 1);
             reached = false;
         }else if(diffB < -STEP_ANGLE)
         {
-            lastB -= STEP_ANGLE;
+            *lastB -= STEP_ANGLE;
             step(PIN_STEP2, PIN_DIR2, 0);
             reached = false;
         }
         if(diffC > STEP_ANGLE)
         {
-            lastC += STEP_ANGLE;
+            *lastC += STEP_ANGLE;
             step(PIN_STEP3, PIN_DIR3, 1);
             reached = false;
         }else if(diffC < -STEP_ANGLE)
         {
-            lastC -= STEP_ANGLE;
+            *lastC -= STEP_ANGLE;
             step(PIN_STEP3, PIN_DIR3, 0);
             reached = false;
         }
@@ -213,7 +213,7 @@ int main(int argc, char** argv)
 
     z += 80;
 
-    updateKinematics(dk, lastA, lastB, lastC);
+    updateKinematics(dk, &lastA, &lastB, &lastC);
 
     if(STEPS_NUM == 1)
     {
@@ -283,7 +283,7 @@ int main(int argc, char** argv)
 
             z += 80;
 
-            updateKinematics(dk, lastA, lastB, lastC);
+            updateKinematics(dk, &lastA, &lastB, &lastC);
 
             ERROR = 0;
         }
@@ -307,7 +307,7 @@ int main(int argc, char** argv)
                 time1 = std::chrono::high_resolution_clock::now();
                 calcTime = std::chrono::duration_cast<std::chrono::milliseconds>(time1 - time0);
 
-                updateKinematics(dk, lastA, lastB, lastC);
+                updateKinematics(dk, &lastA, &lastB, &lastC);
 
                 std::chrono::high_resolution_clock::time_point endTime = std::chrono::high_resolution_clock::now();
                 elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
