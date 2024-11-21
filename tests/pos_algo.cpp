@@ -250,6 +250,7 @@ int main(int argc, char** argv)
         if(gpioRead(PIN_FC_M1) || gpioRead(PIN_FC_M2) || gpioRead(PIN_FC_M3))
         {
             ERROR = 1;
+            std::cout << "[ERROR] Contacto con final de carrera" << std::endl;
         }
 
         // centro x0=1 x1=0 / y0=1 y1=0
