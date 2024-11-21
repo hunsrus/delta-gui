@@ -61,27 +61,44 @@ void step(int step_pin, int dir_pin, bool dir)
 
 int home(void)
 {
-    fprintf(stdout, "Homing...\n");
+    bool m1_ready = false;
+    bool m2_ready = false;
+    bool m3_ready = false;
+
+    fprintf(stdout, "Homing...");
     // paso completo
     gpioWrite(PIN_MS1,0);
     gpioWrite(PIN_MS2,0);
     gpioWrite(PIN_MS3,0);
 
-    while(!gpioRead(PIN_FC_M1))
+    while(!m1_ready || !m2_ready || !m3_ready)
     {
-        step(PIN_STEP1, PIN_DIR1, 1);
+        if(!gpioRead(PIN_FC_M1))
+        {
+            step(PIN_STEP1, PIN_DIR1, 1);
+        }else{
+            m1_ready = true;
+            fprintf(stdout, " M1 ready...");
+        }
+
+        if(!gpioRead(PIN_FC_M2))
+        {
+            step(PIN_STEP2, PIN_DIR2, 1);
+        }else{
+            m2_ready = true;
+            fprintf(stdout, " M2 ready...\n");
+        }
+
+        if(!gpioRead(PIN_FC_M3))
+        {
+            step(PIN_STEP3, PIN_DIR3, 1);
+        }else{
+            m3_ready = true;
+            fprintf(stdout, " M3 ready...\n");
+        }
     }
-    fprintf(stdout, "M1 Listo\n");
-    while(!gpioRead(PIN_FC_M2))
-    {
-        step(PIN_STEP2, PIN_DIR2, 1);
-    }
-    fprintf(stdout, "M2 Listo\n");
-    while(!gpioRead(PIN_FC_M3))
-    {
-        step(PIN_STEP3, PIN_DIR3, 1);
-    }
-    fprintf(stdout, "M3 Listo\n");
+
+    fprintf(stdout, "Homing complete\n");
 
     return EXIT_SUCCESS;
 }
