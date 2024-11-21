@@ -52,6 +52,13 @@ double STEP_ANGLE = 1.8/(STEPS_NUM*TRANS_MULTIPLIER*1.0);
 static bool EXIT = false;
 static int ERROR = 0;
 
+std::chrono::milliseconds elapsedTime = std::chrono::milliseconds(0);
+std::chrono::milliseconds calcTime = std::chrono::milliseconds(0);
+std::chrono::milliseconds loadTime = std::chrono::milliseconds(0);
+std::chrono::milliseconds stepTime = std::chrono::milliseconds(0);
+std::chrono::high_resolution_clock::time_point time0;
+std::chrono::high_resolution_clock::time_point time1;
+
 void step(int step_pin, int dir_pin, bool dir)
 {
     gpioWrite(dir_pin, dir);
@@ -104,6 +111,58 @@ int home(void)
     return EXIT_SUCCESS;
 }
 
+void updateKinematics(DeltaKinematics dk, double lastA, double lastB, double lastC)
+{
+    double diffA, diffB, diffC;
+
+    time0 = std::chrono::high_resolution_clock::now();
+    bool reached = false;
+
+    while(!reached)
+    {
+        diffA = dk.a - lastA;
+        diffB = dk.b - lastB;
+        diffC = dk.c - lastC;
+
+        reached = true;
+        if(diffA > STEP_ANGLE)
+        {
+            lastA += STEP_ANGLE;
+            step(PIN_STEP1, PIN_DIR1, 1);
+            reached = false;
+        }else if(diffA < -STEP_ANGLE)
+        {
+            lastA -= STEP_ANGLE;
+            step(PIN_STEP1, PIN_DIR1, 0);
+            reached = false;
+        }
+        if(diffB > STEP_ANGLE)
+        {
+            lastB += STEP_ANGLE;
+            step(PIN_STEP2, PIN_DIR2, 1);
+            reached = false;
+        }else if(diffB < -STEP_ANGLE)
+        {
+            lastB -= STEP_ANGLE;
+            step(PIN_STEP2, PIN_DIR2, 0);
+            reached = false;
+        }
+        if(diffC > STEP_ANGLE)
+        {
+            lastC += STEP_ANGLE;
+            step(PIN_STEP3, PIN_DIR3, 1);
+            reached = false;
+        }else if(diffC < -STEP_ANGLE)
+        {
+            lastC -= STEP_ANGLE;
+            step(PIN_STEP3, PIN_DIR3, 0);
+            reached = false;
+        }
+    }
+    time1 = std::chrono::high_resolution_clock::now();
+    loadTime = std::chrono::duration_cast<std::chrono::milliseconds>(time1 - time0);
+}
+
 int main(int argc, char** argv)
 {
     DeltaKinematics dk = DeltaKinematics(ARM_LENGTH, ROD_LENGTH, BASS_TRI, PLATFORM_TRI);
@@ -111,7 +170,6 @@ int main(int argc, char** argv)
     double lastX = -1, lastY = -1, lastZ = -1;
     double lastA, lastB, lastC;
     double thetaA, thetaB, thetaC;
-    double diffA, diffB, diffC;
 
     bool mode = 0;
 
@@ -155,6 +213,8 @@ int main(int argc, char** argv)
 
     z += 80;
 
+    updateKinematics(dk, lastA, lastB, lastC);
+
     if(STEPS_NUM == 1)
     {
         gpioWrite(PIN_MS1,0);
@@ -181,12 +241,6 @@ int main(int argc, char** argv)
     unsigned int timestep = 0;
 
     const std::chrono::milliseconds targetPeriod = std::chrono::milliseconds(10);
-    std::chrono::milliseconds elapsedTime = std::chrono::milliseconds(0);
-    std::chrono::milliseconds calcTime = std::chrono::milliseconds(0);
-    std::chrono::milliseconds loadTime = std::chrono::milliseconds(0);
-    std::chrono::milliseconds stepTime = std::chrono::milliseconds(0);
-    std::chrono::high_resolution_clock::time_point time0;
-    std::chrono::high_resolution_clock::time_point time1;
     std::chrono::high_resolution_clock::time_point initTime = std::chrono::high_resolution_clock::now();
 
     while(!EXIT)
@@ -229,6 +283,8 @@ int main(int argc, char** argv)
 
             z += 80;
 
+            updateKinematics(dk, lastA, lastB, lastC);
+
             ERROR = 0;
         }
 
@@ -244,59 +300,14 @@ int main(int argc, char** argv)
         {
             if(lastX != x || lastY != y || lastZ != z) // calcula solo si hubo variaciones
             {
+                
                 // Cálculos de cinemática
                 time0 = std::chrono::high_resolution_clock::now();
                 dk.inverse(x,y,z);
                 time1 = std::chrono::high_resolution_clock::now();
                 calcTime = std::chrono::duration_cast<std::chrono::milliseconds>(time1 - time0);
 
-                time0 = std::chrono::high_resolution_clock::now();
-                bool reached = false;
-
-                while(!reached)
-                {
-                    diffA = dk.a - lastA;
-                    diffB = dk.b - lastB;
-                    diffC = dk.c - lastC;
-
-                    reached = true;
-                    if(diffA > STEP_ANGLE)
-                    {
-                        lastA += STEP_ANGLE;
-                        step(PIN_STEP1, PIN_DIR1, 1);
-                        reached = false;
-                    }else if(diffA < -STEP_ANGLE)
-                    {
-                        lastA -= STEP_ANGLE;
-                        step(PIN_STEP1, PIN_DIR1, 0);
-                        reached = false;
-                    }
-                    if(diffB > STEP_ANGLE)
-                    {
-                        lastB += STEP_ANGLE;
-                        step(PIN_STEP2, PIN_DIR2, 1);
-                        reached = false;
-                    }else if(diffB < -STEP_ANGLE)
-                    {
-                        lastB -= STEP_ANGLE;
-                        step(PIN_STEP2, PIN_DIR2, 0);
-                        reached = false;
-                    }
-                    if(diffC > STEP_ANGLE)
-                    {
-                        lastC += STEP_ANGLE;
-                        step(PIN_STEP3, PIN_DIR3, 1);
-                        reached = false;
-                    }else if(diffC < -STEP_ANGLE)
-                    {
-                        lastC -= STEP_ANGLE;
-                        step(PIN_STEP3, PIN_DIR3, 0);
-                        reached = false;
-                    }
-                }
-                
-                time1 = std::chrono::high_resolution_clock::now();
-                loadTime = std::chrono::duration_cast<std::chrono::milliseconds>(time1 - time0);
+                updateKinematics(dk, lastA, lastB, lastC);
 
                 std::chrono::high_resolution_clock::time_point endTime = std::chrono::high_resolution_clock::now();
                 elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
@@ -313,7 +324,6 @@ int main(int argc, char** argv)
                     // Si la iteración tardó más tiempo del permitido
                     //std::cerr << "Advertencia: Iteración excedió el tiempo deseado!" << std::endl;
                 }
-
             }
         }
 
