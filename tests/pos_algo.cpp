@@ -50,6 +50,7 @@
 double STEP_ANGLE = 1.8/(STEPS_NUM*TRANS_MULTIPLIER*1.0);
 
 static bool EXIT = false;
+static int ERROR = 0;
 
 void step(int step_pin, int dir_pin, bool dir)
 {
@@ -152,6 +153,8 @@ int main(int argc, char** argv)
     lastB = dk.b;
     lastC = dk.c;
 
+    z += 80;
+
     if(STEPS_NUM == 1)
     {
         gpioWrite(PIN_MS1,0);
@@ -190,6 +193,11 @@ int main(int argc, char** argv)
     {
         std::chrono::high_resolution_clock::time_point startTime = std::chrono::high_resolution_clock::now();
 
+        if(gpioRead(PIN_FC_M1) || gpioRead(PIN_FC_M2) || gpioRead(PIN_FC_M3))
+        {
+            ERROR = 1;
+        }
+
         // centro x0=1 x1=0 / y0=1 y1=0
         if(gpioRead(PIN_JOY_X0) == 0 && gpioRead(PIN_JOY_X1) == 0) //izq
         {
@@ -207,90 +215,111 @@ int main(int argc, char** argv)
         {
             y += 1.0f;
         }
-        mode = gpioRead(PIN_JOY_PB);
 
-        if(mode == 1)
+        if(gpioRead(PIN_JOY_PB)) //reset
         {
-            x = sin(timestep*0.05f)*30.0f;
-            y = cos(timestep*0.05f)*30.0f;
+            ERROR = -1; //haciendo homing
+            
+            home();
+
+            dk.inverse(x,y,z);
+            lastA = dk.a;
+            lastB = dk.b;
+            lastC = dk.c;
+
+            z += 80;
+
+            ERROR = 0;
         }
 
-        if(lastX != x || lastY != y || lastZ != z) // calcula solo si hubo variaciones
+        // mode = gpioRead(PIN_JOY_PB);
+
+        // if(mode == 1)
+        // {
+        //     x = sin(timestep*0.05f)*30.0f;
+        //     y = cos(timestep*0.05f)*30.0f;
+        // }
+
+        if(!ERROR)
         {
-            // Cálculos de cinemática
-            time0 = std::chrono::high_resolution_clock::now();
-            dk.inverse(x,y,z);
-            time1 = std::chrono::high_resolution_clock::now();
-            calcTime = std::chrono::duration_cast<std::chrono::milliseconds>(time1 - time0);
-
-            time0 = std::chrono::high_resolution_clock::now();
-            bool reached = false;
-
-            while(!reached)
+            if(lastX != x || lastY != y || lastZ != z) // calcula solo si hubo variaciones
             {
-                diffA = dk.a - lastA;
-                diffB = dk.b - lastB;
-                diffC = dk.c - lastC;
+                // Cálculos de cinemática
+                time0 = std::chrono::high_resolution_clock::now();
+                dk.inverse(x,y,z);
+                time1 = std::chrono::high_resolution_clock::now();
+                calcTime = std::chrono::duration_cast<std::chrono::milliseconds>(time1 - time0);
 
-                reached = true;
-                if(diffA > STEP_ANGLE)
+                time0 = std::chrono::high_resolution_clock::now();
+                bool reached = false;
+
+                while(!reached)
                 {
-                    lastA += STEP_ANGLE;
-                    step(PIN_STEP1, PIN_DIR1, 1);
-                    reached = false;
-                }else if(diffA < -STEP_ANGLE)
-                {
-                    lastA -= STEP_ANGLE;
-                    step(PIN_STEP1, PIN_DIR1, 0);
-                    reached = false;
+                    diffA = dk.a - lastA;
+                    diffB = dk.b - lastB;
+                    diffC = dk.c - lastC;
+
+                    reached = true;
+                    if(diffA > STEP_ANGLE)
+                    {
+                        lastA += STEP_ANGLE;
+                        step(PIN_STEP1, PIN_DIR1, 1);
+                        reached = false;
+                    }else if(diffA < -STEP_ANGLE)
+                    {
+                        lastA -= STEP_ANGLE;
+                        step(PIN_STEP1, PIN_DIR1, 0);
+                        reached = false;
+                    }
+                    if(diffB > STEP_ANGLE)
+                    {
+                        lastB += STEP_ANGLE;
+                        step(PIN_STEP2, PIN_DIR2, 1);
+                        reached = false;
+                    }else if(diffB < -STEP_ANGLE)
+                    {
+                        lastB -= STEP_ANGLE;
+                        step(PIN_STEP2, PIN_DIR2, 0);
+                        reached = false;
+                    }
+                    if(diffC > STEP_ANGLE)
+                    {
+                        lastC += STEP_ANGLE;
+                        step(PIN_STEP3, PIN_DIR3, 1);
+                        reached = false;
+                    }else if(diffC < -STEP_ANGLE)
+                    {
+                        lastC -= STEP_ANGLE;
+                        step(PIN_STEP3, PIN_DIR3, 0);
+                        reached = false;
+                    }
                 }
-                if(diffB > STEP_ANGLE)
-                {
-                    lastB += STEP_ANGLE;
-                    step(PIN_STEP2, PIN_DIR2, 1);
-                    reached = false;
-                }else if(diffB < -STEP_ANGLE)
-                {
-                    lastB -= STEP_ANGLE;
-                    step(PIN_STEP2, PIN_DIR2, 0);
-                    reached = false;
+                
+                time1 = std::chrono::high_resolution_clock::now();
+                loadTime = std::chrono::duration_cast<std::chrono::milliseconds>(time1 - time0);
+
+                std::chrono::high_resolution_clock::time_point endTime = std::chrono::high_resolution_clock::now();
+                elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+
+                std::cout << "ELAP_T " << elapsedTime.count() << "[ms]" << std::endl;
+                std::cout << "CALC_T " << calcTime.count() << "[ms]" << std::endl;
+                std::cout << "LOAD_T " << loadTime.count() << "[ms]" << std::endl;
+                std::cout << "STEP_T " << stepTime.count() << "[ms]" << std::endl;
+
+                if (elapsedTime < targetPeriod) {
+                    // Espera el tiempo restante para completar el periodo deseado
+                    //std::this_thread::sleep_for(targetPeriod - elapsedTime);
+                } else {
+                    // Si la iteración tardó más tiempo del permitido
+                    //std::cerr << "Advertencia: Iteración excedió el tiempo deseado!" << std::endl;
                 }
-                if(diffC > STEP_ANGLE)
-                {
-                    lastC += STEP_ANGLE;
-                    step(PIN_STEP3, PIN_DIR3, 1);
-                    reached = false;
-                }else if(diffC < -STEP_ANGLE)
-                {
-                    lastC -= STEP_ANGLE;
-                    step(PIN_STEP3, PIN_DIR3, 0);
-                    reached = false;
-                }
+
             }
-            time1 = std::chrono::high_resolution_clock::now();
-            loadTime = std::chrono::duration_cast<std::chrono::milliseconds>(time1 - time0);
-
         }
 
         lastX = x;
         lastY = y;
         lastZ = z;
-
-        std::chrono::high_resolution_clock::time_point endTime = std::chrono::high_resolution_clock::now();
-        elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
-
-        std::cout << "ELAP_T " << elapsedTime.count() << "[ms]" << std::endl;
-        std::cout << "CALC_T " << calcTime.count() << "[ms]" << std::endl;
-        std::cout << "LOAD_T " << loadTime.count() << "[ms]" << std::endl;
-        std::cout << "STEP_T " << stepTime.count() << "[ms]" << std::endl;
-
-        if (elapsedTime < targetPeriod) {
-            // Espera el tiempo restante para completar el periodo deseado
-            //std::this_thread::sleep_for(targetPeriod - elapsedTime);
-        } else {
-            // Si la iteración tardó más tiempo del permitido
-            //std::cerr << "Advertencia: Iteración excedió el tiempo deseado!" << std::endl;
-        }
         
         timestep++;
     }
