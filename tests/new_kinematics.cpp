@@ -51,22 +51,23 @@ typedef struct Vector3 {
 #define PLATFORM_TRI 120.0f
 #define PLATFORM_POS (Vector3){0,ARM_LENGTH+ROD_LENGTH,0}
 #define HOME_Z 166.0f
+#define LIM_Z -305
 
 #define L1 ARM_LENGTH
 #define L2 ROD_LENGTH
 #define L3 BASS_TRI
 #define SERVO_OFFSET_X PLATFORM_TRI
 #define SERVO_OFFSET_Z 0
-#define SERVO_ANGLE_MIN -M_PI/4
-#define SERVO_ANGLE_MAX M_PI*1.7
+#define SERVO_ANGLE_MIN -M_PI/2
+#define SERVO_ANGLE_MAX M_PI/2
 double servo_1_angle;
 double servo_2_angle;
 double servo_3_angle;
-bool axis_direction = 0;
+bool axis_direction = 1;
 Vector3 end_effector;
 
 #define TRANS_MULTIPLIER 3
-#define STEPS_NUM 4
+#define STEPS_NUM 8
 double STEP_ANGLE = 1.8/(STEPS_NUM*TRANS_MULTIPLIER*1.0);
 
 static bool EXIT = false;
@@ -101,13 +102,14 @@ bool inverse_kinematics_1(float xt, float yt, float zt){
     float phi = acos((pow(L1, 2) + pow(ext, 2) - pow(l2p, 2)) / (2 * L1 * ext)); //Cosine rule that calculates the angle between the ext line and L1
     float omega = atan2(zt, SERVO_OFFSET_X - arm_end_x); //Calculates the angle between horizontal (X) the ext line with respect to its quadrant
     float theta = phi + omega; //Theta is the angle between horizontal (X) and L1
+    float beta = theta-M_PI;
 
-    if(!(theta >= SERVO_ANGLE_MIN && theta <= SERVO_ANGLE_MAX)){ //Checks the angle is in the reachable range
+    if(!(beta >= SERVO_ANGLE_MIN && beta <= SERVO_ANGLE_MAX)){ //Checks the angle is in the reachable range
 //        printi("ERROR: Servo angle 1 out of range: Angle = ", radsToDeg(theta));
         return false;
     }
     
-    servo_1_angle = theta;
+    servo_1_angle = beta * (180.0/3.141592653589793238463);
     return true;
 }
 
@@ -139,13 +141,14 @@ bool inverse_kinematics_2(float xt, float yt, float zt){
     float phi = acos((pow(L1, 2) + pow(ext, 2) - pow(l2p, 2)) / (2 * L1 * ext));
     float omega = atan2(zt, SERVO_OFFSET_X - arm_end_x);
     float theta = phi + omega;
+    float beta = theta-M_PI;
 
-    if(!(theta >= SERVO_ANGLE_MIN && theta <= SERVO_ANGLE_MAX)){
+    if(!(beta >= SERVO_ANGLE_MIN && beta <= SERVO_ANGLE_MAX)){
 //        printi("ERROR: Servo angle 2 out of range: Angle = ", radsToDeg(theta));
         return false;
     }
     
-    servo_2_angle = theta;
+    servo_2_angle = beta * (180.0/3.141592653589793238463);
     return true;
 }
 
@@ -178,13 +181,14 @@ bool inverse_kinematics_3(float xt, float yt, float zt){
     float phi = acos((pow(L1, 2) + pow(ext, 2) - pow(l2p, 2)) / (2 * L1 * ext));
     float omega = atan2(zt, SERVO_OFFSET_X - arm_end_x);
     float theta = phi + omega;
+    float beta = theta-M_PI;
 
-    if(!(theta >= SERVO_ANGLE_MIN && theta <= SERVO_ANGLE_MAX)){
+    if(!(beta >= SERVO_ANGLE_MIN && beta <= SERVO_ANGLE_MAX)){
 //        printi("ERROR: Servo angle 3 out of range: Angle = ", radsToDeg(theta));
         return false;
     }
     
-    servo_3_angle = theta;
+    servo_3_angle = beta * (180.0/3.141592653589793238463);
     return true;
 }
 
@@ -390,7 +394,15 @@ int main(int argc, char** argv)
         gpioWrite(PIN_MS3,1);
     }
 
-    z -= 30;
+    z = -300;
+    x = -80;
+
+    std::cout << "a: " << servo_1_angle << std::endl;
+    std::cout << "b: " << servo_2_angle << std::endl;
+    std::cout << "c: " << servo_3_angle << std::endl;
+    std::cout << "x: " << x << std::endl;
+    std::cout << "y: " << y << std::endl;
+    std::cout << "z: " << z << std::endl;
 
     inverse_kinematics(x, y, z);
     updateKinematics(&lastA, &lastB, &lastC);
@@ -410,28 +422,29 @@ int main(int argc, char** argv)
         if(gpioRead(PIN_FC_M1) || gpioRead(PIN_FC_M2) || gpioRead(PIN_FC_M3))
         {
             ERROR = 1;
-            std::cout << "[ERROR] Contacto con final de carrera" << std::endl;
+//            std::cout << "[ERROR] Contacto con final de carrera" << std::endl;
         }
 
         // centro x0=1 x1=0 / y0=1 y1=0
         if(gpioRead(PIN_JOY_X0) == 0 && gpioRead(PIN_JOY_X1) == 0) //izq
         {
-            x -= 1.0f;
+            //x -= 1.0f;
         }
         if(gpioRead(PIN_JOY_X0) == 1 && gpioRead(PIN_JOY_X1) == 1) //der
         {
-            x += 1.0f;
+            //x += 1.0f;
         }
         if(gpioRead(PIN_JOY_Y0) == 1 && gpioRead(PIN_JOY_Y1) == 1) //abajo
         {
-            y -= 1.0f;
+           // y -= 1.0f;
         }
         if(gpioRead(PIN_JOY_Y0) == 0 && gpioRead(PIN_JOY_Y1) == 0) //arriba
         {
-            y += 1.0f;
+            //y += 1.0f;
         }
-
-        if(gpioRead(PIN_JOY_PB)) //reset
+	
+	/*
+	if(gpioRead(PIN_JOY_PB)) //reset
         {
             ERROR = -1; //haciendo homing
             
@@ -467,7 +480,7 @@ int main(int argc, char** argv)
                 gpioWrite(PIN_MS3,1);
             }
 
-            z -= 30;
+            z += 30;
 
             inverse_kinematics(x, y, z);
             updateKinematics(&lastA, &lastB, &lastC);
@@ -477,14 +490,19 @@ int main(int argc, char** argv)
 
             ERROR = 0;
         }
+	*/
 
-        // mode = gpioRead(PIN_JOY_PB);
+        
+	mode = gpioRead(PIN_JOY_PB);
 
-        // if(mode == 1)
-        // {
-        //     x = sin(timestep*0.05f)*30.0f;
-        //     y = cos(timestep*0.05f)*30.0f;
-        // }
+        if(mode == 1)
+        {
+            //x = sin(timestep*0.05f)*30.0f;
+            //y = cos(timestep*0.05f)*30.0f;
+	    //z = -HOME_Z+cos(timestep*0.05f)*10.0f;
+	    z -= 1;
+        }
+	
 
         if(!ERROR)
         {
@@ -502,12 +520,14 @@ int main(int argc, char** argv)
                 std::chrono::high_resolution_clock::time_point endTime = std::chrono::high_resolution_clock::now();
                 elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
 
-                std::cout << "ELAP_T " << elapsedTime.count() << "[ms]" << std::endl;
-                std::cout << "CALC_T " << calcTime.count() << "[ms]" << std::endl;
-                std::cout << "LOAD_T " << loadTime.count() << "[ms]" << std::endl;
-                std::cout << "STEP_T " << stepTime.count() << "[ms]" << std::endl;
-
-                if (elapsedTime < targetPeriod) {
+    		std::cout << "a: " << servo_1_angle << std::endl;
+		std::cout << "b: " << servo_2_angle << std::endl;
+		std::cout << "c: " << servo_3_angle << std::endl;
+		std::cout << "x: " << x << std::endl;
+		std::cout << "y: " << y << std::endl;
+		std::cout << "z: " << z << std::endl;
+                
+		if (elapsedTime < targetPeriod) {
                     // Espera el tiempo restante para completar el periodo deseado
                     //std::this_thread::sleep_for(targetPeriod - elapsedTime);
                 } else {
