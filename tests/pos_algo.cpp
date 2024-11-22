@@ -107,6 +107,8 @@ int home(void)
         }
     }
 
+    gpioWrite(PIN_BOMBA,1);
+
     fprintf(stdout, "Homing complete\n");
 
     return EXIT_SUCCESS;
@@ -285,6 +287,8 @@ int main(int argc, char** argv)
             ERROR = -1; //haciendo homing
             
             home();
+
+            gpioWrite(PIN_BOMBA, 0);
 
             x = 0, y = 0, z = -HOME_Z;
 
