@@ -50,7 +50,7 @@ typedef struct Vector3 {
 #define BASS_TRI 35.0f
 #define PLATFORM_TRI 120.0f
 #define PLATFORM_POS (Vector3){0,ARM_LENGTH+ROD_LENGTH,0}
-#define HOME_Z 166.0f
+#define HOME_Z -166.0f
 #define LIM_Z -305
 
 #define L1 ARM_LENGTH
@@ -320,9 +320,49 @@ void updateKinematics(double *lastA, double *lastB, double *lastC)
     loadTime = std::chrono::duration_cast<std::chrono::milliseconds>(time1 - time0);
 }
 
+void linear_move(float x1, float y1, float z1, float stepDist, int stepDelay, double *lastA, double *lastB, double *lastC){//interpolates between two points to move in a stright line (beware of physical and kinematic limits)
+    //Sets the initial position variables
+    float x0 = end_effector.x;
+    float y0 = end_effector.y;
+    float z0 = end_effector.z;
+    
+    //Distance change in each axis
+    float xDist = x1 - x0;
+    float yDist = y1 - y0;
+    float zDist = z1 - z0;
+    
+    double totalDist = sqrt(pow(xDist,2) + pow(yDist,2) + pow(zDist,2));//Absolute magnitute of the distance
+    int numberOfSteps = round(totalDist / stepDist);//Number of steps required for the desired step distance
+
+    //Step size of each axis
+    if(numberOfSteps == 0){
+//        printi("ERROR: No change in position: numberOfSteps = ", numberOfSteps);
+        return;
+    }
+    
+    float xStep = xDist / (float)numberOfSteps;
+    float yStep = yDist / (float)numberOfSteps;
+    float zStep = zDist / (float)numberOfSteps;
+
+    //Interpolation variables
+    float xInterpolation;
+    float yInterpolation;
+    float zInterpolation;
+
+    for(int i = 1; i <= numberOfSteps; i++){//Interpolate the points
+        xInterpolation = x0 + i * xStep;
+        yInterpolation = y0 + i * yStep;
+        zInterpolation = z0 + i * zStep;
+
+        inverse_kinematics(xInterpolation, yInterpolation, zInterpolation);//calculates the inverse kinematics for the interpolated values
+        updateKinematics(lastA, lastB, lastC);
+        usleep(stepDelay);
+    }
+}
+
 int main(int argc, char** argv)
 {
-    double x = 0, y = 0, z = -HOME_Z;
+    double x = 0, y = 0, z = HOME_Z;
     double lastX = -1, lastY = -1, lastZ = -1;
     double lastA, lastB, lastC;
 
@@ -359,9 +399,10 @@ int main(int argc, char** argv)
 
     gpioSetMode(PIN_BOMBA,PI_OUTPUT);
 
+    gpioWrite(PIN_BOMBA,0);
     home();
 
-    x = 0, y = 0, z = -HOME_Z;
+    x = 0, y = 0, z = HOME_Z;
 
     inverse_kinematics(x, y, z);
     lastA = servo_1_angle;
@@ -394,8 +435,7 @@ int main(int argc, char** argv)
         gpioWrite(PIN_MS3,1);
     }
 
-    z = -300;
-    x = -80;
+    z -= -30;
 
     std::cout << "a: " << servo_1_angle << std::endl;
     std::cout << "b: " << servo_2_angle << std::endl;
@@ -409,6 +449,14 @@ int main(int argc, char** argv)
     lastX = x;
     lastY = y;
     lastZ = z;
+
+    while(true)
+    {
+        x = 60;
+        linear_move(x, y, z, 0.4, 1000, &lastA, &lastB, &lastC);
+        x = -60;
+        linear_move(x, y, z, 0.4, 1000, &lastA, &lastB, &lastC);
+    }
 
     unsigned int timestep = 0;
 
@@ -450,7 +498,7 @@ int main(int argc, char** argv)
             
             home();
 
-            x = 0, y = 0, z = -HOME_Z;
+            x = 0, y = 0, z = HOME_Z;
 
             inverse_kinematics(x, y, z);
             lastA = servo_1_angle;
@@ -499,7 +547,7 @@ int main(int argc, char** argv)
         {
             //x = sin(timestep*0.05f)*30.0f;
             //y = cos(timestep*0.05f)*30.0f;
-	    //z = -HOME_Z+cos(timestep*0.05f)*10.0f;
+	    //z = HOME_Z+cos(timestep*0.05f)*10.0f;
 	    z -= 1;
         }
 	
