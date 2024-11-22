@@ -42,7 +42,7 @@
 #define ARM_LENGTH 130.0f
 #define ROD_LENGTH 310.0f
 #define BASS_TRI 35.0f
-#define PLATFORM_TRI 130.0f
+#define PLATFORM_TRI 120.0f
 #define PLATFORM_POS (Vector3){0,ARM_LENGTH+ROD_LENGTH,0}
 #define HOME_Z 166.0f
 
@@ -170,7 +170,6 @@ int main(int argc, char** argv)
     double x = 0, y = 0, z = -HOME_Z;
     double lastX = -1, lastY = -1, lastZ = -1;
     double lastA, lastB, lastC;
-    double thetaA, thetaB, thetaC;
 
     bool mode = 0;
 
@@ -213,6 +212,9 @@ int main(int argc, char** argv)
     lastA = dk.a;
     lastB = dk.b;
     lastC = dk.c;
+    lastX = x;
+    lastY = y;
+    lastZ = z;
 
     if(STEPS_NUM == 1)
     {
@@ -237,7 +239,7 @@ int main(int argc, char** argv)
         gpioWrite(PIN_MS3,1);
     }
 
-    z += 10;
+    z -= 30;
 
     dk.inverse(x,y,z);
     updateKinematics(dk, &lastA, &lastB, &lastC);
@@ -314,7 +316,7 @@ int main(int argc, char** argv)
                 gpioWrite(PIN_MS3,1);
             }
 
-            z += 10;
+            z -= 30;
 
             dk.inverse(x,y,z);
             updateKinematics(dk, &lastA, &lastB, &lastC);
