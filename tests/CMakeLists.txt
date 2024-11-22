@@ -1,14 +1,14 @@
 cmake_minimum_required(VERSION 3.5) # FetchContent is available in 3.11+
-project(pos-algo)
+project(new-kinematics)
 
 # Generate compile_commands.json
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 file(GLOB SOURCES
   *.h
-  ../DeltaKinematics.h
-  ../DeltaKinematics.cpp
-  pos_algo.cpp
+  ../deltaRobot.h
+  ../deltaRobot.cpp
+  new_kinematics.cpp
 )
 
 ADD_EXECUTABLE(${PROJECT_NAME}
