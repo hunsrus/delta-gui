@@ -6,8 +6,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 file(GLOB SOURCES
   *.h
-  ../deltaRobot.h
-  ../deltaRobot.cpp
   new_kinematics.cpp
 )
 
