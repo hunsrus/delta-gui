@@ -34,7 +34,7 @@ typedef struct Vector3 {
 #define PIN_MS3 4
 
 #define PIN_JOY_X0 19
-#define PIN_JOY_X1 26
+#define PIN_JOY_X1 0
 #define PIN_JOY_Y0 20
 #define PIN_JOY_Y1 16
 #define PIN_JOY_PB 21
@@ -43,7 +43,7 @@ typedef struct Vector3 {
 #define PIN_FC_M2 13
 #define PIN_FC_M3 27
 
-#define PIN_BOMBA 0
+#define PIN_BOMBA 26
 
 #define ARM_LENGTH 130.0f
 #define ROD_LENGTH 310.0f
@@ -232,7 +232,7 @@ int home(void)
 
     fprintf(stdout, "Homing...");
     // paso completo
-    gpioWrite(PIN_MS1,0);
+    gpioWrite(PIN_MS1,1);
     gpioWrite(PIN_MS2,0);
     gpioWrite(PIN_MS3,0);
 
@@ -435,7 +435,7 @@ int main(int argc, char** argv)
         gpioWrite(PIN_MS3,1);
     }
 
-    z -= -30;
+    z = -280;
 
     std::cout << "a: " << servo_1_angle << std::endl;
     std::cout << "b: " << servo_2_angle << std::endl;
@@ -452,9 +452,19 @@ int main(int argc, char** argv)
 
     while(true)
     {
-        x = 60;
+        x = 30;
         linear_move(x, y, z, 0.4, 1000, &lastA, &lastB, &lastC);
-        x = -60;
+    	gpioWrite(PIN_BOMBA,1);
+	z = -300;
+        linear_move(x, y, z, 0.4, 1000, &lastA, &lastB, &lastC);
+	z = -280;
+        linear_move(x, y, z, 0.4, 1000, &lastA, &lastB, &lastC);
+	x = -30;
+        linear_move(x, y, z, 0.4, 1000, &lastA, &lastB, &lastC);
+        z = -300;
+        linear_move(x, y, z, 0.4, 1000, &lastA, &lastB, &lastC);
+    	gpioWrite(PIN_BOMBA,0);
+        z = -280;
         linear_move(x, y, z, 0.4, 1000, &lastA, &lastB, &lastC);
     }
 
