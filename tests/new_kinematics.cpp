@@ -5,6 +5,7 @@
     #define ARCH_ARM false
 #endif
 
+#include "OctoKinematics.h"
 #include <iostream>
 #include <stdio.h>
 #include <thread>
@@ -47,24 +48,11 @@ typedef struct Vector3 {
 
 #define ARM_LENGTH 130.0f
 #define ROD_LENGTH 310.0f
-#define BASS_TRI 35.0f
-#define PLATFORM_TRI 120.0f
-#define PLATFORM_POS (Vector3){0,ARM_LENGTH+ROD_LENGTH,0}
+#define EFF_RADIUS 35.0f
+#define BAS_RADIUS 120.0f
+#define BAS_POSITION (Vector3){0,ARM_LENGTH+ROD_LENGTH,0}
 #define HOME_Z -166.0f
 #define LIM_Z -305
-
-#define L1 ARM_LENGTH
-#define L2 ROD_LENGTH
-#define L3 BASS_TRI
-#define SERVO_OFFSET_X PLATFORM_TRI
-#define SERVO_OFFSET_Z 0
-#define SERVO_ANGLE_MIN -M_PI/2
-#define SERVO_ANGLE_MAX M_PI/2
-double servo_1_angle;
-double servo_2_angle;
-double servo_3_angle;
-bool axis_direction = 1;
-Vector3 end_effector;
 
 #define TRANS_MULTIPLIER 3
 #define STEPS_NUM 8
@@ -79,142 +67,6 @@ std::chrono::milliseconds loadTime = std::chrono::milliseconds(0);
 std::chrono::milliseconds stepTime = std::chrono::milliseconds(0);
 std::chrono::high_resolution_clock::time_point time0;
 std::chrono::high_resolution_clock::time_point time1;
-
-bool inverse_kinematics_1(float xt, float yt, float zt){
-    zt -= SERVO_OFFSET_Z; //Remove the differance in height from ground level to the centre of rotation of the servos
-    
-    float arm_end_x = xt + L3; //Adding the distance between the end effector centre and ball joints to the target x coordinate
-    float l2p = sqrt(pow(L2, 2) - pow(yt, 2)); //The length of link 2 when projected onto the XZ plane
-    
-    float l2pAngle = asin(yt / L2); //Gives the angle between link2 and the ball joints. (Not actually necessary to calculate the inverse kinematics. Just used to prevent the arms ripping themselves apart.)
-    if(!(abs(l2pAngle) < 0.59341194567807205615405486128613f)){ //Prevents the angle between the ball joints and link 2 (L2) going out of range. (Angle was determined by emprical testing.)
-//        printi("ERROR: Ball joint 1 out of range: l2pAngle = ", radsToDeg(l2pAngle));
-        return false;
-    }
-
-    float ext = sqrt(pow (zt, 2) + pow(SERVO_OFFSET_X - arm_end_x, 2)); //Extension of the arm from the centre of the servo rotation to the end ball joint of link2
-
-    if(ext <= l2p - L1 || ext >= L1 + l2p){ //Checks the extension in the reachable range (This limit assumes that L2 is greater than L1)
-//       printi("ERROR: Extension 1 out of range: ext = ", ext);
-        return false;
-    }
-       
-    float phi = acos((pow(L1, 2) + pow(ext, 2) - pow(l2p, 2)) / (2 * L1 * ext)); //Cosine rule that calculates the angle between the ext line and L1
-    float omega = atan2(zt, SERVO_OFFSET_X - arm_end_x); //Calculates the angle between horizontal (X) the ext line with respect to its quadrant
-    float theta = phi + omega; //Theta is the angle between horizontal (X) and L1
-    float beta = theta-M_PI;
-
-    if(!(beta >= SERVO_ANGLE_MIN && beta <= SERVO_ANGLE_MAX)){ //Checks the angle is in the reachable range
-//        printi("ERROR: Servo angle 1 out of range: Angle = ", radsToDeg(theta));
-        return false;
-    }
-    
-    servo_1_angle = beta * (180.0/3.141592653589793238463);
-    return true;
-}
-
-/*------------------------------------------------------------------------------------------------------------------------------------------------------*/
-
-bool inverse_kinematics_2(float xt, float yt, float zt){
-    zt -= SERVO_OFFSET_Z;
-    float x = xt;
-    float y = yt;
-    xt = x * cos(2.0943951023931954923084289221863f) - y * sin(2.0943951023931954923084289221863f); //Rotate coordinate frame 120 degrees
-    yt = x * sin(2.0943951023931954923084289221863f) + y * cos(2.0943951023931954923084289221863f);
-    
-    float arm_end_x = xt + L3;
-    float l2p = sqrt(pow(L2, 2) - pow(yt, 2));
-    
-    float l2pAngle = asin(yt / L2);
-    if(!(abs(l2pAngle) < 0.59341194567807205615405486128613f)){ //Prevents the angle between the ball joints and link 2 (L2) going out of range.
-//        printi("ERROR: Ball joint 2 out of range: l2pAngle = ", radsToDeg(l2pAngle));        
-        return false;
-    }
-    
-    float ext = sqrt(pow (zt, 2) + pow(SERVO_OFFSET_X - arm_end_x, 2));
-
-    if(ext <= l2p - L1 || ext >= L1 + l2p){ //This limit assumes that L2 is greater than L1
-//        printi("ERROR: Extension 2 out of range: ext = ", ext);
-        return false;
-    }
-       
-    float phi = acos((pow(L1, 2) + pow(ext, 2) - pow(l2p, 2)) / (2 * L1 * ext));
-    float omega = atan2(zt, SERVO_OFFSET_X - arm_end_x);
-    float theta = phi + omega;
-    float beta = theta-M_PI;
-
-    if(!(beta >= SERVO_ANGLE_MIN && beta <= SERVO_ANGLE_MAX)){
-//        printi("ERROR: Servo angle 2 out of range: Angle = ", radsToDeg(theta));
-        return false;
-    }
-    
-    servo_2_angle = beta * (180.0/3.141592653589793238463);
-    return true;
-}
-
-/*------------------------------------------------------------------------------------------------------------------------------------------------------*/
-
-bool inverse_kinematics_3(float xt, float yt, float zt){
-    zt -= SERVO_OFFSET_Z;
-
-    float x = xt;
-    float y = yt;
-    xt = x * cos(4.1887902047863909846168578443727f) - y * sin(4.1887902047863909846168578443727f); //Rotate coordinate frame 240 degrees
-    yt = x * sin(4.1887902047863909846168578443727f) + y * cos(4.1887902047863909846168578443727f);
-
-    float arm_end_x = xt + L3;
-    float l2p = sqrt(pow(L2, 2) - pow(yt, 2));
-    
-    float l2pAngle = asin(yt / L2);
-    if(!(abs(l2pAngle) < 0.59341194567807205615405486128613f)){ //Prevents the angle between the ball joints and link 2 (L2) going out of range.
-//        printi("ERROR: Ball joint 1 out of range: l2pAngle = ", radsToDeg(l2pAngle));
-        return false;
-    }
-    
-    float ext = sqrt(pow (zt, 2) + pow(SERVO_OFFSET_X - arm_end_x, 2));
-
-    if(ext <= l2p - L1 || ext >= L1 + l2p){ //This limit assumes that L2 is greater than L1
-//        printi("ERROR: Extension 3 out of range: ext = ", ext);
-        return false;
-    }
-       
-    float phi = acos((pow(L1, 2) + pow(ext, 2) - pow(l2p, 2)) / (2 * L1 * ext));
-    float omega = atan2(zt, SERVO_OFFSET_X - arm_end_x);
-    float theta = phi + omega;
-    float beta = theta-M_PI;
-
-    if(!(beta >= SERVO_ANGLE_MIN && beta <= SERVO_ANGLE_MAX)){
-//        printi("ERROR: Servo angle 3 out of range: Angle = ", radsToDeg(theta));
-        return false;
-    }
-    
-    servo_3_angle = beta * (180.0/3.141592653589793238463);
-    return true;
-}
-
-/*------------------------------------------------------------------------------------------------------------------------------------------------------*/
-
-bool inverse_kinematics(float xt, float yt, float zt){    
-    if(axis_direction == 1){//if axis are inverted
-        xt = -xt;
-        zt = -zt;
-    }
-    
-    if(inverse_kinematics_1(xt, yt, zt) && inverse_kinematics_2(xt, yt, zt) && inverse_kinematics_3(xt, yt, zt)){ //Calculates and checks the positions are valid.
-        if(axis_direction == 1){//if axis are inverted
-            end_effector.x = -xt;
-            end_effector.z = -zt;
-        }
-        else{
-            end_effector.x = xt;
-            end_effector.z = zt;
-        }
-        end_effector.y = yt;
-
-        return true;
-    }
-    return false;
-}
 
 void step(int step_pin, int dir_pin, bool dir)
 {
@@ -268,7 +120,7 @@ int home(void)
     return EXIT_SUCCESS;
 }
 
-void updateKinematics(double *lastA, double *lastB, double *lastC)
+void updateKinematics(OctoKinematics octoKin, double *lastA, double *lastB, double *lastC)
 {
     double diffA, diffB, diffC;
 
@@ -277,9 +129,9 @@ void updateKinematics(double *lastA, double *lastB, double *lastC)
 
     while(!reached)
     {
-        diffA = servo_1_angle - *lastA;
-        diffB = servo_2_angle - *lastB;
-        diffC = servo_3_angle - *lastC;
+        diffA = octoKin.a - *lastA;
+        diffB = octoKin.b - *lastB;
+        diffC = octoKin.c - *lastC;
 
         reached = true;
         if(diffA > STEP_ANGLE)
@@ -320,11 +172,11 @@ void updateKinematics(double *lastA, double *lastB, double *lastC)
     loadTime = std::chrono::duration_cast<std::chrono::milliseconds>(time1 - time0);
 }
 
-void linear_move(float x1, float y1, float z1, float stepDist, int stepDelay, double *lastA, double *lastB, double *lastC){//interpolates between two points to move in a stright line (beware of physical and kinematic limits)
+void linear_move(OctoKinematics octoKin,float x1, float y1, float z1, float stepDist, int stepDelay, double *lastA, double *lastB, double *lastC){//interpolates between two points to move in a stright line (beware of physical and kinematic limits)
     //Sets the initial position variables
-    float x0 = end_effector.x;
-    float y0 = end_effector.y;
-    float z0 = end_effector.z;
+    float x0 = octoKin.x;
+    float y0 = octoKin.y;
+    float z0 = octoKin.z;
     
     //Distance change in each axis
     float xDist = x1 - x0;
@@ -354,14 +206,15 @@ void linear_move(float x1, float y1, float z1, float stepDist, int stepDelay, do
         yInterpolation = y0 + i * yStep;
         zInterpolation = z0 + i * zStep;
 
-        inverse_kinematics(xInterpolation, yInterpolation, zInterpolation);//calculates the inverse kinematics for the interpolated values
-        updateKinematics(lastA, lastB, lastC);
+        octoKin.inverse_kinematics(xInterpolation, yInterpolation, zInterpolation);//calculates the inverse kinematics for the interpolated values
+        updateKinematics(octoKin, lastA, lastB, lastC);
         usleep(stepDelay);
     }
 }
 
 int main(int argc, char** argv)
 {
+    OctoKinematics octoKin = OctoKinematics(ARM_LENGTH, ROD_LENGTH, EFF_RADIUS, BAS_RADIUS);
     double x = 0, y = 0, z = HOME_Z;
     double lastX = -1, lastY = -1, lastZ = -1;
     double lastA, lastB, lastC;
@@ -404,10 +257,10 @@ int main(int argc, char** argv)
 
     x = 0, y = 0, z = HOME_Z;
 
-    inverse_kinematics(x, y, z);
-    lastA = servo_1_angle;
-    lastB = servo_2_angle;
-    lastC = servo_3_angle;
+    octoKin.inverse_kinematics(x, y, z);
+    lastA = octoKin.a;
+    lastB = octoKin.b;
+    lastC = octoKin.c;
     lastX = x;
     lastY = y;
     lastZ = z;
@@ -437,15 +290,15 @@ int main(int argc, char** argv)
 
     z = -280;
 
-    std::cout << "a: " << servo_1_angle << std::endl;
-    std::cout << "b: " << servo_2_angle << std::endl;
-    std::cout << "c: " << servo_3_angle << std::endl;
+    std::cout << "a: " << octoKin.a << std::endl;
+    std::cout << "b: " << octoKin.b << std::endl;
+    std::cout << "c: " << octoKin.c << std::endl;
     std::cout << "x: " << x << std::endl;
     std::cout << "y: " << y << std::endl;
     std::cout << "z: " << z << std::endl;
 
-    inverse_kinematics(x, y, z);
-    updateKinematics(&lastA, &lastB, &lastC);
+    octoKin.inverse_kinematics(x, y, z);
+    updateKinematics(octoKin, &lastA, &lastB, &lastC);
     lastX = x;
     lastY = y;
     lastZ = z;
@@ -453,19 +306,19 @@ int main(int argc, char** argv)
     while(true)
     {
         x = 30;
-        linear_move(x, y, z, 0.4, 1000, &lastA, &lastB, &lastC);
+        linear_move(octoKin, x, y, z, 0.4, 1000, &lastA, &lastB, &lastC);
     	gpioWrite(PIN_BOMBA,1);
-	z = -300;
-        linear_move(x, y, z, 0.4, 1000, &lastA, &lastB, &lastC);
-	z = -280;
-        linear_move(x, y, z, 0.4, 1000, &lastA, &lastB, &lastC);
-	x = -30;
-        linear_move(x, y, z, 0.4, 1000, &lastA, &lastB, &lastC);
+	    z = -300;
+        linear_move(octoKin, x, y, z, 0.4, 1000, &lastA, &lastB, &lastC);
+	    z = -280;
+        linear_move(octoKin, x, y, z, 0.4, 1000, &lastA, &lastB, &lastC);
+	    x = -30;
+        linear_move(octoKin, x, y, z, 0.4, 1000, &lastA, &lastB, &lastC);
         z = -300;
-        linear_move(x, y, z, 0.4, 1000, &lastA, &lastB, &lastC);
+        linear_move(octoKin, x, y, z, 0.4, 1000, &lastA, &lastB, &lastC);
     	gpioWrite(PIN_BOMBA,0);
         z = -280;
-        linear_move(x, y, z, 0.4, 1000, &lastA, &lastB, &lastC);
+        linear_move(octoKin, x, y, z, 0.4, 1000, &lastA, &lastB, &lastC);
     }
 
     unsigned int timestep = 0;
@@ -569,21 +422,21 @@ int main(int argc, char** argv)
                 
                 // Cálculos de cinemática
                 time0 = std::chrono::high_resolution_clock::now();
-                inverse_kinematics(x, y, z);
+                octoKin.inverse_kinematics(x, y, z);
                 time1 = std::chrono::high_resolution_clock::now();
                 calcTime = std::chrono::duration_cast<std::chrono::milliseconds>(time1 - time0);
 
-                updateKinematics(&lastA, &lastB, &lastC);
+                updateKinematics(octoKin, &lastA, &lastB, &lastC);
 
                 std::chrono::high_resolution_clock::time_point endTime = std::chrono::high_resolution_clock::now();
                 elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
 
-    		std::cout << "a: " << servo_1_angle << std::endl;
-		std::cout << "b: " << servo_2_angle << std::endl;
-		std::cout << "c: " << servo_3_angle << std::endl;
-		std::cout << "x: " << x << std::endl;
-		std::cout << "y: " << y << std::endl;
-		std::cout << "z: " << z << std::endl;
+                std::cout << "a: " << octoKin.a << std::endl;
+                std::cout << "b: " << octoKin.b << std::endl;
+                std::cout << "c: " << octoKin.c << std::endl;
+                std::cout << "x: " << x << std::endl;
+                std::cout << "y: " << y << std::endl;
+                std::cout << "z: " << z << std::endl;
                 
 		if (elapsedTime < targetPeriod) {
                     // Espera el tiempo restante para completar el periodo deseado

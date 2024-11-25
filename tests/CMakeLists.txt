@@ -5,7 +5,8 @@ project(new-kinematics)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 file(GLOB SOURCES
-  *.h
+  OctoKinematics.h
+  OctoKinematics.cpp
   new_kinematics.cpp
 )
 
