@@ -174,9 +174,9 @@ void updateKinematics(OctoKinematics octoKin, double *lastA, double *lastB, doub
 
 void linear_move(OctoKinematics octoKin,float x1, float y1, float z1, float stepDist, int stepDelay, double *lastA, double *lastB, double *lastC){//interpolates between two points to move in a stright line (beware of physical and kinematic limits)
     //Sets the initial position variables
-    float x0 = octoKin.x;
-    float y0 = octoKin.y;
-    float z0 = octoKin.z;
+    float x0 = octoKin._x;
+    float y0 = octoKin._y;
+    float z0 = octoKin._z;
     
     //Distance change in each axis
     float xDist = x1 - x0;
@@ -215,6 +215,7 @@ void linear_move(OctoKinematics octoKin,float x1, float y1, float z1, float step
 int main(int argc, char** argv)
 {
     OctoKinematics octoKin = OctoKinematics(ARM_LENGTH, ROD_LENGTH, EFF_RADIUS, BAS_RADIUS);
+    octoKin.set_axis_direction(1);
     double x = 0, y = 0, z = HOME_Z;
     double lastX = -1, lastY = -1, lastZ = -1;
     double lastA, lastB, lastC;

@@ -130,14 +130,14 @@ bool OctoKinematics::inverse_kinematics(float xt, float yt, float zt)
     
     if(inverse_kinematics_1(xt, yt, zt) && inverse_kinematics_2(xt, yt, zt) && inverse_kinematics_3(xt, yt, zt)){ //Calculates and checks the positions are valid.
         if(axis_direction == 1){//if axis are inverted
-            this->x = -xt;
-            this->z = -zt;
+            this->_x = -xt;
+            this->_z = -zt;
         }
         else{
-            this->x = xt;
-            this->z = zt;
+            this->_x = xt;
+            this->_z = zt;
         }
-        this->y = yt;
+        this->_y = yt;
 
         return true;
     }

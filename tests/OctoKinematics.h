@@ -14,9 +14,9 @@ class OctoKinematics
         bool inverse_kinematics(float xt, float yt, float zt);
         void set_axis_direction(bool dir);
 
-        double x = 0;
-        double y = 0;
-        double z = 0;
+        double _x = 0;
+        double _y = 0;
+        double _z = 0;
         double a = 0;
         double b = 0;
         double c = 0;
