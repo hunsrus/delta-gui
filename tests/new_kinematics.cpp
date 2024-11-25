@@ -120,7 +120,7 @@ int home(void)
     return EXIT_SUCCESS;
 }
 
-void updateKinematics(OctoKinematics octoKin, double *lastA, double *lastB, double *lastC)
+void updateKinematics(OctoKinematics *octoKin, double *lastA, double *lastB, double *lastC)
 {
     double diffA, diffB, diffC;
 
@@ -129,9 +129,9 @@ void updateKinematics(OctoKinematics octoKin, double *lastA, double *lastB, doub
 
     while(!reached)
     {
-        diffA = octoKin.a - *lastA;
-        diffB = octoKin.b - *lastB;
-        diffC = octoKin.c - *lastC;
+        diffA = octoKin->a - *lastA;
+        diffB = octoKin->b - *lastB;
+        diffC = octoKin->c - *lastC;
 
         reached = true;
         if(diffA > STEP_ANGLE)
@@ -172,11 +172,11 @@ void updateKinematics(OctoKinematics octoKin, double *lastA, double *lastB, doub
     loadTime = std::chrono::duration_cast<std::chrono::milliseconds>(time1 - time0);
 }
 
-void linear_move(OctoKinematics octoKin,float x1, float y1, float z1, float stepDist, int stepDelay, double *lastA, double *lastB, double *lastC){//interpolates between two points to move in a stright line (beware of physical and kinematic limits)
+void linear_move(OctoKinematics *octoKin,float x1, float y1, float z1, float stepDist, int stepDelay, double *lastA, double *lastB, double *lastC){//interpolates between two points to move in a stright line (beware of physical and kinematic limits)
     //Sets the initial position variables
-    float x0 = octoKin._x;
-    float y0 = octoKin._y;
-    float z0 = octoKin._z;
+    float x0 = octoKin->_x;
+    float y0 = octoKin->_y;
+    float z0 = octoKin->_z;
     
     //Distance change in each axis
     float xDist = x1 - x0;
@@ -188,7 +188,7 @@ void linear_move(OctoKinematics octoKin,float x1, float y1, float z1, float step
 
     //Step size of each axis
     if(numberOfSteps == 0){
-//        printi("ERROR: No change in position: numberOfSteps = ", numberOfSteps);
+        printf("ERROR: No change in position: numberOfSteps = %i", numberOfSteps);
         return;
     }
     
@@ -206,7 +206,7 @@ void linear_move(OctoKinematics octoKin,float x1, float y1, float z1, float step
         yInterpolation = y0 + i * yStep;
         zInterpolation = z0 + i * zStep;
 
-        octoKin.inverse_kinematics(xInterpolation, yInterpolation, zInterpolation);//calculates the inverse kinematics for the interpolated values
+        octoKin->inverse_kinematics(xInterpolation, yInterpolation, zInterpolation);//calculates the inverse kinematics for the interpolated values
         updateKinematics(octoKin, lastA, lastB, lastC);
         usleep(stepDelay);
     }
@@ -299,7 +299,7 @@ int main(int argc, char** argv)
     std::cout << "z: " << z << std::endl;
 
     octoKin.inverse_kinematics(x, y, z);
-    updateKinematics(octoKin, &lastA, &lastB, &lastC);
+    updateKinematics(&octoKin, &lastA, &lastB, &lastC);
     lastX = x;
     lastY = y;
     lastZ = z;
@@ -307,19 +307,19 @@ int main(int argc, char** argv)
     while(true)
     {
         x = 30;
-        linear_move(octoKin, x, y, z, 0.4, 1000, &lastA, &lastB, &lastC);
+        linear_move(&octoKin, x, y, z, 0.4, 1000, &lastA, &lastB, &lastC);
     	gpioWrite(PIN_BOMBA,1);
 	    z = -300;
-        linear_move(octoKin, x, y, z, 0.4, 1000, &lastA, &lastB, &lastC);
+        linear_move(&octoKin, x, y, z, 0.4, 1000, &lastA, &lastB, &lastC);
 	    z = -280;
-        linear_move(octoKin, x, y, z, 0.4, 1000, &lastA, &lastB, &lastC);
+        linear_move(&octoKin, x, y, z, 0.4, 1000, &lastA, &lastB, &lastC);
 	    x = -30;
-        linear_move(octoKin, x, y, z, 0.4, 1000, &lastA, &lastB, &lastC);
+        linear_move(&octoKin, x, y, z, 0.4, 1000, &lastA, &lastB, &lastC);
         z = -300;
-        linear_move(octoKin, x, y, z, 0.4, 1000, &lastA, &lastB, &lastC);
+        linear_move(&octoKin, x, y, z, 0.4, 1000, &lastA, &lastB, &lastC);
     	gpioWrite(PIN_BOMBA,0);
         z = -280;
-        linear_move(octoKin, x, y, z, 0.4, 1000, &lastA, &lastB, &lastC);
+        linear_move(&octoKin, x, y, z, 0.4, 1000, &lastA, &lastB, &lastC);
     }
 
     unsigned int timestep = 0;
@@ -427,7 +427,7 @@ int main(int argc, char** argv)
                 time1 = std::chrono::high_resolution_clock::now();
                 calcTime = std::chrono::duration_cast<std::chrono::milliseconds>(time1 - time0);
 
-                updateKinematics(octoKin, &lastA, &lastB, &lastC);
+                updateKinematics(&octoKin, &lastA, &lastB, &lastC);
 
                 std::chrono::high_resolution_clock::time_point endTime = std::chrono::high_resolution_clock::now();
                 elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);

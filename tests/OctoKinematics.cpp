@@ -19,14 +19,14 @@ bool OctoKinematics::inverse_kinematics_1(float xt, float yt, float zt)
     
     float rod_length_p_angle = asin(yt / this->rodLength); //Gives the angle between link2 and the ball joints. (Not actually necessary to calculate the inverse kinematics. Just used to prevent the arms ripping themselves apart.)
     if(!(abs(rod_length_p_angle) < 0.59341194567807205615405486128613f)){ //Prevents the angle between the ball joints and link 2 (this->rodLength) going out of range. (Angle was determined by emprical testing.)
-//        printi("ERROR: Ball joint 1 out of range: rod_length_p_angle = ", radsToDeg(rod_length_p_angle));
+        printf("ERROR: Ball joint 1 out of range: rod_length_p_angle = %.2f", rod_length_p_angle*(180.0/M_PI));
         return false;
     }
 
     float ext = sqrt(pow (zt, 2) + pow(this->motorOffsetX - arm_end_x, 2)); //Extension of the arm from the centre of the servo rotation to the end ball joint of link2
 
     if(ext <= rod_length_p - this->armLength || ext >= this->armLength + rod_length_p){ //Checks the extension in the reachable range (This limit assumes that this->rodLength is greater than this->armLength)
-//       printi("ERROR: Extension 1 out of range: ext = ", ext);
+        printf("ERROR: Extension 1 out of range: ext = %.2f", ext);
         return false;
     }
        
@@ -36,11 +36,11 @@ bool OctoKinematics::inverse_kinematics_1(float xt, float yt, float zt)
     float beta = theta-M_PI;
 
     if(!(beta >= MOTOR_ANGLE_MIN && beta <= MOTOR_ANGLE_MAX)){ //Checks the angle is in the reachable range
-//        printi("ERROR: Servo angle 1 out of range: Angle = ", radsToDeg(theta));
+        printf("ERROR: Servo angle 1 out of range: Angle = ", theta*(180.0/M_PI));
         return false;
     }
     
-    this->a = beta * (180.0/3.141592653589793238463);
+    this->a = beta * (180.0/M_PI);
     return true;
 }
 
@@ -57,14 +57,14 @@ bool OctoKinematics::inverse_kinematics_2(float xt, float yt, float zt)
     
     float rod_length_p_angle = asin(yt / this->rodLength);
     if(!(abs(rod_length_p_angle) < 0.59341194567807205615405486128613f)){ //Prevents the angle between the ball joints and link 2 (this->rodLength) going out of range.
-//        printi("ERROR: Ball joint 2 out of range: rod_length_p_angle = ", radsToDeg(rod_length_p_angle));        
+        printf("ERROR: Ball joint 2 out of range: rod_length_p_angle = %.2f", rod_length_p_angle*(180.0/M_PI));        
         return false;
     }
     
     float ext = sqrt(pow (zt, 2) + pow(this->motorOffsetX - arm_end_x, 2));
 
     if(ext <= rod_length_p - this->armLength || ext >= this->armLength + rod_length_p){ //This limit assumes that this->rodLength is greater than this->armLength
-//        printi("ERROR: Extension 2 out of range: ext = ", ext);
+        printf("ERROR: Extension 2 out of range: ext = %.2f", ext);
         return false;
     }
        
@@ -74,7 +74,7 @@ bool OctoKinematics::inverse_kinematics_2(float xt, float yt, float zt)
     float beta = theta-M_PI;
 
     if(!(beta >= MOTOR_ANGLE_MIN && beta <= MOTOR_ANGLE_MAX)){
-//        printi("ERROR: Servo angle 2 out of range: Angle = ", radsToDeg(theta));
+        printf("ERROR: Servo angle 2 out of range: Angle = %.2f", theta*(180.0/M_PI));
         return false;
     }
     
@@ -96,14 +96,14 @@ bool OctoKinematics::inverse_kinematics_3(float xt, float yt, float zt)
     
     float rod_length_p_angle = asin(yt / this->rodLength);
     if(!(abs(rod_length_p_angle) < 0.59341194567807205615405486128613f)){ //Prevents the angle between the ball joints and link 2 (this->rodLength) going out of range.
-//        printi("ERROR: Ball joint 1 out of range: rod_length_p_angle = ", radsToDeg(rod_length_p_angle));
+        printf("ERROR: Ball joint 1 out of range: rod_length_p_angle = %.2f", rod_length_p_angle*(180.0/M_PI));
         return false;
     }
     
     float ext = sqrt(pow (zt, 2) + pow(this->motorOffsetX - arm_end_x, 2));
 
     if(ext <= rod_length_p - this->armLength || ext >= this->armLength + rod_length_p){ //This limit assumes that this->rodLength is greater than this->armLength
-//        printi("ERROR: Extension 3 out of range: ext = ", ext);
+        printf("ERROR: Extension 3 out of range: ext = %.2f", ext);
         return false;
     }
        
@@ -113,7 +113,7 @@ bool OctoKinematics::inverse_kinematics_3(float xt, float yt, float zt)
     float beta = theta-M_PI;
 
     if(!(beta >= MOTOR_ANGLE_MIN && beta <= MOTOR_ANGLE_MAX)){
-//        printi("ERROR: Servo angle 3 out of range: Angle = ", radsToDeg(theta));
+        printf("ERROR: Servo angle 3 out of range: Angle = %.2f", theta*(180.0/M_PI));
         return false;
     }
     

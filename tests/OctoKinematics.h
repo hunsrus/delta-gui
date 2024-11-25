@@ -2,6 +2,7 @@
 #define OCTO_KINEMATICS_H
 
 #include <math.h>
+#include <stdio.h>
 
 #define MOTOR_OFFSET_Z 0
 #define MOTOR_ANGLE_MIN -M_PI/2
