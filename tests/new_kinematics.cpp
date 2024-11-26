@@ -14,15 +14,6 @@
 #include <math.h>
 #include <list>
 
-#include <pigpio.h>
-
-// Vector3, 3 components
-typedef struct Vector3 {
-    float x;                // Vector x component
-    float y;                // Vector y component
-    float z;                // Vector z component
-} Vector3;
-
 #define PIN_DIR1 6
 #define PIN_STEP1 5
 #define PIN_DIR2 22
@@ -56,7 +47,6 @@ typedef struct Vector3 {
 
 #define TRANS_MULTIPLIER 3
 #define STEPS_NUM 8
-double STEP_ANGLE = 1.8/(STEPS_NUM*TRANS_MULTIPLIER*1.0);
 
 static bool EXIT = false;
 static int ERROR = 0;
@@ -68,157 +58,11 @@ std::chrono::milliseconds stepTime = std::chrono::milliseconds(0);
 std::chrono::high_resolution_clock::time_point time0;
 std::chrono::high_resolution_clock::time_point time1;
 
-void step(int step_pin, int dir_pin, bool dir)
-{
-    gpioWrite(dir_pin, dir);
-    gpioWrite(step_pin, 1);
-    usleep(1500);
-    gpioWrite(step_pin, 0);
-}
-
-int home(void)
-{
-    bool m1_ready = false;
-    bool m2_ready = false;
-    bool m3_ready = false;
-
-    fprintf(stdout, "Homing...");
-    // paso completo
-    gpioWrite(PIN_MS1,1);
-    gpioWrite(PIN_MS2,0);
-    gpioWrite(PIN_MS3,0);
-
-    while(!m1_ready || !m2_ready || !m3_ready)
-    {
-        if(!gpioRead(PIN_FC_M1))
-        {
-            step(PIN_STEP1, PIN_DIR1, 1);
-        }else{
-            m1_ready = true;
-            fprintf(stdout, " M1 ready...");
-        }
-
-        if(!gpioRead(PIN_FC_M2))
-        {
-            step(PIN_STEP2, PIN_DIR2, 1);
-        }else{
-            m2_ready = true;
-            fprintf(stdout, " M2 ready...\n");
-        }
-
-        if(!gpioRead(PIN_FC_M3))
-        {
-            step(PIN_STEP3, PIN_DIR3, 1);
-        }else{
-            m3_ready = true;
-            fprintf(stdout, " M3 ready...\n");
-        }
-    }
-
-    fprintf(stdout, "Homing complete\n");
-
-    return EXIT_SUCCESS;
-}
-
-void updateKinematics(OctoKinematics *octoKin, double *lastA, double *lastB, double *lastC)
-{
-    double diffA, diffB, diffC;
-
-    time0 = std::chrono::high_resolution_clock::now();
-    bool reached = false;
-
-    while(!reached)
-    {
-        diffA = octoKin->a - *lastA;
-        diffB = octoKin->b - *lastB;
-        diffC = octoKin->c - *lastC;
-
-        reached = true;
-        if(diffA > STEP_ANGLE)
-        {
-            *lastA += STEP_ANGLE;
-            step(PIN_STEP1, PIN_DIR1, 1);
-            reached = false;
-        }else if(diffA < -STEP_ANGLE)
-        {
-            *lastA -= STEP_ANGLE;
-            step(PIN_STEP1, PIN_DIR1, 0);
-            reached = false;
-        }
-        if(diffB > STEP_ANGLE)
-        {
-            *lastB += STEP_ANGLE;
-            step(PIN_STEP2, PIN_DIR2, 1);
-            reached = false;
-        }else if(diffB < -STEP_ANGLE)
-        {
-            *lastB -= STEP_ANGLE;
-            step(PIN_STEP2, PIN_DIR2, 0);
-            reached = false;
-        }
-        if(diffC > STEP_ANGLE)
-        {
-            *lastC += STEP_ANGLE;
-            step(PIN_STEP3, PIN_DIR3, 1);
-            reached = false;
-        }else if(diffC < -STEP_ANGLE)
-        {
-            *lastC -= STEP_ANGLE;
-            step(PIN_STEP3, PIN_DIR3, 0);
-            reached = false;
-        }
-    }
-    time1 = std::chrono::high_resolution_clock::now();
-    loadTime = std::chrono::duration_cast<std::chrono::milliseconds>(time1 - time0);
-}
-
-void linear_move(OctoKinematics *octoKin,float x1, float y1, float z1, float stepDist, int stepDelay, double *lastA, double *lastB, double *lastC){//interpolates between two points to move in a stright line (beware of physical and kinematic limits)
-    //Sets the initial position variables
-    float x0 = octoKin->_x;
-    float y0 = octoKin->_y;
-    float z0 = octoKin->_z;
-    
-    //Distance change in each axis
-    float xDist = x1 - x0;
-    float yDist = y1 - y0;
-    float zDist = z1 - z0;
-    
-    double totalDist = sqrt(pow(xDist,2) + pow(yDist,2) + pow(zDist,2));//Absolute magnitute of the distance
-    int numberOfSteps = round(totalDist / stepDist);//Number of steps required for the desired step distance
-
-    //Step size of each axis
-    if(numberOfSteps == 0){
-        printf("ERROR: No change in position: numberOfSteps = %i", numberOfSteps);
-        return;
-    }
-    
-    float xStep = xDist / (float)numberOfSteps;
-    float yStep = yDist / (float)numberOfSteps;
-    float zStep = zDist / (float)numberOfSteps;
-
-    //Interpolation variables
-    float xInterpolation;
-    float yInterpolation;
-    float zInterpolation;
-
-    for(int i = 1; i <= numberOfSteps; i++){//Interpolate the points
-        xInterpolation = x0 + i * xStep;
-        yInterpolation = y0 + i * yStep;
-        zInterpolation = z0 + i * zStep;
-
-        octoKin->inverse_kinematics(xInterpolation, yInterpolation, zInterpolation);//calculates the inverse kinematics for the interpolated values
-        updateKinematics(octoKin, lastA, lastB, lastC);
-        usleep(stepDelay);
-    }
-}
-
 int main(int argc, char** argv)
 {
     OctoKinematics octoKin = OctoKinematics(ARM_LENGTH, ROD_LENGTH, EFF_RADIUS, BAS_RADIUS);
-    octoKin.set_axis_direction(1);
     double x = 0, y = 0, z = HOME_Z;
     double lastX = -1, lastY = -1, lastZ = -1;
-    double lastA, lastB, lastC;
 
     bool mode = 0;
 
@@ -253,41 +97,27 @@ int main(int argc, char** argv)
 
     gpioSetMode(PIN_BOMBA,PI_OUTPUT);
 
+    // config robot pins
+    octoKin.set_pin_step_ctrl(PIN_MS1,PIN_MS2,PIN_MS3);
+    octoKin.set_pin_motor_1(PIN_STEP1, PIN_DIR1);
+    octoKin.set_pin_motor_2(PIN_STEP2, PIN_DIR2);
+    octoKin.set_pin_motor_3(PIN_STEP3, PIN_DIR3);
+    octoKin.set_pin_limit_sw(PIN_FC_M1, PIN_FC_M2, PIN_FC_M3);
+    octoKin.set_axis_direction(1);
+    octoKin.set_step_precision(STEPS_NUM);
+    octoKin.set_transmission_ratio(TRANS_MULTIPLIER);
+    octoKin.set_pulse_width(1500);
+
     gpioWrite(PIN_BOMBA,0);
-    home();
+    octoKin.home();
 
     x = 0, y = 0, z = HOME_Z;
 
     octoKin.inverse_kinematics(x, y, z);
-    lastA = octoKin.a;
-    lastB = octoKin.b;
-    lastC = octoKin.c;
     lastX = x;
     lastY = y;
     lastZ = z;
 
-    if(STEPS_NUM == 1)
-    {
-        gpioWrite(PIN_MS1,0);
-        gpioWrite(PIN_MS2,0);
-        gpioWrite(PIN_MS3,0);
-    }else if(STEPS_NUM == 2){
-        gpioWrite(PIN_MS1,1);
-        gpioWrite(PIN_MS2,0);
-        gpioWrite(PIN_MS3,0);
-    }else if(STEPS_NUM == 4){
-        gpioWrite(PIN_MS1,0);
-        gpioWrite(PIN_MS2,1);
-        gpioWrite(PIN_MS3,0);
-    }else if(STEPS_NUM == 8){
-        gpioWrite(PIN_MS1,1);
-        gpioWrite(PIN_MS2,1);
-        gpioWrite(PIN_MS3,0);
-    }else if(STEPS_NUM == 16){
-        gpioWrite(PIN_MS1,1);
-        gpioWrite(PIN_MS2,1);
-        gpioWrite(PIN_MS3,1);
-    }
 
     z = -280;
 
@@ -299,7 +129,7 @@ int main(int argc, char** argv)
     std::cout << "z: " << z << std::endl;
 
     octoKin.inverse_kinematics(x, y, z);
-    updateKinematics(&octoKin, &lastA, &lastB, &lastC);
+    octoKin.updateKinematics();
     lastX = x;
     lastY = y;
     lastZ = z;
@@ -307,19 +137,19 @@ int main(int argc, char** argv)
     while(true)
     {
         x = 30;
-        linear_move(&octoKin, x, y, z, 0.4, 1000, &lastA, &lastB, &lastC);
+        octoKin.linear_move(x, y, z, 0.4, 1000);
     	gpioWrite(PIN_BOMBA,1);
 	    z = -300;
-        linear_move(&octoKin, x, y, z, 0.4, 1000, &lastA, &lastB, &lastC);
+        octoKin.linear_move(x, y, z, 0.4, 1000);
 	    z = -280;
-        linear_move(&octoKin, x, y, z, 0.4, 1000, &lastA, &lastB, &lastC);
+        octoKin.linear_move(x, y, z, 0.4, 1000);
 	    x = -30;
-        linear_move(&octoKin, x, y, z, 0.4, 1000, &lastA, &lastB, &lastC);
+        octoKin.linear_move(x, y, z, 0.4, 1000);
         z = -300;
-        linear_move(&octoKin, x, y, z, 0.4, 1000, &lastA, &lastB, &lastC);
+        octoKin.linear_move(x, y, z, 0.4, 1000);
     	gpioWrite(PIN_BOMBA,0);
         z = -280;
-        linear_move(&octoKin, x, y, z, 0.4, 1000, &lastA, &lastB, &lastC);
+        octoKin.linear_move(x, y, z, 0.4, 1000);
     }
 
     unsigned int timestep = 0;
@@ -427,7 +257,7 @@ int main(int argc, char** argv)
                 time1 = std::chrono::high_resolution_clock::now();
                 calcTime = std::chrono::duration_cast<std::chrono::milliseconds>(time1 - time0);
 
-                updateKinematics(&octoKin, &lastA, &lastB, &lastC);
+                octoKin.updateKinematics();
 
                 std::chrono::high_resolution_clock::time_point endTime = std::chrono::high_resolution_clock::now();
                 elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
