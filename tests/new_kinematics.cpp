@@ -162,6 +162,20 @@ int main(int argc, char** argv)
         x = 0;
         y = 0;
         octoKin.linear_move(x, y, z, 0.4, 1000);
+        z = -250;
+        octoKin.linear_move(x, y, z, 0.4, 0);
+        for(float i; i < 2*M_PI; i+=0.05f)
+        {
+            x = sin(i)*30.0f;
+            y = cos(i)*30.0f;
+            octoKin.inverse_kinematics(x,y,z);
+            octoKin.updateKinematics();
+        }
+        x = 0;
+        y = 0;
+        octoKin.linear_move(x, y, z, 0.4, 1000);
+        z = -280;
+        octoKin.linear_move(x, y, z, 0.4, 0);
     }
 
     unsigned int timestep = 0;
