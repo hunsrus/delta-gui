@@ -320,7 +320,7 @@ void OctoKinematics::linear_move(float x1, float y1, float z1, float stepDist, i
     }
 }
 
-int OctoKinematics::home(void)
+int OctoKinematics::home(float x, float y, float z)
 {
     bool m1_ready = false;
     bool m2_ready = false;
@@ -358,6 +358,11 @@ int OctoKinematics::home(void)
             fprintf(stdout, " M3 ready...\n");
         }
     }
+
+    this->inverse_kinematics(x, y, z);
+    this->lastA = this->a;
+    this->lastB = this->b;
+    this->lastC = this->c;
 
     fprintf(stdout, "Homing complete\n");
 

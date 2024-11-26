@@ -109,15 +109,8 @@ int main(int argc, char** argv)
     octoKin.set_pulse_width(1500);
 
     gpioWrite(PIN_BOMBA,0);
-    octoKin.home();
-
-    x = 0, y = 0, z = HOME_Z;
-
-    octoKin.inverse_kinematics(x, y, z);
-    lastX = x;
-    lastY = y;
-    lastZ = z;
-
+    
+    octoKin.home(0,0,HOME_Z);
 
     z = -280;
 
