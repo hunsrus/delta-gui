@@ -327,7 +327,7 @@ int OctoKinematics::home(float x, float y, float z)
     bool m3_ready = false;
 
     fprintf(stdout, "Homing...");
-    // paso completo
+    // half step
     gpioWrite(this->pin_ms1,1);
     gpioWrite(this->pin_ms2,0);
     gpioWrite(this->pin_ms3,0);
@@ -338,24 +338,24 @@ int OctoKinematics::home(float x, float y, float z)
         {
             step(this->pin_step1, this->pin_dir1, 1);
         }else{
+            if(!m1_ready) fprintf(stdout, " M1 ready...");
             m1_ready = true;
-            fprintf(stdout, " M1 ready...");
         }
 
         if(!gpioRead(this->pin_ls2))
         {
             step(this->pin_step2, this->pin_dir2, 1);
         }else{
+            if(!m2_ready) fprintf(stdout, " M2 ready...");
             m2_ready = true;
-            fprintf(stdout, " M2 ready...\n");
         }
 
         if(!gpioRead(this->pin_ls3))
         {
             step(this->pin_step3, this->pin_dir3, 1);
         }else{
+            if(!m3_ready) fprintf(stdout, " M3 ready...");
             m3_ready = true;
-            fprintf(stdout, " M3 ready...\n");
         }
     }
 
@@ -363,6 +363,9 @@ int OctoKinematics::home(float x, float y, float z)
     this->lastA = this->a;
     this->lastB = this->b;
     this->lastC = this->c;
+
+    // volver a poner el paso configurado por el usuario
+    this->set_step_precision(this->steps_num);
 
     fprintf(stdout, "Homing complete\n");
 
