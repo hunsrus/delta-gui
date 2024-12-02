@@ -14,26 +14,26 @@
 #include <math.h>
 #include <list>
 
-#define PIN_DIR1 6
-#define PIN_STEP1 5
-#define PIN_DIR2 22
-#define PIN_STEP2 23
+#define PIN_DIR1 12
+#define PIN_STEP1 16
+#define PIN_DIR2 21
+#define PIN_STEP2 20
 #define PIN_DIR3 18
-#define PIN_STEP3 17
+#define PIN_STEP3 23
 
-#define PIN_MS1 2
-#define PIN_MS2 3
-#define PIN_MS3 4
+#define PIN_MS1 17
+#define PIN_MS2 4
+#define PIN_MS3 3
 
-#define PIN_JOY_X0 19
+#define PIN_JOY_X0 0
 #define PIN_JOY_X1 0
-#define PIN_JOY_Y0 20
-#define PIN_JOY_Y1 16
-#define PIN_JOY_PB 21
+#define PIN_JOY_Y0 0
+#define PIN_JOY_Y1 0
+#define PIN_JOY_PB 2
 
-#define PIN_FC_M1 12
-#define PIN_FC_M2 13
-#define PIN_FC_M3 27
+#define PIN_FC_M1 5
+#define PIN_FC_M2 6
+#define PIN_FC_M3 13
 
 #define PIN_BOMBA 26
 
@@ -164,7 +164,7 @@ int main(int argc, char** argv)
         octoKin.linear_move(x, y, z, 0.4, 1000);
         z = -250;
         octoKin.linear_move(x, y, z, 0.4, 0);
-        for(float i; i < 2*M_PI; i+=0.05f)
+        for(float i = 0; i < 2*M_PI; i+=0.05f)
         {
             x = sin(i)*30.0f;
             y = cos(i)*30.0f;
