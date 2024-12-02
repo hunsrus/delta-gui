@@ -327,6 +327,7 @@ int OctoKinematics::home(float x, float y, float z)
     bool m3_ready = false;
 
     fprintf(stdout, "Homing...");
+    fflush(stdout);
     // half step
     gpioWrite(this->pin_ms1,1);
     gpioWrite(this->pin_ms2,0);
@@ -357,6 +358,8 @@ int OctoKinematics::home(float x, float y, float z)
             if(!m3_ready) fprintf(stdout, " M3 ready...");
             m3_ready = true;
         }
+
+        fflush(stdout);
     }
 
     this->inverse_kinematics(x, y, z);
