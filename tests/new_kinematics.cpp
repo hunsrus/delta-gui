@@ -136,6 +136,8 @@ int main(int argc, char** argv)
         octoKin.linear_move(x, y, z, 0.4, 0);
         z = low_z;
         octoKin.linear_move(x, y, z, 0.4, 0);
+        gpioWrite(PIN_BOMBA,1);
+        usleep(1000000);
         z = -280;
         octoKin.linear_move(x, y, z, 0.4, 0);
         x = 30;
@@ -143,6 +145,8 @@ int main(int argc, char** argv)
         octoKin.linear_move(x, y, z, 0.4, 0);
         z = low_z;
         octoKin.linear_move(x, y, z, 0.4, 0);
+        gpioWrite(PIN_BOMBA,0);
+        usleep(1000000);
         z = -280;
         octoKin.linear_move(x, y, z, 0.4, 0);
         x = -30;
@@ -150,6 +154,8 @@ int main(int argc, char** argv)
         octoKin.linear_move(x, y, z, 0.4, 0);
         z = low_z;
         octoKin.linear_move(x, y, z, 0.4, 0);
+        gpioWrite(PIN_BOMBA,1);
+        usleep(1000000);
         z = -280;
         octoKin.linear_move(x, y, z, 0.4, 0);
         x = -30;
@@ -157,6 +163,8 @@ int main(int argc, char** argv)
         octoKin.linear_move(x, y, z, 0.4, 0);
         z = low_z;
         octoKin.linear_move(x, y, z, 0.4, 0);
+        gpioWrite(PIN_BOMBA,0);
+        usleep(1000000);
         z = -280;
         octoKin.linear_move(x, y, z, 0.4, 0);
         x = 0;
