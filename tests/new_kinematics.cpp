@@ -20,6 +20,8 @@
 #define PIN_STEP2 20
 #define PIN_DIR3 18
 #define PIN_STEP3 23
+#define PIN_DIR4 22
+#define PIN_STEP4 27
 
 #define PIN_MS1 17
 #define PIN_MS2 4
@@ -140,6 +142,7 @@ int main(int argc, char** argv)
         usleep(500000);
         z = -280;
         octoKin.linear_move(x, y, z, 0.4, 0);
+        for(int i = 0; i < 64; i++) octoKin.step(PIN_STEP4, PIN_DIR4, 0);
         x = 30;
         y = -30;
         octoKin.linear_move(x, y, z, 0.4, 0);
@@ -150,6 +153,7 @@ int main(int argc, char** argv)
         usleep(500000);
         z = -280;
         octoKin.linear_move(x, y, z, 0.4, 0);
+        for(int i = 0; i < 64; i++) octoKin.step(PIN_STEP4, PIN_DIR4, 1);
         x = -30;
         y = -30;
         octoKin.linear_move(x, y, z, 0.4, 0);
@@ -159,6 +163,7 @@ int main(int argc, char** argv)
         usleep(500000);
         z = -280;
         octoKin.linear_move(x, y, z, 0.4, 0);
+        for(int i = 0; i < 64; i++) octoKin.step(PIN_STEP4, PIN_DIR4, 0);
         x = -30;
         y = 30;
         octoKin.linear_move(x, y, z, 0.4, 0);
@@ -169,6 +174,7 @@ int main(int argc, char** argv)
         usleep(500000);
         z = -280;
         octoKin.linear_move(x, y, z, 0.4, 0);
+        for(int i = 0; i < 64; i++) octoKin.step(PIN_STEP4, PIN_DIR4, 1);
         x = 0;
         y = 0;
         octoKin.linear_move(x, y, z, 0.4, 1000);
