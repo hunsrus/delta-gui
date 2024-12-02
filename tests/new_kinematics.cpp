@@ -143,10 +143,10 @@ int main(int argc, char** argv)
         x = 30;
         y = -30;
         octoKin.linear_move(x, y, z, 0.4, 0);
-        gpioWrite(PIN_BOMBA,0);
-        usleep(500000);
         z = low_z;
         octoKin.linear_move(x, y, z, 0.4, 0);
+        usleep(500000);
+        gpioWrite(PIN_BOMBA,0);
         z = -280;
         octoKin.linear_move(x, y, z, 0.4, 0);
         x = -30;
@@ -161,10 +161,10 @@ int main(int argc, char** argv)
         x = -30;
         y = 30;
         octoKin.linear_move(x, y, z, 0.4, 0);
-        gpioWrite(PIN_BOMBA,0);
-        usleep(500000);
         z = low_z;
         octoKin.linear_move(x, y, z, 0.4, 0);
+        usleep(500000);
+        gpioWrite(PIN_BOMBA,0);
         z = -280;
         octoKin.linear_move(x, y, z, 0.4, 0);
         x = 0;
