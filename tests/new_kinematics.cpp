@@ -13,6 +13,8 @@
 #include <chrono>
 #include <math.h>
 #include <list>
+#include <fstream>
+#include <string>
 
 #define PIN_DIR1 12
 #define PIN_STEP1 16
@@ -67,6 +69,35 @@ int main(int argc, char** argv)
     double lastX = -1, lastY = -1, lastZ = -1;
 
     bool mode = 0;
+
+    int effector_steps = 0;
+    std::string nombreArchivo = "initdata";
+
+    std::ifstream archivoEntrada(nombreArchivo); // Abrir archivo en modo lectura
+    if (archivoEntrada.is_open()) {
+        archivoEntrada >> effector_steps; // Leer el valor del archivo
+        archivoEntrada.close();            // Cerrar el archivo
+        std::cout << "Correción de efector: " << effector_steps << '\n';
+    } else {
+        std::cerr << "No se pudo abrir el archivo para leer.\n";
+        //return 1; // Error
+    }
+
+    while(effector_steps)
+    {
+        if(effector_steps > 0)
+        {
+            octoKin.step(PIN_STEP4, PIN_DIR4, 1);
+            effector_steps--;
+        }   
+        if(effector_steps > 0)
+        {
+            octoKin.step(PIN_STEP4, PIN_DIR4, 0);
+            effector_steps++;
+        }
+    }
+
+    std::ofstream archivoSalida(nombreArchivo); // Crear y abrir archivo en modo escritura
 
     // inicio control de i/o
     if (gpioInitialise() < 0)
@@ -129,7 +160,7 @@ int main(int argc, char** argv)
     lastY = y;
     lastZ = z;
 
-    float low_z = -295;
+    float low_z = -294;
 
     while(true)
     {
@@ -142,7 +173,18 @@ int main(int argc, char** argv)
         usleep(500000);
         z = -280;
         octoKin.linear_move(x, y, z, 0.4, 0);
-        for(int i = 0; i < 64; i++) octoKin.step(PIN_STEP4, PIN_DIR4, 0);
+        for(int i = 0; i < 4076; i++)
+        {
+            octoKin.step(PIN_STEP4, PIN_DIR4, 0);
+            effector_steps--;
+            if (archivoSalida.is_open()) {
+                archivoSalida << effector_steps; // Escribir el valor en el archivo
+                //std::cout << "Valor guardado en el archivo.\n";
+            } else {
+                std::cerr << "No se pudo abrir el archivo para escribir.\n";
+                return 1; // Error
+            }
+        }
         x = 30;
         y = -30;
         octoKin.linear_move(x, y, z, 0.4, 0);
@@ -153,7 +195,18 @@ int main(int argc, char** argv)
         usleep(500000);
         z = -280;
         octoKin.linear_move(x, y, z, 0.4, 0);
-        for(int i = 0; i < 64; i++) octoKin.step(PIN_STEP4, PIN_DIR4, 1);
+        for(int i = 0; i < 4076; i++)
+        {
+            octoKin.step(PIN_STEP4, PIN_DIR4, 1);
+            effector_steps++;
+            if (archivoSalida.is_open()) {
+                archivoSalida << effector_steps; // Escribir el valor en el archivo
+                //std::cout << "Valor guardado en el archivo.\n";
+            } else {
+                std::cerr << "No se pudo abrir el archivo para escribir.\n";
+                return 1; // Error
+            }
+        }
         x = -30;
         y = -30;
         octoKin.linear_move(x, y, z, 0.4, 0);
@@ -163,7 +216,18 @@ int main(int argc, char** argv)
         usleep(500000);
         z = -280;
         octoKin.linear_move(x, y, z, 0.4, 0);
-        for(int i = 0; i < 64; i++) octoKin.step(PIN_STEP4, PIN_DIR4, 0);
+        for(int i = 0; i < 4076; i++)
+        {
+            octoKin.step(PIN_STEP4, PIN_DIR4, 0);
+            effector_steps--;
+            if (archivoSalida.is_open()) {
+                archivoSalida << effector_steps; // Escribir el valor en el archivo
+                //std::cout << "Valor guardado en el archivo.\n";
+            } else {
+                std::cerr << "No se pudo abrir el archivo para escribir.\n";
+                return 1; // Error
+            }
+        }
         x = -30;
         y = 30;
         octoKin.linear_move(x, y, z, 0.4, 0);
@@ -174,7 +238,18 @@ int main(int argc, char** argv)
         usleep(500000);
         z = -280;
         octoKin.linear_move(x, y, z, 0.4, 0);
-        for(int i = 0; i < 64; i++) octoKin.step(PIN_STEP4, PIN_DIR4, 1);
+        for(int i = 0; i < 4076; i++)
+        {
+            octoKin.step(PIN_STEP4, PIN_DIR4, 1);
+            effector_steps++;
+            if (archivoSalida.is_open()) {
+                archivoSalida << effector_steps; // Escribir el valor en el archivo
+                //std::cout << "Valor guardado en el archivo.\n";
+            } else {
+                std::cerr << "No se pudo abrir el archivo para escribir.\n";
+                return 1; // Error
+            }
+        }
         x = 0;
         y = 0;
         octoKin.linear_move(x, y, z, 0.4, 1000);
@@ -327,6 +402,8 @@ int main(int argc, char** argv)
         
         timestep++;
     }
+
+    archivoSalida.close();             // Cerrar el archivo
 
     return EXIT_SUCCESS;
 }
