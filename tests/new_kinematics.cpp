@@ -70,35 +70,6 @@ int main(int argc, char** argv)
 
     bool mode = 0;
 
-    int effector_steps = 0;
-    std::string nombreArchivo = "initdata";
-
-    std::ifstream archivoEntrada(nombreArchivo); // Abrir archivo en modo lectura
-    if (archivoEntrada.is_open()) {
-        archivoEntrada >> effector_steps; // Leer el valor del archivo
-        archivoEntrada.close();            // Cerrar el archivo
-        std::cout << "Correción de efector: " << effector_steps << '\n';
-    } else {
-        std::cerr << "No se pudo abrir el archivo para leer.\n";
-        //return 1; // Error
-    }
-
-    while(effector_steps)
-    {
-        if(effector_steps > 0)
-        {
-            octoKin.step(PIN_STEP4, PIN_DIR4, 1);
-            effector_steps--;
-        }   
-        if(effector_steps > 0)
-        {
-            octoKin.step(PIN_STEP4, PIN_DIR4, 0);
-            effector_steps++;
-        }
-    }
-
-    std::ofstream archivoSalida(nombreArchivo); // Crear y abrir archivo en modo escritura
-
     // inicio control de i/o
     if (gpioInitialise() < 0)
     {
@@ -142,6 +113,35 @@ int main(int argc, char** argv)
     octoKin.set_pulse_width(1500);
 
     gpioWrite(PIN_BOMBA,0);
+
+    int effector_steps = 0;
+    std::string nombreArchivo = "initdata";
+
+    std::ifstream archivoEntrada(nombreArchivo); // Abrir archivo en modo lectura
+    if (archivoEntrada.is_open()) {
+        archivoEntrada >> effector_steps; // Leer el valor del archivo
+        archivoEntrada.close();            // Cerrar el archivo
+        std::cout << "Correción de efector: " << effector_steps << '\n';
+    } else {
+        std::cerr << "No se pudo abrir el archivo para leer.\n";
+        //return 1; // Error
+    }
+
+    while(effector_steps)
+    {
+        if(effector_steps > 0)
+        {
+            octoKin.step(PIN_STEP4, PIN_DIR4, 1);
+            effector_steps--;
+        }   
+        if(effector_steps < 0)
+        {
+            octoKin.step(PIN_STEP4, PIN_DIR4, 0);
+            effector_steps++;
+        }
+    }
+
+    std::ofstream archivoSalida(nombreArchivo); // Crear y abrir archivo en modo escritura
     
     octoKin.home(0,0,HOME_Z);
 
