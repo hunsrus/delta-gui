@@ -131,12 +131,12 @@ int main(int argc, char** argv)
     {
         if(effector_steps > 0)
         {
-            octoKin.step(PIN_STEP4, PIN_DIR4, 1);
+            octoKin.step(PIN_STEP4, PIN_DIR4, 0);
             effector_steps--;
         }   
         if(effector_steps < 0)
         {
-            octoKin.step(PIN_STEP4, PIN_DIR4, 0);
+            octoKin.step(PIN_STEP4, PIN_DIR4, 1);
             effector_steps++;
         }
     }
