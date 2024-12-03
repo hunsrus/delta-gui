@@ -178,8 +178,9 @@ int main(int argc, char** argv)
             octoKin.step(PIN_STEP4, PIN_DIR4, 0);
             effector_steps--;
             if (archivoSalida.is_open()) {
+                archivoSalida.seekp(0);                // Mover el puntero de escritura al inicio del archivo
                 archivoSalida << effector_steps; // Escribir el valor en el archivo
-                //std::cout << "Valor guardado en el archivo.\n";
+                archivoSalida.flush(); 
             } else {
                 std::cerr << "No se pudo abrir el archivo para escribir.\n";
                 return 1; // Error
@@ -200,8 +201,9 @@ int main(int argc, char** argv)
             octoKin.step(PIN_STEP4, PIN_DIR4, 1);
             effector_steps++;
             if (archivoSalida.is_open()) {
+                archivoSalida.seekp(0);                // Mover el puntero de escritura al inicio del archivo
                 archivoSalida << effector_steps; // Escribir el valor en el archivo
-                //std::cout << "Valor guardado en el archivo.\n";
+                archivoSalida.flush(); 
             } else {
                 std::cerr << "No se pudo abrir el archivo para escribir.\n";
                 return 1; // Error
@@ -221,8 +223,9 @@ int main(int argc, char** argv)
             octoKin.step(PIN_STEP4, PIN_DIR4, 0);
             effector_steps--;
             if (archivoSalida.is_open()) {
+                archivoSalida.seekp(0);                // Mover el puntero de escritura al inicio del archivo
                 archivoSalida << effector_steps; // Escribir el valor en el archivo
-                //std::cout << "Valor guardado en el archivo.\n";
+                archivoSalida.flush(); 
             } else {
                 std::cerr << "No se pudo abrir el archivo para escribir.\n";
                 return 1; // Error
@@ -243,8 +246,9 @@ int main(int argc, char** argv)
             octoKin.step(PIN_STEP4, PIN_DIR4, 1);
             effector_steps++;
             if (archivoSalida.is_open()) {
+                archivoSalida.seekp(0);                // Mover el puntero de escritura al inicio del archivo
                 archivoSalida << effector_steps; // Escribir el valor en el archivo
-                //std::cout << "Valor guardado en el archivo.\n";
+                archivoSalida.flush(); 
             } else {
                 std::cerr << "No se pudo abrir el archivo para escribir.\n";
                 return 1; // Error
