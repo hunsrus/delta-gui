@@ -139,7 +139,7 @@ int main(int argc, char** argv)
     
     octoKin.home(0,0,HOME_Z);
 
-    z = -280;
+    z = -270;
 
     std::cout << "a: " << octoKin.a << std::endl;
     std::cout << "b: " << octoKin.b << std::endl;
@@ -155,6 +155,7 @@ int main(int argc, char** argv)
     lastZ = z;
 
     float low_z = -286;//-294
+    float high_z = -270;
     std::vector<bool> bomb_on = {1, 0, 1, 0};//Agregado
 
     while(true)
@@ -167,7 +168,7 @@ int main(int argc, char** argv)
         //gpioWrite(PIN_BOMBA,1);
 	gpioWrite(PIN_BOMBA,bomb_on[0]);//Agregado
         usleep(500000);
-        z = -280;
+        z = high_z;
         octoKin.linear_move(x, y, z, 0.4, 0);
         for(int i = 0; i < 4076; i++)
         {
@@ -191,7 +192,7 @@ int main(int argc, char** argv)
         //gpioWrite(PIN_BOMBA,0);
 	gpioWrite(PIN_BOMBA,bomb_on[1]);//Agregado
         usleep(500000);
-        z = -280;
+        z = high_z;
         octoKin.linear_move(x, y, z, 0.4, 0);
         for(int i = 0; i < 4076; i++)
         {
@@ -214,7 +215,7 @@ int main(int argc, char** argv)
         //gpioWrite(PIN_BOMBA,1);
 	gpioWrite(PIN_BOMBA,bomb_on[2]);//Agregado
         usleep(500000);
-        z = -280;
+        z = high_z;
         octoKin.linear_move(x, y, z, 0.4, 0);
         for(int i = 0; i < 4076; i++)
         {
@@ -238,7 +239,7 @@ int main(int argc, char** argv)
         //gpioWrite(PIN_BOMBA,0);
 	gpioWrite(PIN_BOMBA,bomb_on[3]);//Agregado
         usleep(500000);
-        z = -280;
+        z = high_z;
         octoKin.linear_move(x, y, z, 0.4, 0);
         for(int i = 0; i < 4076; i++)
         {
@@ -269,7 +270,7 @@ int main(int argc, char** argv)
         x = 0;
         y = 0;
         octoKin.linear_move(x, y, z, 0.4, 1000);
-        z = -280;
+        z = high_z;
         octoKin.linear_move(x, y, z, 0.4, 0);
 	for(int i=0; i<bomb_on.size(); i++){//Agregado
 		bomb_on[i] = !bomb_on[i];
