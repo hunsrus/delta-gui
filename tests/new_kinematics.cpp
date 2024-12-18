@@ -47,7 +47,7 @@
 #define EFF_RADIUS 35.0f
 #define BAS_RADIUS 117.0f
 #define BAS_POSITION (Vector3){0,ARM_LENGTH+ROD_LENGTH,0}
-#define HOME_Z -183.0f
+#define HOME_Z -170.0f
 #define LIM_Z -305
 
 #define TRANS_MULTIPLIER 3
@@ -139,20 +139,24 @@ int main(int argc, char** argv)
     
     octoKin.home(0,0,HOME_Z);
 
-    z = -270;
-
-    std::cout << "a: " << octoKin.a << std::endl;
-    std::cout << "b: " << octoKin.b << std::endl;
-    std::cout << "c: " << octoKin.c << std::endl;
-    std::cout << "x: " << x << std::endl;
-    std::cout << "y: " << y << std::endl;
-    std::cout << "z: " << z << std::endl;
+    x = -30;
+    y = -30;
+    z = -220;
 
     octoKin.inverse_kinematics(x, y, z);
     octoKin.updateKinematics();
     lastX = x;
     lastY = y;
     lastZ = z;
+ 
+    std::cout << "a: " << octoKin.a << std::endl;
+    std::cout << "b: " << octoKin.b << std::endl;
+    std::cout << "c: " << octoKin.c << std::endl;
+    std::cout << "x: " << x << std::endl;
+    std::cout << "y: " << y << std::endl;
+    std::cout << "z: " << z << std::endl;   
+ 
+    while(true){};
 
     float low_z = -276;//-294
     float high_z = -270;
