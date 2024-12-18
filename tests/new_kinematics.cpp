@@ -154,7 +154,7 @@ int main(int argc, char** argv)
     lastY = y;
     lastZ = z;
 
-    float low_z = -286;//-294
+    float low_z = -276;//-294
     float high_z = -270;
     std::vector<bool> bomb_on = {1, 0, 1, 0};//Agregado
 
