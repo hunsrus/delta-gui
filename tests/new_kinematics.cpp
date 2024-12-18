@@ -44,7 +44,7 @@
 #define ARM_LENGTH 130.0f
 #define ROD_LENGTH 310.0f
 #define EFF_RADIUS 35.0f
-#define BAS_RADIUS 120.0f
+#define BAS_RADIUS 115.0f
 #define BAS_POSITION (Vector3){0,ARM_LENGTH+ROD_LENGTH,0}
 #define HOME_Z -166.0f
 #define LIM_Z -305
@@ -54,13 +54,6 @@
 
 static bool EXIT = false;
 static int ERROR = 0;
-
-std::chrono::milliseconds elapsedTime = std::chrono::milliseconds(0);
-std::chrono::milliseconds calcTime = std::chrono::milliseconds(0);
-std::chrono::milliseconds loadTime = std::chrono::milliseconds(0);
-std::chrono::milliseconds stepTime = std::chrono::milliseconds(0);
-std::chrono::high_resolution_clock::time_point time0;
-std::chrono::high_resolution_clock::time_point time1;
 
 int main(int argc, char** argv)
 {
@@ -133,7 +126,7 @@ int main(int argc, char** argv)
         {
             octoKin.step(PIN_STEP4, PIN_DIR4, 0);
             effector_steps--;
-        }   
+        }
         if(effector_steps < 0)
         {
             octoKin.step(PIN_STEP4, PIN_DIR4, 1);
@@ -275,12 +268,8 @@ int main(int argc, char** argv)
 
     unsigned int timestep = 0;
 
-    const std::chrono::milliseconds targetPeriod = std::chrono::milliseconds(10);
-    std::chrono::high_resolution_clock::time_point initTime = std::chrono::high_resolution_clock::now();
-
     while(!EXIT)
     {
-        std::chrono::high_resolution_clock::time_point startTime = std::chrono::high_resolution_clock::now();
 
         if(gpioRead(PIN_FC_M1) || gpioRead(PIN_FC_M2) || gpioRead(PIN_FC_M3))
         {
@@ -305,65 +294,15 @@ int main(int argc, char** argv)
         {
             //y += 1.0f;
         }
-	
-	/*
-	if(gpioRead(PIN_JOY_PB)) //reset
-        {
-            ERROR = -1; //haciendo homing
-            
-            home();
-
-            x = 0, y = 0, z = HOME_Z;
-
-            inverse_kinematics(x, y, z);
-            lastA = servo_1_angle;
-            lastB = servo_2_angle;
-            lastC = servo_3_angle;
-
-            if(STEPS_NUM == 1)
-            {
-                gpioWrite(PIN_MS1,0);
-                gpioWrite(PIN_MS2,0);
-                gpioWrite(PIN_MS3,0);
-            }else if(STEPS_NUM == 2){
-                gpioWrite(PIN_MS1,1);
-                gpioWrite(PIN_MS2,0);
-                gpioWrite(PIN_MS3,0);
-            }else if(STEPS_NUM == 4){
-                gpioWrite(PIN_MS1,0);
-                gpioWrite(PIN_MS2,1);
-                gpioWrite(PIN_MS3,0);
-            }else if(STEPS_NUM == 8){
-                gpioWrite(PIN_MS1,1);
-                gpioWrite(PIN_MS2,1);
-                gpioWrite(PIN_MS3,0);
-            }else if(STEPS_NUM == 16){
-                gpioWrite(PIN_MS1,1);
-                gpioWrite(PIN_MS2,1);
-                gpioWrite(PIN_MS3,1);
-            }
-
-            z += 30;
-
-            inverse_kinematics(x, y, z);
-            updateKinematics(&lastA, &lastB, &lastC);
-            lastX = x;
-            lastY = y;
-            lastZ = z;
-
-            ERROR = 0;
-        }
-	*/
-
         
-	mode = gpioRead(PIN_JOY_PB);
+	    mode = gpioRead(PIN_JOY_PB);
 
         if(mode == 1)
         {
             //x = sin(timestep*0.05f)*30.0f;
             //y = cos(timestep*0.05f)*30.0f;
-	    //z = HOME_Z+cos(timestep*0.05f)*10.0f;
-	    z -= 1;
+            //z = HOME_Z+cos(timestep*0.05f)*10.0f;
+            z -= 1;
         }
 	
 
@@ -373,15 +312,9 @@ int main(int argc, char** argv)
             {
                 
                 // Cálculos de cinemática
-                time0 = std::chrono::high_resolution_clock::now();
                 octoKin.inverse_kinematics(x, y, z);
-                time1 = std::chrono::high_resolution_clock::now();
-                calcTime = std::chrono::duration_cast<std::chrono::milliseconds>(time1 - time0);
-
                 octoKin.updateKinematics();
 
-                std::chrono::high_resolution_clock::time_point endTime = std::chrono::high_resolution_clock::now();
-                elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
 
                 std::cout << "a: " << octoKin.a << std::endl;
                 std::cout << "b: " << octoKin.b << std::endl;
@@ -389,14 +322,6 @@ int main(int argc, char** argv)
                 std::cout << "x: " << x << std::endl;
                 std::cout << "y: " << y << std::endl;
                 std::cout << "z: " << z << std::endl;
-                
-		if (elapsedTime < targetPeriod) {
-                    // Espera el tiempo restante para completar el periodo deseado
-                    //std::this_thread::sleep_for(targetPeriod - elapsedTime);
-                } else {
-                    // Si la iteración tardó más tiempo del permitido
-                    //std::cerr << "Advertencia: Iteración excedió el tiempo deseado!" << std::endl;
-                }
             }
         }
 
