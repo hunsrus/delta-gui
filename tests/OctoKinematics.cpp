@@ -33,7 +33,7 @@ bool OctoKinematics::inverse_kinematics_1(float xt, float yt, float zt)
     float phi = acos((pow(this->armLength, 2) + pow(ext, 2) - pow(rod_length_p, 2)) / (2 * this->armLength * ext)); //Cosine rule that calculates the angle between the ext line and this->armLength
     float omega = atan2(zt, this->motorOffsetX - arm_end_x); //Calculates the angle between horizontal (X) the ext line with respect to its quadrant
     float theta = phi + omega; //Theta is the angle between horizontal (X) and this->armLength
-    float beta = theta-M_PI;
+    float beta = M_PI-theta;
 
     if(!(beta >= MOTOR_ANGLE_MIN && beta <= MOTOR_ANGLE_MAX)){ //Checks the angle is in the reachable range
         printf("ERROR: Servo angle 1 out of range: Angle = ", theta*(180.0/M_PI));
@@ -71,14 +71,14 @@ bool OctoKinematics::inverse_kinematics_2(float xt, float yt, float zt)
     float phi = acos((pow(this->armLength, 2) + pow(ext, 2) - pow(rod_length_p, 2)) / (2 * this->armLength * ext));
     float omega = atan2(zt, this->motorOffsetX - arm_end_x);
     float theta = phi + omega;
-    float beta = theta-M_PI;
+    float beta = M_PI-theta;
 
     if(!(beta >= MOTOR_ANGLE_MIN && beta <= MOTOR_ANGLE_MAX)){
         printf("ERROR: Servo angle 2 out of range: Angle = %.2f", theta*(180.0/M_PI));
         return false;
     }
     
-    this->b = beta * (180.0/3.141592653589793238463);
+    this->b = beta * (180.0/M_PI);
     return true;
 }
 
@@ -110,14 +110,14 @@ bool OctoKinematics::inverse_kinematics_3(float xt, float yt, float zt)
     float phi = acos((pow(this->armLength, 2) + pow(ext, 2) - pow(rod_length_p, 2)) / (2 * this->armLength * ext));
     float omega = atan2(zt, this->motorOffsetX - arm_end_x);
     float theta = phi + omega;
-    float beta = theta-M_PI;
+    float beta = M_PI-theta;
 
     if(!(beta >= MOTOR_ANGLE_MIN && beta <= MOTOR_ANGLE_MAX)){
         printf("ERROR: Servo angle 3 out of range: Angle = %.2f", theta*(180.0/M_PI));
         return false;
     }
     
-    this->c = beta * (180.0/3.141592653589793238463);
+    this->c = beta * (180.0/M_PI);
     return true;
 }
 

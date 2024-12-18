@@ -45,9 +45,9 @@
 #define ARM_LENGTH 130.0f
 #define ROD_LENGTH 310.0f
 #define EFF_RADIUS 35.0f
-#define BAS_RADIUS 115.0f
+#define BAS_RADIUS 117.0f
 #define BAS_POSITION (Vector3){0,ARM_LENGTH+ROD_LENGTH,0}
-#define HOME_Z -166.0f
+#define HOME_Z -183.0f
 #define LIM_Z -305
 
 #define TRANS_MULTIPLIER 3
