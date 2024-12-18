@@ -329,9 +329,10 @@ int OctoKinematics::home(float x, float y, float z)
     fprintf(stdout, "Homing...");
     fflush(stdout);
     // half step
-    gpioWrite(this->pin_ms1,1);//1
-    gpioWrite(this->pin_ms2,1);//0
-    gpioWrite(this->pin_ms3,1);//0
+    // gpioWrite(this->pin_ms1,1);//1
+    // gpioWrite(this->pin_ms2,1);//0
+    // gpioWrite(this->pin_ms3,1);//0
+    this->set_step_precision(1);
 
     while(!m1_ready || !m2_ready || !m3_ready)
     {
@@ -362,10 +363,25 @@ int OctoKinematics::home(float x, float y, float z)
         fflush(stdout);
     }
 
-    this->inverse_kinematics(x, y, z);
+    this->inverse_kinematics(x,y,-260);
+    this->updateKinematics();
+    std::cout << "a: " << this->a << std::endl;
+    std::cout << "b: " << this->b << std::endl;
+    std::cout << "c: " << this->c << std::endl;
+    std::cout << "x: " << x << std::endl;
+    std::cout << "y: " << y << std::endl;
+    std::cout << "z: " << z << std::endl;
+
+    this->inverse_kinematics(x, y, -269);
     this->lastA = this->a;
     this->lastB = this->b;
     this->lastC = this->c;
+    std::cout << "a: " << this->a << std::endl;
+    std::cout << "b: " << this->b << std::endl;
+    std::cout << "c: " << this->c << std::endl;
+    std::cout << "x: " << x << std::endl;
+    std::cout << "y: " << y << std::endl;
+    std::cout << "z: " << z << std::endl;
 
     // volver a poner el paso configurado por el usuario
     this->set_step_precision(this->steps_num);

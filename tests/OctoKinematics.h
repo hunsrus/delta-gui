@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <pigpio.h>
 #include <unistd.h>
+#include <iostream>
 
 #define MOTOR_OFFSET_Z 0
 #define MOTOR_ANGLE_MIN -M_PI/2
