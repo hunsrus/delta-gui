@@ -329,9 +329,9 @@ int OctoKinematics::home(float x, float y, float z)
     fprintf(stdout, "Homing...");
     fflush(stdout);
     // half step
-    gpioWrite(this->pin_ms1,1);
-    gpioWrite(this->pin_ms2,0);
-    gpioWrite(this->pin_ms3,0);
+    gpioWrite(this->pin_ms1,1);//1
+    gpioWrite(this->pin_ms2,1);//0
+    gpioWrite(this->pin_ms3,1);//0
 
     while(!m1_ready || !m2_ready || !m3_ready)
     {

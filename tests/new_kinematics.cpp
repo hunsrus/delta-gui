@@ -15,6 +15,7 @@
 #include <list>
 #include <fstream>
 #include <string>
+#include <vector>//Agregado
 
 #define PIN_DIR1 12
 #define PIN_STEP1 16
@@ -131,12 +132,12 @@ int main(int argc, char** argv)
     {
         if(effector_steps > 0)
         {
-            octoKin.step(PIN_STEP4, PIN_DIR4, 1);
+            octoKin.step(PIN_STEP4, PIN_DIR4, 0);
             effector_steps--;
         }   
         if(effector_steps < 0)
         {
-            octoKin.step(PIN_STEP4, PIN_DIR4, 0);
+            octoKin.step(PIN_STEP4, PIN_DIR4, 1);
             effector_steps++;
         }
     }
@@ -160,7 +161,8 @@ int main(int argc, char** argv)
     lastY = y;
     lastZ = z;
 
-    float low_z = -294;
+    float low_z = -286;//-294
+    std::vector<bool> bomb_on = {1, 0, 1, 0};//Agregado
 
     while(true)
     {
@@ -169,7 +171,8 @@ int main(int argc, char** argv)
         octoKin.linear_move(x, y, z, 0.4, 0);
         z = low_z;
         octoKin.linear_move(x, y, z, 0.4, 0);
-        gpioWrite(PIN_BOMBA,1);
+        //gpioWrite(PIN_BOMBA,1);
+	gpioWrite(PIN_BOMBA,bomb_on[0]);//Agregado
         usleep(500000);
         z = -280;
         octoKin.linear_move(x, y, z, 0.4, 0);
@@ -192,7 +195,8 @@ int main(int argc, char** argv)
         z = low_z;
         octoKin.linear_move(x, y, z, 0.4, 0);
         usleep(500000);
-        gpioWrite(PIN_BOMBA,0);
+        //gpioWrite(PIN_BOMBA,0);
+	gpioWrite(PIN_BOMBA,bomb_on[1]);//Agregado
         usleep(500000);
         z = -280;
         octoKin.linear_move(x, y, z, 0.4, 0);
@@ -214,7 +218,8 @@ int main(int argc, char** argv)
         octoKin.linear_move(x, y, z, 0.4, 0);
         z = low_z;
         octoKin.linear_move(x, y, z, 0.4, 0);
-        gpioWrite(PIN_BOMBA,1);
+        //gpioWrite(PIN_BOMBA,1);
+	gpioWrite(PIN_BOMBA,bomb_on[2]);//Agregado
         usleep(500000);
         z = -280;
         octoKin.linear_move(x, y, z, 0.4, 0);
@@ -237,7 +242,8 @@ int main(int argc, char** argv)
         z = low_z;
         octoKin.linear_move(x, y, z, 0.4, 0);
         usleep(500000);
-        gpioWrite(PIN_BOMBA,0);
+        //gpioWrite(PIN_BOMBA,0);
+	gpioWrite(PIN_BOMBA,bomb_on[3]);//Agregado
         usleep(500000);
         z = -280;
         octoKin.linear_move(x, y, z, 0.4, 0);
@@ -257,6 +263,7 @@ int main(int argc, char** argv)
         x = 0;
         y = 0;
         octoKin.linear_move(x, y, z, 0.4, 1000);
+	gpioWrite(PIN_BOMBA,0);//Agregado
         z = -250;
         octoKin.linear_move(x, y, z, 0.4, 0);
         for(float i = 0; i < 2*M_PI; i+=0.05f)
@@ -271,6 +278,9 @@ int main(int argc, char** argv)
         octoKin.linear_move(x, y, z, 0.4, 1000);
         z = -280;
         octoKin.linear_move(x, y, z, 0.4, 0);
+	for(int i=0; i<bomb_on.size(); i++){//Agregado
+		bomb_on[i] = !bomb_on[i];
+	}
     }
 
     unsigned int timestep = 0;
