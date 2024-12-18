@@ -48,7 +48,7 @@
 #define BAS_RADIUS 117.0f
 #define BAS_POSITION (Vector3){0,ARM_LENGTH+ROD_LENGTH,0}
 #define HOME_Z -170.0f
-#define LIM_Z -305
+#define LIM_Z -273
 
 #define TRANS_MULTIPLIER 3
 #define STEPS_NUM 8
@@ -139,8 +139,8 @@ int main(int argc, char** argv)
     
     octoKin.home(0,0,HOME_Z);
 
-    x = -30;
-    y = -30;
+    x = 0;
+    y = 0;
     z = -220;
 
     octoKin.inverse_kinematics(x, y, z);
@@ -156,10 +156,10 @@ int main(int argc, char** argv)
     std::cout << "y: " << y << std::endl;
     std::cout << "z: " << z << std::endl;   
  
-    while(true){};
+    // while(true){};
 
-    float low_z = -276;//-294
-    float high_z = -270;
+    float low_z = LIM_Z;//-294
+    float high_z = LIM_Z+10;
     std::vector<bool> bomb_on = {1, 0, 1, 0};//Agregado
 
     while(true)
