@@ -48,10 +48,10 @@
 #define BAS_RADIUS 117.0f
 #define BAS_POSITION (Vector3){0,ARM_LENGTH+ROD_LENGTH,0}
 #define HOME_Z -170.0f
-#define LIM_Z -273
+#define LIM_Z -278.0f//-239.0f
 
 #define TRANS_MULTIPLIER 3
-#define STEPS_NUM 8
+#define STEPS_NUM 16//number steps: 1(full), 2(half), 4(quarter), 8(eighth), 16(sixteenth)
 
 static bool EXIT = false;
 static int ERROR = 0;
@@ -141,7 +141,7 @@ int main(int argc, char** argv)
 
     x = 0;
     y = 0;
-    z = -220;
+    z = LIM_Z;
 
     octoKin.inverse_kinematics(x, y, z);
     octoKin.updateKinematics();
@@ -156,7 +156,7 @@ int main(int argc, char** argv)
     std::cout << "y: " << y << std::endl;
     std::cout << "z: " << z << std::endl;   
  
-    // while(true){};
+    //while(true){};
 
     float low_z = LIM_Z;//-294
     float high_z = LIM_Z+10;
@@ -164,63 +164,19 @@ int main(int argc, char** argv)
 
     while(true)
     {
-        x = 30;
+        /*
+	x = 30;
         y = 30;
-        octoKin.linear_move(x, y, z, 0.4, 0);
-        z = low_z;
-        octoKin.linear_move(x, y, z, 0.4, 0);
+	z = high_z;
+        octoKin.linear_move(x, y, z, 0.1, 0);
+	z = low_z;
+        octoKin.linear_move(x, y, z, 0.1, 0);
         //gpioWrite(PIN_BOMBA,1);
-	gpioWrite(PIN_BOMBA,bomb_on[0]);//Agregado
-        usleep(500000);
-        z = high_z;
-        octoKin.linear_move(x, y, z, 0.4, 0);
-        for(int i = 0; i < 4076; i++)
-        {
-            octoKin.step(PIN_STEP4, PIN_DIR4, 0);
-            effector_steps--;
-            if (archivoSalida.is_open()) {
-                archivoSalida.seekp(0);                // Mover el puntero de escritura al inicio del archivo
-                archivoSalida << effector_steps; // Escribir el valor en el archivo
-                archivoSalida.flush(); 
-            } else {
-                std::cerr << "No se pudo abrir el archivo para escribir.\n";
-                return 1; // Error
-            }
-        }
-        x = 30;
-        y = -30;
-        octoKin.linear_move(x, y, z, 0.4, 0);
-        z = low_z;
-        octoKin.linear_move(x, y, z, 0.4, 0);
-        usleep(500000);
-        //gpioWrite(PIN_BOMBA,0);
-	gpioWrite(PIN_BOMBA,bomb_on[1]);//Agregado
-        usleep(500000);
-        z = high_z;
-        octoKin.linear_move(x, y, z, 0.4, 0);
-        for(int i = 0; i < 4076; i++)
-        {
-            octoKin.step(PIN_STEP4, PIN_DIR4, 1);
-            effector_steps++;
-            if (archivoSalida.is_open()) {
-                archivoSalida.seekp(0);                // Mover el puntero de escritura al inicio del archivo
-                archivoSalida << effector_steps; // Escribir el valor en el archivo
-                archivoSalida.flush(); 
-            } else {
-                std::cerr << "No se pudo abrir el archivo para escribir.\n";
-                return 1; // Error
-            }
-        }
-        x = -30;
-        y = -30;
-        octoKin.linear_move(x, y, z, 0.4, 0);
-        z = low_z;
-        octoKin.linear_move(x, y, z, 0.4, 0);
-        //gpioWrite(PIN_BOMBA,1);
-	gpioWrite(PIN_BOMBA,bomb_on[2]);//Agregado
-        usleep(500000);
-        z = high_z;
-        octoKin.linear_move(x, y, z, 0.4, 0);
+	//gpioWrite(PIN_BOMBA,bomb_on[0]);//Agregado
+        //usleep(500000);
+	usleep(25000);
+        //z = high_z;
+        //octoKin.linear_move(x, y, z, 0.1, 0);
         for(int i = 0; i < 4076; i++)
         {
             octoKin.step(PIN_STEP4, PIN_DIR4, 0);
@@ -236,15 +192,17 @@ int main(int argc, char** argv)
         }
         x = -30;
         y = 30;
-        octoKin.linear_move(x, y, z, 0.4, 0);
-        z = low_z;
-        octoKin.linear_move(x, y, z, 0.4, 0);
-        usleep(500000);
+	z = low_z;
+        octoKin.linear_move(x, y, z, 0.1, 0);
+        //z = low_z;
+        //octoKin.linear_move(x, y, z, 0.1, 0);
+        //usleep(500000);
         //gpioWrite(PIN_BOMBA,0);
-	gpioWrite(PIN_BOMBA,bomb_on[3]);//Agregado
-        usleep(500000);
-        z = high_z;
-        octoKin.linear_move(x, y, z, 0.4, 0);
+	//gpioWrite(PIN_BOMBA,bomb_on[1]);//Agregado
+        //usleep(500000);
+	usleep(25000);
+        //z = high_z;
+        //octoKin.linear_move(x, y, z, 0.1, 0);
         for(int i = 0; i < 4076; i++)
         {
             octoKin.step(PIN_STEP4, PIN_DIR4, 1);
@@ -258,12 +216,64 @@ int main(int argc, char** argv)
                 return 1; // Error
             }
         }
+        x = -30;
+        y = -30;
+	z = low_z;
+        octoKin.linear_move(x, y, z, 0.1, 0);
+        //z = low_z;
+        //octoKin.linear_move(x, y, z, 0.1, 0);
+        //gpioWrite(PIN_BOMBA,1);
+	//gpioWrite(PIN_BOMBA,bomb_on[2]);//Agregado
+        //usleep(500000);
+	usleep(25000);
+        //z = high_z;
+        //octoKin.linear_move(x, y, z, 0.1, 0);
+        for(int i = 0; i < 4076; i++)
+        {
+            octoKin.step(PIN_STEP4, PIN_DIR4, 0);
+            effector_steps--;
+            if (archivoSalida.is_open()) {
+                archivoSalida.seekp(0);                // Mover el puntero de escritura al inicio del archivo
+                archivoSalida << effector_steps; // Escribir el valor en el archivo
+                archivoSalida.flush(); 
+            } else {
+                std::cerr << "No se pudo abrir el archivo para escribir.\n";
+                return 1; // Error
+            }
+        }
+        x = 30;
+        y = -30;
+	z = low_z;
+        octoKin.linear_move(x, y, z, 0.1, 0);
+        //z = low_z;
+        //octoKin.linear_move(x, y, z, 0.1, 0);
+        //usleep(500000);
+        //gpioWrite(PIN_BOMBA,0);
+	//gpioWrite(PIN_BOMBA,bomb_on[3]);//Agregado
+        //usleep(500000);
+	usleep(25000);
+        //z = high_z;
+        //octoKin.linear_move(x, y, z, 0.1, 0);
+        for(int i = 0; i < 4076; i++)
+        {
+            octoKin.step(PIN_STEP4, PIN_DIR4, 1);
+            effector_steps++;
+            if (archivoSalida.is_open()) {
+                archivoSalida.seekp(0);                // Mover el puntero de escritura al inicio del archivo
+                archivoSalida << effector_steps; // Escribir el valor en el archivo
+                archivoSalida.flush(); 
+            } else {
+                std::cerr << "No se pudo abrir el archivo para escribir.\n";
+                return 1; // Error
+            }
+        }
+	
         x = 0;
         y = 0;
-        octoKin.linear_move(x, y, z, 0.4, 1000);
+        octoKin.linear_move(x, y, z, 0.1, 1000);
 	gpioWrite(PIN_BOMBA,0);//Agregado
-        z = -250;
-        octoKin.linear_move(x, y, z, 0.4, 0);
+        z = LIM_Z;//-250
+        octoKin.linear_move(x, y, z, 0.1, 0);
         for(float i = 0; i < 2*M_PI; i+=0.05f)
         {
             x = sin(i)*30.0f;
@@ -273,12 +283,115 @@ int main(int argc, char** argv)
         }
         x = 0;
         y = 0;
-        octoKin.linear_move(x, y, z, 0.4, 1000);
+        octoKin.linear_move(x, y, z, 0.1, 1000);
         z = high_z;
-        octoKin.linear_move(x, y, z, 0.4, 0);
+        octoKin.linear_move(x, y, z, 0.1, 0);
 	for(int i=0; i<bomb_on.size(); i++){//Agregado
 		bomb_on[i] = !bomb_on[i];
 	}
+	*/
+	
+	// dibujar grilla
+	double stepDist = 0.002;
+	for(int i=-30; i<=30; i=i+3){
+	  x = i;
+	  y = -30;
+	  z = high_z;
+	  octoKin.linear_move(x, y, z, stepDist, 0);
+	  usleep(250000);
+	  z = low_z;
+	  octoKin.linear_move(x, y, z, stepDist, 0);
+	  usleep(250000);
+	  x = i;
+	  y = 30;
+	  z = low_z;
+	  octoKin.linear_move(x, y, z, stepDist, 0);
+	  usleep(250000);
+	  z = high_z;
+	  octoKin.linear_move(x, y, z, stepDist, 0);
+	  usleep(250000);
+	}
+	for(int i=-30; i<=30; i=i+3){
+	  x = -30;
+	  y = i;
+	  z = high_z;
+	  octoKin.linear_move(x, y, z, stepDist, 0);
+	  usleep(250000);
+	  z = low_z;
+	  octoKin.linear_move(x, y, z, stepDist, 0);
+	  usleep(250000);
+	  x = 30;
+	  y = i;
+	  z = low_z;
+	  octoKin.linear_move(x, y, z, stepDist, 0);
+	  usleep(250000);
+	  z = high_z;
+	  octoKin.linear_move(x, y, z, stepDist, 0);
+	  usleep(250000);
+	}
+
+	// Ubicar componentes
+	std::vector<double> vect1_x = {-30.0, -30.0, -30.0, -30.0, -30.0, -30.0};
+	std::vector<double> vect1_y = {0.0, -3.0, -6.0, -9.0, -12.0, -15.0};
+	std::vector<double> vect2_x = {-15.0, -24.0, -7.0, -1.0, -10.0, -14.0};
+	std::vector<double> vect2_y = {-15.0, -8.0, -23.0, -30.0, -7.0, -1.0};
+	double stepDist = 0.0008;
+	for(int i=0; i<=5; i++){
+	 x = vect1_x[i];
+	 y = vect1_y[i];
+	 z = high_z;
+	 octoKin.linear_move(x, y, z, stepDist, 0);
+	 usleep(250000);
+	 gpioWrite(PIN_BOMBA,1);
+	 usleep(25000);
+	 z = low_z;
+	 octoKin.linear_move(x, y, z, stepDist, 0);
+	 usleep(250000);
+	 z = high_z;
+	 octoKin.linear_move(x, y, z, stepDist, 0);
+	 usleep(250000);
+	 x = vect2_x[i];
+	 y = vect2_y[i];
+	 z = high_z;
+	 octoKin.linear_move(x, y, z, stepDist, 0);
+	 usleep(250000);
+	 z = low_z;
+	 octoKin.linear_move(x, y, z, stepDist, 0);
+	 usleep(25000);
+	 gpioWrite(PIN_BOMBA,0);
+	 usleep(250000);
+	 z = high_z;
+	 octoKin.linear_move(x, y, z, stepDist, 0);
+	 usleep(250000);
+	}
+	for(int i=0; i<=5; i++){
+	 x = vect2_x[i];
+	 y = vect2_y[i];
+	 z = high_z;
+	 octoKin.linear_move(x, y, z, stepDist, 0);
+	 usleep(250000);
+	 gpioWrite(PIN_BOMBA,1);
+	 usleep(25000);
+	 z = low_z;
+	 octoKin.linear_move(x, y, z, stepDist, 0);
+	 usleep(250000);
+	 z = high_z;
+	 octoKin.linear_move(x, y, z, stepDist, 0);
+	 usleep(250000);
+	 x = vect1_x[i];
+	 y = vect1_y[i];
+	 z = high_z;
+	 octoKin.linear_move(x, y, z, stepDist, 0);
+	 usleep(250000);
+	 z = low_z;
+	 octoKin.linear_move(x, y, z, stepDist, 0);
+	 usleep(25000);
+	 gpioWrite(PIN_BOMBA,0);
+	 usleep(250000);
+	 z = high_z;
+	 octoKin.linear_move(x, y, z, stepDist, 0);
+	 usleep(250000);
+	}	
     }
 
     unsigned int timestep = 0;

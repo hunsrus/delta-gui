@@ -279,17 +279,17 @@ void OctoKinematics::updateKinematics(void)
 }
 
 //interpolates between two points to move in a stright line (beware of physical and kinematic limits)
-void OctoKinematics::linear_move(float x1, float y1, float z1, float stepDist, int stepDelay)
+void OctoKinematics::linear_move(double x1, double y1, double z1, double stepDist, int stepDelay)
 {
     //Sets the initial position variables
-    float x0 = this->x;
-    float y0 = this->y;
-    float z0 = this->z;
+    double x0 = this->x;
+    double y0 = this->y;
+    double z0 = this->z;
     
     //Distance change in each axis
-    float xDist = x1 - x0;
-    float yDist = y1 - y0;
-    float zDist = z1 - z0;
+    double xDist = x1 - x0;
+    double yDist = y1 - y0;
+    double zDist = z1 - z0;
     
     double totalDist = sqrt(pow(xDist,2) + pow(yDist,2) + pow(zDist,2));//Absolute magnitute of the distance
     int numberOfSteps = round(totalDist / stepDist);//Number of steps required for the desired step distance
@@ -300,14 +300,14 @@ void OctoKinematics::linear_move(float x1, float y1, float z1, float stepDist, i
         return;
     }
     
-    float xStep = xDist / (float)numberOfSteps;
-    float yStep = yDist / (float)numberOfSteps;
-    float zStep = zDist / (float)numberOfSteps;
+    double xStep = xDist / (double)numberOfSteps;
+    double yStep = yDist / (double)numberOfSteps;
+    double zStep = zDist / (double)numberOfSteps;
 
     //Interpolation variables
-    float xInterpolation;
-    float yInterpolation;
-    float zInterpolation;
+    double xInterpolation;
+    double yInterpolation;
+    double zInterpolation;
 
     for(int i = 1; i <= numberOfSteps; i++){//Interpolate the points
         xInterpolation = x0 + i * xStep;
