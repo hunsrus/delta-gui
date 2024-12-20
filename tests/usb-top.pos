@@ -1,0 +1,13 @@
+### Footprint positions - created on 2024-12-20T15:58:33-0300 ###
+### Printed by KiCad version 8.0.5
+## Unit = mm, Angle = deg.
+## Side : top
+# Ref     Val                   Package                                                 PosX       PosY       Rot  Side
+J1        Screw_Terminal_01x02  TerminalBlock_bornier-2_P5.08mm                       0.0000     0.0000  -90.0000  top
+J2        USB_A                 USB_A_CONNFLY_DS1095-WNR0                             2.7375   -13.9200  -90.0000  top
+J3        USB_A                 USB_A_CONNFLY_DS1095-WNR0                            34.6700   -10.0800   90.0000  top
+J4        USB_A                 USB_A_CONNFLY_DS1095-WNR0                            34.8400   -28.0100   90.0000  top
+K1        G5V-2                 Relay_DPDT_Omron_G5V-2                                9.3325    -7.9825   90.0000  top
+Q1        BC548                 TO-92_Inline                                         26.9400   -22.3100  -90.0000  top
+R1        R                     R_Axial_DIN0207_L6.3mm_D2.5mm_P15.24mm_Horizontal     7.7400   -23.6300    0.0000  top
+## End
