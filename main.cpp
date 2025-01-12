@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <thread>
 #include <unistd.h>
+#include <vector>
 
 #if ARCH_ARM
     #include <pigpio.h>
@@ -78,6 +79,7 @@
 #endif
 #define TARGET_FPS 30
 #define MARGIN 20*(DISPLAY_HEIGHT/768.0f)
+#define FONT_PIXELS 48
 
 #define CAMERA_FOV 90
 #define DRAW_SCALE 0.5
@@ -97,6 +99,18 @@ static bool EXIT = false;
 
 // Determinar el paso actual
 static int stepIndex = 0; // BORRAR?
+
+// interfaz de usuario
+const int MENUS_AMOUNT = 5;
+int currentMenuID = 0;
+std::vector<const char*>::iterator highlightedMenu;
+
+typedef struct Screen{
+    int id;
+    const char* title;
+    Screen* parent;
+    std::vector<const char*> options;
+}Screen;
 
 Image MatToImage(const cv::Mat &mat) {
     // Asegúrate de que la imagen está en formato RGB
@@ -163,7 +177,6 @@ int captureVideo(void)
     }
 
     return EXIT_SUCCESS;
-
 }
 
 int main(int argc, char** argv)
@@ -202,12 +215,37 @@ int main(int argc, char** argv)
     Vector3 basePos = (Vector3){static_cast<float>(x),static_cast<float>(z),static_cast<float>(y)};
     Vector3 arm1Projection, arm2Projection, arm3Projection;
 
+    Screen menu[MENUS_AMOUNT];
+    menu[0].id = 0;
+    menu[0].title = "Menú principal";
+    menu[0].options.push_back("Elegir archivo");
+    menu[0].options.push_back("Zona de componentes");
+    menu[0].options.push_back("Calibrar referencia");
+    menu[0].options.push_back("Guardar/Abrir");
+    menu[1].id = 1;
+    menu[1].title = "Elegir archivo";
+    menu[1].parent = &menu[0];
+    menu[1].options.push_back("Atrás");
+    menu[1].options.push_back("AEEA");
+    menu[2].id = 2;
+    menu[2].title = "Zona de componentes";
+    menu[2].parent = &menu[0];
+    menu[2].options.push_back("Atrás");
+    menu[3].id = 3;
+    menu[3].title = "Calibrar referencia";
+    menu[3].parent = &menu[0];
+    menu[3].options.push_back("Atrás");
+    menu[4].id = 4;
+    menu[4].title = "Guardar/Abrir";
+    
+    highlightedMenu = menu[currentMenuID].options.begin();
+
 	//SetConfigFlags(FLAG_FULLSCREEN_MODE);
     //SetConfigFlags(FLAG_MSAA_4X_HINT);
     InitWindow(screenWidth, screenHeight, "delta gui test");
 
-    Font font = LoadFont("resources/fonts/JetBrainsMono/JetBrainsMono-Bold.ttf");
-    float fontSize = DISPLAY_HEIGHT/20;//font.baseSize;
+    Font font = LoadFontEx("resources/fonts/JetBrainsMono/JetBrainsMono-Bold.ttf", FONT_PIXELS, 0, 250);
+    float fontSize = font.baseSize;//DISPLAY_HEIGHT/20;
 
     #if ARCH_ARM
         std::cout << "ARCHITECTURE: ARM" << std::endl;
@@ -501,7 +539,40 @@ int main(int argc, char** argv)
             {
                 z += 1.0f;
             }
+
+            if(IsKeyPressed(KEY_DOWN))
+            {
+                if(highlightedMenu < std::prev(menu[currentMenuID].options.end()))
+                    highlightedMenu++;
+                else
+                    highlightedMenu = menu[currentMenuID].options.begin();
+            }
+            if(IsKeyPressed(KEY_UP))
+            {
+                if(highlightedMenu > menu[currentMenuID].options.begin())
+                    highlightedMenu--;
+                else
+                    highlightedMenu = std::prev(menu[currentMenuID].options.end());
+            }
+            if(IsKeyPressed(KEY_ENTER))
+            {
+                if((*highlightedMenu) == "Atrás")
+                {
+                    currentMenuID = menu[currentMenuID].parent->id;
+                    highlightedMenu = menu[currentMenuID].options.begin();
+                }else{
+                    for(i = 0; i < MENUS_AMOUNT; i++)
+                        if((*highlightedMenu) == menu[i].title) currentMenuID = i;
+                    highlightedMenu = menu[currentMenuID].options.begin();
+                }
+            }
+
         #endif
+
+        if(IsKeyPressed(KEY_F1))
+        {
+            SHOW_FPS = !SHOW_FPS;
+        }
 
         if(IsKeyDown(KEY_SPACE))
         {
@@ -647,20 +718,47 @@ int main(int argc, char** argv)
             DrawTextureEx(captureTexture, captureViewPos, 0, viewSize.x/captureTexture.width,WHITE);
             Rectangle captureViewRectangle = {captureViewPos.x, captureViewPos.y, captureTexture.width*(viewSize.x/captureTexture.width), captureTexture.height*(viewSize.x/captureTexture.width)};
             DrawRectangleLinesEx(captureViewRectangle,2.0f,COLOR_FG);
-            
-            sprintf(c,"A:\t%+03.2f\tB:\t%+03.2f\tC:\t%+03.2f",octoKin.a, octoKin.b, octoKin.c);
-            DrawTextEx(font,c,(Vector2){MARGIN,MARGIN*4+fontSize*3},fontSize,1,COLOR_FG);
-            sprintf(c,"X:\t%+03.2f\tY:\t%+03.2f\tZ:\t%+03.2f",x, y, z);
-            DrawTextEx(font,c,(Vector2){MARGIN,MARGIN*5+fontSize*4},fontSize,1,COLOR_FG);
+
+            i = 2;
+            DrawTextEx(font,menu[currentMenuID].title,(Vector2){MARGIN,MARGIN},fontSize,1,COLOR_FG);
+            for (std::vector<const char*>::iterator it = menu[currentMenuID].options.begin(); it != menu[currentMenuID].options.end(); it++)
+            {
+                Vector2 optionPos = {MARGIN, MARGIN*i+fontSize*(i-1)};
+                Vector2 optionSize = {viewPos.x-MARGIN*2, fontSize};
+                Rectangle optionRectangle = {optionPos.x, optionPos.y, optionSize.x, optionSize.y};
+                DrawRectangleLinesEx(optionRectangle,2.0f,COLOR_FG);
+                sprintf(c," %s",(*it));
+                if(it == highlightedMenu)
+                {
+                    DrawRectangleRec(optionRectangle, COLOR_FG);
+                    DrawTextEx(font,c,optionPos,fontSize,1,COLOR_BG);
+                    if((*it) != "Atrás")
+                        DrawTextEx(font,">",Vector2Add(optionPos,(Vector2){optionSize.x-MARGIN-fontSize/2,0}),fontSize,1,COLOR_BG);
+                    else
+                        DrawTextEx(font,"<",Vector2Add(optionPos,(Vector2){optionSize.x-MARGIN-fontSize/2,0}),fontSize,1,COLOR_BG);
+                }else
+                {
+                    DrawTextEx(font,c,optionPos,fontSize,1,COLOR_FG);
+                    if((*it) != "Atrás")
+                        DrawTextEx(font,">",Vector2Add(optionPos,(Vector2){optionSize.x-MARGIN-fontSize/2,0}),fontSize,1,COLOR_FG);
+                    else
+                        DrawTextEx(font,"<",Vector2Add(optionPos,(Vector2){optionSize.x-MARGIN-fontSize/2,0}),fontSize,1,COLOR_FG);
+                }
+                i++;
+            }
 
             if(SHOW_FPS)
             {
                 sprintf(c,"FPS %d",GetFPS());
-                DrawTextEx(font,c,(Vector2){MARGIN,MARGIN},fontSize,1,COLOR_FG);
-                sprintf(c,"STARTING_ANIMATION %i",STARTING_ANIMATION);
-                DrawTextEx(font,c,(Vector2){MARGIN,MARGIN*2+fontSize},fontSize,1,COLOR_FG);
-                sprintf(c,"SHADER_RESOLUTION %.2f",shaderResolution[0]);
-                DrawTextEx(font,c,(Vector2){MARGIN,MARGIN*3+fontSize*2},fontSize,1,COLOR_FG);
+                DrawTextEx(font,c,(Vector2){screenWidth-MARGIN-3*fontSize,MARGIN},fontSize,1,COLOR_FG);
+                // sprintf(c,"STARTING_ANIMATION %i",STARTING_ANIMATION);
+                // DrawTextEx(font,c,(Vector2){MARGIN,MARGIN*2+fontSize},fontSize,1,COLOR_FG);
+                // sprintf(c,"SHADER_RESOLUTION %.2f",shaderResolution[0]);
+                // DrawTextEx(font,c,(Vector2){MARGIN,MARGIN*3+fontSize*2},fontSize,1,COLOR_FG);
+                // sprintf(c,"A:\t%+03.2f\tB:\t%+03.2f\tC:\t%+03.2f",octoKin.a, octoKin.b, octoKin.c);
+                // DrawTextEx(font,c,(Vector2){MARGIN,MARGIN*4+fontSize*3},fontSize,1,COLOR_FG);
+                // sprintf(c,"X:\t%+03.2f\tY:\t%+03.2f\tZ:\t%+03.2f",x, y, z);
+                // DrawTextEx(font,c,(Vector2){MARGIN,MARGIN*5+fontSize*4},fontSize,1,COLOR_FG);
             }
             if(STARTING_ANIMATION && animationState == 0)
             {
