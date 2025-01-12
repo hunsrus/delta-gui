@@ -11,7 +11,8 @@
 #include "raymath.h"
 #include "rlights.h"
 #include "rlgl.h"
-#include "DeltaKinematics.h"
+// #include "DeltaKinematics.h"
+#include "OctoKinematics.h"
 
 // deteccion de imagenes
 #include <opencv2/imgcodecs.hpp>
@@ -27,33 +28,53 @@
     #include <pigpio.h>
 #endif
 
-#define PIN_DIR1 6
-#define PIN_STEP1 5
-#define PIN_DIR2 18
-#define PIN_STEP2 17
-#define PIN_DIR3 22
+// robot dimensions
+#define ARM_LENGTH 130.0f
+#define ROD_LENGTH 310.0f
+#define EFF_RADIUS 35.0f
+#define BAS_RADIUS 117.0f
+#define BAS_POSITION (Vector3){0,ARM_LENGTH+ROD_LENGTH,0}
+#define HOME_Z -170.0f
+#define LIM_Z -273.0f
+
+#define TRANS_MULTIPLIER 3
+#define STEPS_NUM 8
+
+// pinout definitions
+#define PIN_DIR1 12
+#define PIN_STEP1 16
+#define PIN_DIR2 21
+#define PIN_STEP2 20
+#define PIN_DIR3 18
 #define PIN_STEP3 23
+#define PIN_DIR4 22
+#define PIN_STEP4 27
 
-#define PIN_MS1 2
-#define PIN_MS2 3
-#define PIN_MS3 4
+#define PIN_MS1 17
+#define PIN_MS2 4
+#define PIN_MS3 3
 
-#define PIN_JOY_X0 19
-#define PIN_JOY_X1 26
-#define PIN_JOY_Y0 20
-#define PIN_JOY_Y1 16
-#define PIN_JOY_PB 21
+#define PIN_JOY_X0 0
+#define PIN_JOY_X1 0
+#define PIN_JOY_Y0 0
+#define PIN_JOY_Y1 0
+#define PIN_JOY_PB 2
 
-// versión de glsl para shaders
+#define PIN_FC_M1 5
+#define PIN_FC_M2 6
+#define PIN_FC_M3 13
+
+#define PIN_BOMBA 26
+
+// graphics config
 #define GLSL_VERSION 100
-
 
 #if ARCH_ARM
     #define DISPLAY_WIDTH 320
     #define DISPLAY_HEIGHT 240
 #else
-    #define DISPLAY_WIDTH 320
-    #define DISPLAY_HEIGHT 240
+    #define DISPLAY_WIDTH 1024
+    #define DISPLAY_HEIGHT 768
 #endif
 #define TARGET_FPS 30
 #define MARGIN 20*(DISPLAY_HEIGHT/768.0f)
@@ -61,22 +82,13 @@
 #define CAMERA_FOV 90
 #define DRAW_SCALE 0.5
 
-#define ARM_LENGTH 130.0f
-#define ROD_LENGTH 166.0f
-#define BASS_TRI 35.0f
-#define PLATFORM_TRI 115.45f
-#define PLATFORM_POS (Vector3){0,ARM_LENGTH+ROD_LENGTH,0}
-
-#define TRANS_MULTIPLIER 3
-#define STEPS_NUM 1
-double STEP_ANGLE = 1.8/(STEPS_NUM*TRANS_MULTIPLIER*1.0);
-
 static bool SHOW_FPS = true;
-static bool STARTING_ANIMATION = true;
+static bool STARTING_ANIMATION = false;
 
 static Color COLOR_BG = {34,34,34,255};
 static Color COLOR_FG = {238,238,238,255};
 
+// image detection definitions
 static cv::Mat image;
 static bool CAMERA_AVAILABLE = true;
 static bool CAPTURE_READY = false;
@@ -84,7 +96,7 @@ static bool CAPTURE_READY = false;
 static bool EXIT = false;
 
 // Determinar el paso actual
-static int stepIndex = 0;
+static int stepIndex = 0; // BORRAR?
 
 Image MatToImage(const cv::Mat &mat) {
     // Asegúrate de que la imagen está en formato RGB
@@ -154,74 +166,6 @@ int captureVideo(void)
 
 }
 
-// Definir la secuencia de pasos para un motor paso a paso unipolar de 4 bobinas
-int stepSequence[4][4] = {
-    {0, 0, 1, 1}, // Paso 1
-    {1, 0, 0, 1}, // Paso 2
-    {1, 1, 0, 0}, // Paso 3
-    {0, 1, 1, 0}  // Paso 4
-};
-
-// Función para mover el motor de un ángulo actual a un ángulo objetivo
-void moveToAngle(int motorID, double currentAngle, double targetAngle) {
-    // Calcular la diferencia de ángulo
-    double angleDiff = targetAngle - currentAngle;
-
-    // Calcular el número de pasos necesarios
-    int steps = (int)round(angleDiff/STEP_ANGLE);
-
-    // Determinar la dirección del movimiento
-    bool direction = (steps > 0) ? 1 : 0;
-
-    // Hacer los pasos necesarios
-    #if ARCH_ARM
-        if(motorID = 1)
-        {
-            gpioWrite(PIN_DIR1, direction);
-            for (int i = 0; i < abs(steps); i++)
-            {
-                gpioWrite(PIN_STEP1, 1);
-                usleep(1500);
-                gpioWrite(PIN_STEP1, 0);
-            }
-        }
-        if(motorID = 2)
-        {
-            gpioWrite(PIN_DIR2, direction);
-            for (int i = 0; i < abs(steps); i++)
-            {
-                gpioWrite(PIN_STEP2, 1);
-                usleep(1500);
-                gpioWrite(PIN_STEP2, 0);
-            }
-        }
-        if(motorID = 3)
-        {
-            gpioWrite(PIN_DIR3, direction);
-            for (int i = 0; i < abs(steps); i++)
-            {
-                gpioWrite(PIN_STEP3, 1);
-                usleep(1500);
-                gpioWrite(PIN_STEP3, 0);
-            }
-        }
-    #else
-    /*
-        for (int i = 0; i < abs(steps); i++) {
-            stepIndex += direction;
-            if (stepIndex > 3) stepIndex = 0;
-            if (stepIndex < 0) stepIndex = 3;
-
-            // Activar las bobinas para el paso actual
-            setCoils(stepSequence[stepIndex][0], stepSequence[stepIndex][1], stepSequence[stepIndex][2], stepSequence[stepIndex][3]);
-
-            // Añadir un pequeño retraso para permitir que el motor se mueva (ajustar según sea necesario)
-            usleep(1000); // 1000 microsegundos = 1 milisegundo
-        }
-    */
-    #endif
-}
-
 int main(int argc, char** argv)
 {
     // Initialization
@@ -236,26 +180,24 @@ int main(int argc, char** argv)
     int animationStep = 0;
     int animationState = 0;
 
-    DeltaKinematics dk = DeltaKinematics(ARM_LENGTH, ROD_LENGTH, BASS_TRI, PLATFORM_TRI);
-    double x = 0, y = 0, z = -ROD_LENGTH/2.0f;
+    OctoKinematics octoKin = OctoKinematics(ARM_LENGTH, ROD_LENGTH, EFF_RADIUS, BAS_RADIUS);
+    double x = 0, y = 0, z = HOME_Z;
     double lastX = -1, lastY = -1, lastZ = -1;
-    double lastA, lastB, lastC;
-    double thetaA, thetaB, thetaC;
     double rod1Phi, rod1Theta;
     double rod2Phi, rod2Theta;
     double rod3Phi, rod3Theta;
 
     Vector3 auxVector;
 
-    Vector3 arm1Pos = Vector3Add(PLATFORM_POS,Vector3Scale(Vector3Normalize((Vector3){0.0f,0.0f,-1.0f}), PLATFORM_TRI));
-    Vector3 arm2Pos = Vector3Add(PLATFORM_POS,Vector3Scale(Vector3Normalize((Vector3){1.0f*cos(30*DEG2RAD),0.0f,1.0f*sin(30*DEG2RAD)}), PLATFORM_TRI));
-    Vector3 arm3Pos = Vector3Add(PLATFORM_POS,Vector3Scale(Vector3Normalize((Vector3){-1.0f*cos(30*DEG2RAD),0.0f,1.0f*sin(30*DEG2RAD)}), PLATFORM_TRI));
+    Vector3 arm1Pos = Vector3Add(BAS_POSITION,Vector3Scale(Vector3Normalize((Vector3){0.0f,0.0f,-1.0f}), BAS_RADIUS));
+    Vector3 arm2Pos = Vector3Add(BAS_POSITION,Vector3Scale(Vector3Normalize((Vector3){1.0f*cos(30*DEG2RAD),0.0f,1.0f*sin(30*DEG2RAD)}), BAS_RADIUS));
+    Vector3 arm3Pos = Vector3Add(BAS_POSITION,Vector3Scale(Vector3Normalize((Vector3){-1.0f*cos(30*DEG2RAD),0.0f,1.0f*sin(30*DEG2RAD)}), BAS_RADIUS));
     Vector3 arm1Axis = {-1.0f,0.0f,0.0f};
     Vector3 arm2Axis = {1.0f*cos(60*DEG2RAD),0.0f,-1.0f*sin(60*DEG2RAD)};
     Vector3 arm3Axis = {1.0f*cos(60*DEG2RAD),0.0f,1.0f*sin(60*DEG2RAD)};
-    Vector3 rod1Pos = (Vector3){arm2Pos.x,static_cast<float>(arm2Pos.y+ARM_LENGTH*sin(dk.b*DEG2RAD)),arm2Pos.z};
-    Vector3 rod2Pos = (Vector3){arm1Pos.x,static_cast<float>(arm1Pos.y+ARM_LENGTH*sin(dk.a*DEG2RAD)),arm1Pos.z};
-    Vector3 rod3Pos = (Vector3){arm1Pos.x,static_cast<float>(arm1Pos.y+ARM_LENGTH*sin(dk.c*DEG2RAD)),arm1Pos.z};
+    Vector3 rod1Pos = (Vector3){arm2Pos.x,static_cast<float>(arm2Pos.y+ARM_LENGTH*sin(-octoKin.c*DEG2RAD)),arm2Pos.z};
+    Vector3 rod2Pos = (Vector3){arm1Pos.x,static_cast<float>(arm1Pos.y+ARM_LENGTH*sin(-octoKin.b*DEG2RAD)),arm1Pos.z};
+    Vector3 rod3Pos = (Vector3){arm1Pos.x,static_cast<float>(arm1Pos.y+ARM_LENGTH*sin(-octoKin.a*DEG2RAD)),arm1Pos.z};
     Vector3 baseJoint1, baseJoint2, baseJoint3;
     Vector3 basePos = (Vector3){static_cast<float>(x),static_cast<float>(z),static_cast<float>(y)};
     Vector3 arm1Projection, arm2Projection, arm3Projection;
@@ -274,12 +216,12 @@ int main(int argc, char** argv)
     #endif
 
     // CARGAR LOS MODELOS DESPUÉS DE INICIAR LA VENTANA
-    Model* platformModel = new Model(LoadModelFromMesh(GenMeshPoly(10,PLATFORM_TRI)));
+    Model* platformModel = new Model(LoadModelFromMesh(GenMeshPoly(10,BAS_RADIUS)));
     //Model* platformModel = new Model(LoadModel(std::string("resources/models/platform/platform.obj").c_str()));
     //platformModel->transform = MatrixScale(1000,1000,1000);
     //platformModel->transform = MatrixMultiply(platformModel->transform, MatrixRotate((Vector3){0,1,0},45*DEG2RAD));
     //platformModel->transform = MatrixMultiply(platformModel->transform, MatrixTranslate(0,-24,0));
-    Model* baseModel = new Model(LoadModelFromMesh(GenMeshPoly(10,BASS_TRI)));
+    Model* baseModel = new Model(LoadModelFromMesh(GenMeshPoly(10,EFF_RADIUS)));
     //Model* baseModel = new Model(LoadModel(std::string("resources/models/effector/effector.obj").c_str()));
     //baseModel->transform = MatrixScale(1000,1000,1000);
     //baseModel->transform = MatrixMultiply(baseModel->transform, MatrixRotate((Vector3){0,1,0},45*DEG2RAD));
@@ -344,7 +286,7 @@ int main(int argc, char** argv)
 
     // Define the camera to look into our 3d world
     //Camera camera = { {-20.0f, 12.0f, 0.0f}, { 0.0f, 4.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, 45.0f, 0 };
-    Camera camera = { {-PLATFORM_TRI*2.0f, (ARM_LENGTH+ROD_LENGTH)*0.7f, 0.0f}, {PLATFORM_POS.x, PLATFORM_POS.y/3.0f, PLATFORM_POS.z}, { 0.0f, 1.0f, 0.0f }, 45.0f, 0 };
+    Camera camera = { {-BAS_RADIUS*2.0f, (ARM_LENGTH+ROD_LENGTH)*0.7f, 0.0f}, {BAS_POSITION.x, BAS_POSITION.y/3.0f, BAS_POSITION.z}, { 0.0f, 1.0f, 0.0f }, 45.0f, 0 };
     camera.fovy = 179.0f;
     camera.projection = CAMERA_PERSPECTIVE;
 
@@ -382,6 +324,7 @@ int main(int argc, char** argv)
         }
         fprintf(stdout, "pigpio initialisation complete\n");
 
+        // config pinout
         gpioSetMode(PIN_DIR1,PI_OUTPUT);
         gpioSetMode(PIN_STEP1,PI_OUTPUT);
         gpioSetMode(PIN_DIR2,PI_OUTPUT);
@@ -397,30 +340,80 @@ int main(int argc, char** argv)
         gpioSetMode(PIN_JOY_X1,PI_INPUT);
         gpioSetMode(PIN_JOY_Y0,PI_INPUT);
         gpioSetMode(PIN_JOY_Y1,PI_INPUT);
+        gpioSetMode(PIN_JOY_PB,PI_INPUT);
 
-        if(STEPS_NUM == 1)
-        {
-            gpioWrite(PIN_MS1,0);
-            gpioWrite(PIN_MS2,0);
-            gpioWrite(PIN_MS3,0);
-        }else if(STEPS_NUM == 2){
-            gpioWrite(PIN_MS1,1);
-            gpioWrite(PIN_MS2,0);
-            gpioWrite(PIN_MS3,0);
-        }else if(STEPS_NUM == 4){
-            gpioWrite(PIN_MS1,0);
-            gpioWrite(PIN_MS2,1);
-            gpioWrite(PIN_MS3,0);
-        }else if(STEPS_NUM == 8){
-            gpioWrite(PIN_MS1,1);
-            gpioWrite(PIN_MS2,1);
-            gpioWrite(PIN_MS3,0);
-        }else if(STEPS_NUM == 16){
-            gpioWrite(PIN_MS1,1);
-            gpioWrite(PIN_MS2,1);
-            gpioWrite(PIN_MS3,1);
+        gpioSetMode(PIN_FC_M1,PI_INPUT);
+        gpioSetMode(PIN_FC_M2,PI_INPUT);
+        gpioSetMode(PIN_FC_M3,PI_INPUT);
+
+        gpioSetMode(PIN_BOMBA,PI_OUTPUT);
+
+        // config robot pins
+        octoKin.set_pin_step_ctrl(PIN_MS1,PIN_MS2,PIN_MS3);
+        octoKin.set_pin_motor_1(PIN_STEP1, PIN_DIR1);
+        octoKin.set_pin_motor_2(PIN_STEP2, PIN_DIR2);
+        octoKin.set_pin_motor_3(PIN_STEP3, PIN_DIR3);
+        octoKin.set_pin_limit_sw(PIN_FC_M1, PIN_FC_M2, PIN_FC_M3);
+        octoKin.set_axis_direction(1);
+        octoKin.set_step_precision(STEPS_NUM);
+        octoKin.set_transmission_ratio(TRANS_MULTIPLIER);
+        octoKin.set_pulse_width(1500);
+        
+        // turn suction off
+        gpioWrite(PIN_BOMBA,0);
+
+        // effector orientation correction
+        int effector_steps = 0;
+        std::string nombreArchivo = "initdata";
+
+        std::ifstream archivoEntrada(nombreArchivo); // Abrir archivo en modo lectura
+        if (archivoEntrada.is_open()) {
+            archivoEntrada >> effector_steps; // Leer el valor del archivo
+            archivoEntrada.close();            // Cerrar el archivo
+            std::cout << "Correción de efector: " << effector_steps << '\n';
+        } else {
+            std::cerr << "No se pudo abrir el archivo para leer.\n";
+            //return 1; // Error
         }
+
+        while(effector_steps)
+        {
+            if(effector_steps > 0)
+            {
+                octoKin.step(PIN_STEP4, PIN_DIR4, 0);
+                effector_steps--;
+            }
+            if(effector_steps < 0)
+            {
+                octoKin.step(PIN_STEP4, PIN_DIR4, 1);
+                effector_steps++;
+            }
+        }
+
+        std::ofstream archivoSalida(nombreArchivo); // Crear y abrir archivo en modo escritura
+
+        // homing sequence
+        octoKin.home(0,0,HOME_Z); 
     #endif
+
+    // move to starting position
+    x = 0;
+    y = 0;
+    z = -220;
+    octoKin.inverse_kinematics(x, y, z);
+    #if ARCH_ARM
+    octoKin.updateKinematics();
+    #endif
+    // lastX = x;
+    // lastY = y;
+    // lastZ = z;
+
+    std::cout << "a: " << octoKin.a << std::endl;
+    std::cout << "b: " << octoKin.b << std::endl;
+    std::cout << "c: " << octoKin.c << std::endl;
+    std::cout << "x: " << x << std::endl;
+    std::cout << "y: " << y << std::endl;
+    std::cout << "z: " << z << std::endl;
 
     // inicio captura de video
     Texture2D captureTexture;
@@ -430,11 +423,6 @@ int main(int argc, char** argv)
     while(!CAPTURE_READY && CAMERA_AVAILABLE){};
     if(CAMERA_AVAILABLE)
         captureTexture = LoadTextureFromImage(MatToImage(image));
-
-    dk.inverse(x,y,z);
-    lastA = dk.a;
-    lastB = dk.b;
-    lastC = dk.c;
 
     //--------------------------------------------------------------------------------------
     //--------------------------------------------------------------------------------------
@@ -474,19 +462,19 @@ int main(int argc, char** argv)
             // centro x0=1 x1=0 / y0=1 y1=0
             if(gpioRead(PIN_JOY_X0) == 0 && gpioRead(PIN_JOY_X1) == 0) //izq
             {
-                y -= 1.0f;
+                x -= 1.0f;
             }
             if(gpioRead(PIN_JOY_X0) == 1 && gpioRead(PIN_JOY_X1) == 1) //der
             {
-                y += 1.0f;
+                x += 1.0f;
             }
             if(gpioRead(PIN_JOY_Y0) == 1 && gpioRead(PIN_JOY_Y1) == 1) //abajo
             {
-                x -= 1.0f;
+                y -= 1.0f;
             }
             if(gpioRead(PIN_JOY_Y0) == 0 && gpioRead(PIN_JOY_Y1) == 0) //arriba
             {
-                x += 1.0f;
+                y += 1.0f;
             }
         #else
             if(IsKeyDown(KEY_A))
@@ -521,24 +509,29 @@ int main(int argc, char** argv)
             if(auxValue >= 360) auxValue = 0;
         }
 
-        z = -ROD_LENGTH+sin(GetTime()*2.0f)*40.0f;
+        //z = -ROD_LENGTH+sin(GetTime()*0.1f)*20.0f;
+        //x = sin(GetTime()*1.0f)*30.0f;
+        //y = cos(GetTime()*1.0f)*30.0f;
 
         if(lastX != x || lastY != y || lastZ != z) // calcula solo si hubo variaciones
         {
             // Cálculos de cinemática
-            dk.inverse(x,y,z);
+            octoKin.inverse_kinematics(x, y, z);
+            #if ARCH_ARM
+            octoKin.updateKinematics();
+            #endif
 
-            rod1Pos = (Vector3){arm1Pos.x,static_cast<float>(arm1Pos.y-ARM_LENGTH*sin(dk.a*DEG2RAD)),static_cast<float>(arm1Pos.z-ARM_LENGTH*cos(dk.a*DEG2RAD))};
-            rod2Pos = (Vector3){static_cast<float>(arm2Pos.x+ARM_LENGTH*cos(dk.b*DEG2RAD)*cos(30*DEG2RAD)),static_cast<float>(arm2Pos.y-ARM_LENGTH*sin(dk.b*DEG2RAD)),static_cast<float>(arm2Pos.z+ARM_LENGTH*cos(dk.b*DEG2RAD)*sin(30*DEG2RAD))};
-            rod3Pos = (Vector3){static_cast<float>(arm3Pos.x-ARM_LENGTH*cos(dk.c*DEG2RAD)*cos(30*DEG2RAD)),static_cast<float>(arm3Pos.y-ARM_LENGTH*sin(dk.c*DEG2RAD)),static_cast<float>(arm3Pos.z+ARM_LENGTH*cos(dk.c*DEG2RAD)*sin(30*DEG2RAD))};
+            rod1Pos = (Vector3){arm1Pos.x,static_cast<float>(arm1Pos.y-ARM_LENGTH*sin(-octoKin.b*DEG2RAD)),static_cast<float>(arm1Pos.z-ARM_LENGTH*cos(-octoKin.b*DEG2RAD))};
+            rod2Pos = (Vector3){static_cast<float>(arm2Pos.x+ARM_LENGTH*cos(-octoKin.c*DEG2RAD)*cos(30*DEG2RAD)),static_cast<float>(arm2Pos.y-ARM_LENGTH*sin(-octoKin.c*DEG2RAD)),static_cast<float>(arm2Pos.z+ARM_LENGTH*cos(-octoKin.c*DEG2RAD)*sin(30*DEG2RAD))};
+            rod3Pos = (Vector3){static_cast<float>(arm3Pos.x-ARM_LENGTH*cos(-octoKin.a*DEG2RAD)*cos(30*DEG2RAD)),static_cast<float>(arm3Pos.y-ARM_LENGTH*sin(-octoKin.a*DEG2RAD)),static_cast<float>(arm3Pos.z+ARM_LENGTH*cos(-octoKin.a*DEG2RAD)*sin(30*DEG2RAD))};
 
-            basePos = (Vector3){static_cast<float>(x),static_cast<float>(PLATFORM_POS.y+z),static_cast<float>(y)};
+            basePos = (Vector3){static_cast<float>(x),static_cast<float>(BAS_POSITION.y+z),static_cast<float>(y)};
 
             // rod 1 angles
             arm1Projection = rod1Pos;
             arm1Projection.y = 0;
             arm1Projection = Vector3Normalize(arm1Projection);
-            baseJoint1 = Vector3Scale(arm1Projection,BASS_TRI);
+            baseJoint1 = Vector3Scale(arm1Projection,EFF_RADIUS);
             baseJoint1 = Vector3Add(basePos,baseJoint1);
 
             Vector3 rod1Direction = Vector3Subtract(rod1Pos,baseJoint1);
@@ -550,7 +543,7 @@ int main(int argc, char** argv)
             arm2Projection = rod2Pos;
             arm2Projection.y = 0;
             arm2Projection = Vector3Normalize(arm2Projection);
-            baseJoint2 = Vector3Scale(arm2Projection,BASS_TRI);
+            baseJoint2 = Vector3Scale(arm2Projection,EFF_RADIUS);
             baseJoint2 = Vector3Add(basePos,baseJoint2);
 
             Vector3 rod2Direction = Vector3Subtract(rod2Pos,baseJoint2);
@@ -562,11 +555,11 @@ int main(int argc, char** argv)
             arm3Projection = rod3Pos;
             arm3Projection.y = 0;
             arm3Projection = Vector3Normalize(arm3Projection);
-            baseJoint3 = Vector3Scale(arm3Projection,BASS_TRI);
+            baseJoint3 = Vector3Scale(arm3Projection,EFF_RADIUS);
             baseJoint3 = Vector3Add(basePos,baseJoint3);
 
             Vector3 rod3Direction = Vector3Subtract(rod3Pos,baseJoint3);
-            auxVector = Vector3Scale(arm3Projection,BASS_TRI);
+            auxVector = Vector3Scale(arm3Projection,EFF_RADIUS);
             auxVector.y = baseJoint3.y;
 
             rod3Theta = atan2(rod3Direction.z,rod3Direction.x)-150*DEG2RAD;
@@ -577,15 +570,15 @@ int main(int argc, char** argv)
             //// arms
 
             armModel1->transform = arm1InitialMatrix;
-            armModel1->transform = MatrixMultiply(armModel1->transform,MatrixRotate(arm1Axis,dk.a*DEG2RAD));
+            armModel1->transform = MatrixMultiply(armModel1->transform,MatrixRotate(arm1Axis,-octoKin.b*DEG2RAD));
             armModel1->transform = MatrixMultiply(armModel1->transform,MatrixTranslate(arm1Pos.x,arm1Pos.y,arm1Pos.z));
 
             armModel2->transform = arm2InitialMatrix;
-            armModel2->transform = MatrixMultiply(armModel2->transform,MatrixRotate(arm2Axis,dk.b*DEG2RAD));
+            armModel2->transform = MatrixMultiply(armModel2->transform,MatrixRotate(arm2Axis,-octoKin.c*DEG2RAD));
             armModel2->transform = MatrixMultiply(armModel2->transform,MatrixTranslate(arm2Pos.x,arm2Pos.y,arm2Pos.z));
 
             armModel3->transform = arm3InitialMatrix;
-            armModel3->transform = MatrixMultiply(armModel3->transform,MatrixRotate(arm3Axis,dk.c*DEG2RAD));
+            armModel3->transform = MatrixMultiply(armModel3->transform,MatrixRotate(arm3Axis,-octoKin.a*DEG2RAD));
             armModel3->transform = MatrixMultiply(armModel3->transform,MatrixTranslate(arm3Pos.x,arm3Pos.y,arm3Pos.z));
 
             //// rods
@@ -604,24 +597,6 @@ int main(int argc, char** argv)
             rodModel3->transform = MatrixMultiply(rodModel3->transform,MatrixRotate(arm3Axis,rod3Phi));
             rodModel3->transform = MatrixMultiply(rodModel3->transform,MatrixRotate((Vector3){0,-1,0},rod3Theta));
             rodModel3->transform = MatrixMultiply(rodModel3->transform,MatrixTranslate(rod3Pos.x, rod3Pos.y, rod3Pos.z));
-
-            #if ARCH_ARM
-            if(fabs(dk.a - lastA) > STEP_ANGLE)
-            {
-                moveToAngle(1,lastA, dk.a);
-                lastA = dk.a;
-            }
-            if(fabs(dk.b - lastB) > STEP_ANGLE)
-            {
-                moveToAngle(2,lastB, dk.b);
-                lastB = dk.b;
-            }
-            if(fabs(dk.c - lastC) > STEP_ANGLE)
-            {
-                moveToAngle(3,lastC, dk.c);
-                lastC = dk.c;
-            }
-            #endif
         }
 
         lastX = x;
@@ -636,7 +611,7 @@ int main(int argc, char** argv)
         BeginTextureMode(renderTextureModel);       // Enable drawing to texture
             ClearBackground((Color){0,0,0,0});  // Clear texture background
             BeginMode3D(camera);        // Begin 3d mode drawing
-                DrawModel(*platformModel,Vector3Scale(PLATFORM_POS,DRAW_SCALE),DRAW_SCALE,WHITE);
+                DrawModel(*platformModel,Vector3Scale(BAS_POSITION,DRAW_SCALE),DRAW_SCALE,WHITE);
                 DrawModel(*baseModel,Vector3Scale(basePos,DRAW_SCALE),DRAW_SCALE,WHITE);
                 DrawModel(*armModel1, Vector3Zero(), DRAW_SCALE, WHITE);
                 DrawModel(*armModel2, Vector3Zero(), DRAW_SCALE, WHITE);
@@ -644,13 +619,13 @@ int main(int argc, char** argv)
                 DrawModel(*rodModel1, Vector3Zero(), DRAW_SCALE, WHITE);
                 DrawModel(*rodModel2, Vector3Zero(), DRAW_SCALE, WHITE);
                 DrawModel(*rodModel3, Vector3Zero(), DRAW_SCALE, WHITE);
-                //DrawCircle3D(PLATFORM_POS,PLATFORM_TRI,(Vector3){1.0f,0.0f,0.0f},90.0f,WHITE);
+                //DrawCircle3D(BAS_POSITION,BAS_RADIUS,(Vector3){1.0f,0.0f,0.0f},90.0f,WHITE);
             EndMode3D();                // End 3d mode drawing, returns to orthographic 2d mode
         EndTextureMode();               // End drawing to texture (now we have a texture available for next passes)
         BeginTextureMode(renderTextureBackground);
         ClearBackground(COLOR_BG);  // Clear texture background
             BeginMode3D(camera);        // Begin 3d mode drawing
-                DrawGrid((int)PLATFORM_TRI/1.5f,PLATFORM_TRI/2.0f);
+                DrawGrid((int)BAS_RADIUS/1.5f,BAS_RADIUS/2.0f);
             EndMode3D();
         EndTextureMode();
 
@@ -673,7 +648,7 @@ int main(int argc, char** argv)
             Rectangle captureViewRectangle = {captureViewPos.x, captureViewPos.y, captureTexture.width*(viewSize.x/captureTexture.width), captureTexture.height*(viewSize.x/captureTexture.width)};
             DrawRectangleLinesEx(captureViewRectangle,2.0f,COLOR_FG);
             
-            sprintf(c,"A:\t%+03.2f\tB:\t%+03.2f\tC:\t%+03.2f",dk.a, dk.b, dk.c);
+            sprintf(c,"A:\t%+03.2f\tB:\t%+03.2f\tC:\t%+03.2f",octoKin.a, octoKin.b, octoKin.c);
             DrawTextEx(font,c,(Vector2){MARGIN,MARGIN*4+fontSize*3},fontSize,1,COLOR_FG);
             sprintf(c,"X:\t%+03.2f\tY:\t%+03.2f\tZ:\t%+03.2f",x, y, z);
             DrawTextEx(font,c,(Vector2){MARGIN,MARGIN*5+fontSize*4},fontSize,1,COLOR_FG);
