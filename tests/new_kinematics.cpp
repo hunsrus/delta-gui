@@ -48,7 +48,7 @@
 #define BAS_RADIUS 117.0f
 #define BAS_POSITION (Vector3){0,ARM_LENGTH+ROD_LENGTH,0}
 #define HOME_Z -170.0f
-#define LIM_Z -273
+#define LIM_Z -273.0f
 
 #define TRANS_MULTIPLIER 3
 #define STEPS_NUM 8
