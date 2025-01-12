@@ -43,3 +43,6 @@ resources/models/BACKUPS/*
 
 # dependencias
 deps/*
+
+# vscode
+.vscode
