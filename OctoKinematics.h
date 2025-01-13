@@ -1,6 +1,13 @@
 #ifndef OCTO_KINEMATICS_H
 #define OCTO_KINEMATICS_H
 
+// detección de la arquitectura
+#if defined(__aarch64__) || defined(_M_ARM64) || !defined(__x86_64__) || !defined(__x86_64__)
+    #define ARCH_ARM true
+#else
+    #define ARCH_ARM false
+#endif
+
 #include <math.h>
 #include <stdio.h>
 #include <pigpio.h>

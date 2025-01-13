@@ -1,11 +1,5 @@
 #define RLIGHTS_IMPLEMENTATION      //Importante para que defina las funciones de rlights y eso
 
-// detección de la arquitectura
-#if defined(__aarch64__) || defined(_M_ARM64) || !defined(__x86_64__) || !defined(__x86_64__)
-    #define ARCH_ARM true
-#else
-    #define ARCH_ARM false
-#endif
 //#define PLATFORM_DESKTOP
 #include "raylib.h"
 #include "raymath.h"
@@ -73,22 +67,25 @@
 #if ARCH_ARM
     #define DISPLAY_WIDTH 320
     #define DISPLAY_HEIGHT 240
+    #define BORDER_THICKNESS 2.0f
 #else
-    #define DISPLAY_WIDTH 320
-    #define DISPLAY_HEIGHT 240
+    #define DISPLAY_WIDTH 1024
+    #define DISPLAY_HEIGHT 768
+    #define BORDER_THICKNESS 4.0f
 #endif
 #define TARGET_FPS 30
 #define MARGIN 20*(DISPLAY_HEIGHT/768.0f)
-#define FONT_PIXELS 16
+#define FONT_PIXELS 16*DISPLAY_HEIGHT/240
 
-#define CAMERA_FOV 90
+#define CAMERA_FOV 65
 #define DRAW_SCALE 0.5
 
 static bool SHOW_FPS = true;
-static bool STARTING_ANIMATION = false;
+static bool STARTING_ANIMATION = true;
 
 static Color COLOR_BG = {34,34,34,255};
 static Color COLOR_FG = {238,238,238,255};
+static Color COLOR_HL = ORANGE;
 
 // image detection definitions
 static cv::Mat image;
@@ -179,6 +176,140 @@ int captureVideo(void)
     return EXIT_SUCCESS;
 }
 
+int calculateKinematics(double &x,double &y,double &z, OctoKinematics &octoKin)
+{
+    float low_z = LIM_Z;//-294
+    float high_z = LIM_Z+10;
+
+    // dibujar grilla
+	double stepDist = 0.002;
+	for(int i=-30; i<=30; i=i+3)
+    {
+	  x = i;
+	  y = -30;
+	  z = high_z;
+	  octoKin.linear_move(x, y, z, stepDist, 0);
+	  usleep(250000);
+      if(EXIT) return EXIT_FAILURE;
+	  z = low_z;
+	  octoKin.linear_move(x, y, z, stepDist, 0);
+	  usleep(250000);
+      if(EXIT) return EXIT_FAILURE;
+	  x = i;
+	  y = 30;
+	  z = low_z;
+	  octoKin.linear_move(x, y, z, stepDist, 0);
+	  usleep(250000);
+      if(EXIT) return EXIT_FAILURE;
+	  z = high_z;
+	  octoKin.linear_move(x, y, z, stepDist, 0);
+	  usleep(250000);
+      if(EXIT) return EXIT_FAILURE;
+	}
+	for(int i=-30; i<=30; i=i+3)
+    {
+	  x = -30;
+	  y = i;
+	  z = high_z;
+	  octoKin.linear_move(x, y, z, stepDist, 0);
+	  usleep(250000);
+      if(EXIT) return EXIT_FAILURE;
+	  z = low_z;
+	  octoKin.linear_move(x, y, z, stepDist, 0);
+	  usleep(250000);
+      if(EXIT) return EXIT_FAILURE;
+	  x = 30;
+	  y = i;
+	  z = low_z;
+	  octoKin.linear_move(x, y, z, stepDist, 0);
+	  usleep(250000);
+      if(EXIT) return EXIT_FAILURE;
+	  z = high_z;
+	  octoKin.linear_move(x, y, z, stepDist, 0);
+	  usleep(250000);
+      if(EXIT) return EXIT_FAILURE;
+	}
+
+	// Ubicar componentes
+	std::vector<double> vect1_x = {-30.0, -30.0, -30.0, -30.0, -30.0, -30.0};
+	std::vector<double> vect1_y = {0.0, -3.0, -6.0, -9.0, -12.0, -15.0};
+	std::vector<double> vect2_x = {-15.0, -24.0, -7.0, -1.0, -10.0, -14.0};
+	std::vector<double> vect2_y = {-15.0, -8.0, -23.0, -30.0, -7.0, -1.0};
+	stepDist = 0.0008;
+	for(int i=0; i<=5; i++)
+    {
+	 x = vect1_x[i];
+	 y = vect1_y[i];
+	 z = high_z;
+	 octoKin.linear_move(x, y, z, stepDist, 0);
+	 usleep(250000);
+     if(EXIT) return EXIT_FAILURE;
+	 gpioWrite(PIN_BOMBA,1);
+	 usleep(25000);
+	 z = low_z;
+	 octoKin.linear_move(x, y, z, stepDist, 0);
+	 usleep(250000);
+     if(EXIT) return EXIT_FAILURE;
+	 z = high_z;
+	 octoKin.linear_move(x, y, z, stepDist, 0);
+	 usleep(250000);
+     if(EXIT) return EXIT_FAILURE;
+	 x = vect2_x[i];
+	 y = vect2_y[i];
+	 z = high_z;
+	 octoKin.linear_move(x, y, z, stepDist, 0);
+	 usleep(250000);
+     if(EXIT) return EXIT_FAILURE;
+	 z = low_z;
+	 octoKin.linear_move(x, y, z, stepDist, 0);
+	 usleep(25000);
+     if(EXIT) return EXIT_FAILURE;
+	 gpioWrite(PIN_BOMBA,0);
+	 usleep(250000);
+	 z = high_z;
+	 octoKin.linear_move(x, y, z, stepDist, 0);
+     if(EXIT) return EXIT_FAILURE;
+	 usleep(250000);
+	}
+	for(int i=0; i<=5; i++)
+    {
+	 x = vect2_x[i];
+	 y = vect2_y[i];
+	 z = high_z;
+	 octoKin.linear_move(x, y, z, stepDist, 0);
+     if(EXIT) return EXIT_FAILURE;
+	 usleep(250000);
+	 gpioWrite(PIN_BOMBA,1);
+	 usleep(25000);
+	 z = low_z;
+	 octoKin.linear_move(x, y, z, stepDist, 0);
+	 usleep(250000);
+     if(EXIT) return EXIT_FAILURE;
+	 z = high_z;
+	 octoKin.linear_move(x, y, z, stepDist, 0);
+	 usleep(250000);
+     if(EXIT) return EXIT_FAILURE;
+	 x = vect1_x[i];
+	 y = vect1_y[i];
+	 z = high_z;
+	 octoKin.linear_move(x, y, z, stepDist, 0);
+	 usleep(250000);
+     if(EXIT) return EXIT_FAILURE;
+	 z = low_z;
+	 octoKin.linear_move(x, y, z, stepDist, 0);
+	 usleep(25000);
+     if(EXIT) return EXIT_FAILURE;
+	 gpioWrite(PIN_BOMBA,0);
+	 usleep(250000);
+	 z = high_z;
+	 octoKin.linear_move(x, y, z, stepDist, 0);
+	 usleep(250000);
+     if(EXIT) return EXIT_FAILURE;
+	}
+
+    return EXIT_SUCCESS;
+}
+
 void DrawProgressBarScreen(const char* text, int progress, Font font)
 {
     Vector2 barSize = {DISPLAY_WIDTH*0.8, DISPLAY_HEIGHT*0.1};
@@ -187,7 +318,7 @@ void DrawProgressBarScreen(const char* text, int progress, Font font)
     BeginDrawing();
         ClearBackground(COLOR_BG);
         Rectangle barRec = {barPos.x, barPos.y, barSize.x, barSize.y};
-        DrawRectangleLinesEx(barRec, 2, COLOR_FG);
+        DrawRectangleLinesEx(barRec, BORDER_THICKNESS, COLOR_FG);
         barRec.width *= progress/100.0f;
         DrawRectangleRec(barRec,COLOR_FG);
         DrawTextEx(font, text, textPos, font.baseSize, 1, COLOR_FG);
@@ -203,6 +334,7 @@ int main(int argc, char** argv)
 
     //SetConfigFlags(FLAG_FULLSCREEN_MODE);
     //SetConfigFlags(FLAG_MSAA_4X_HINT);
+    SetConfigFlags(FLAG_WINDOW_UNDECORATED);
     InitWindow(screenWidth, screenHeight, "delta gui test");
 
     Font font = LoadFontEx("resources/fonts/JetBrainsMono/JetBrainsMono-Bold.ttf", FONT_PIXELS, 0, 250);
@@ -278,7 +410,7 @@ int main(int argc, char** argv)
 
     DrawProgressBarScreen("generando modelos 3D...", 40, font);
     // CARGAR LOS MODELOS DESPUÉS DE INICIAR LA VENTANA
-    Model* platformModel = new Model(LoadModelFromMesh(GenMeshPoly(10,BAS_RADIUS)));
+    Model* platformModel = new Model(LoadModelFromMesh(GenMeshPoly(20,BAS_RADIUS)));
     //Model* platformModel = new Model(LoadModel(std::string("resources/models/platform/platform.obj").c_str()));
     //platformModel->transform = MatrixScale(1000,1000,1000);
     //platformModel->transform = MatrixMultiply(platformModel->transform, MatrixRotate((Vector3){0,1,0},45*DEG2RAD));
@@ -345,7 +477,7 @@ int main(int argc, char** argv)
     DrawProgressBarScreen("definiendo vista 3D...", 50, font);
     // Define the camera to look into our 3d world
     //Camera camera = { {-20.0f, 12.0f, 0.0f}, { 0.0f, 4.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, 45.0f, 0 };
-    Camera camera = { {-BAS_RADIUS*2.0f, (ARM_LENGTH+ROD_LENGTH)*0.7f, 0.0f}, {BAS_POSITION.x, BAS_POSITION.y/3.0f, BAS_POSITION.z}, { 0.0f, 1.0f, 0.0f }, 45.0f, 0 };
+    Camera camera = { {-BAS_RADIUS*3.0f, (ARM_LENGTH+ROD_LENGTH)*1.0f, 0.0f}, {BAS_POSITION.x, BAS_POSITION.y/3.0f, BAS_POSITION.z}, { 0.0f, 1.0f, 0.0f }, 45.0f, 0 };
     camera.fovy = 179.0f;
     camera.projection = CAMERA_PERSPECTIVE;
 
@@ -450,22 +582,20 @@ int main(int argc, char** argv)
 
         std::ofstream archivoSalida(nombreArchivo); // Crear y abrir archivo en modo escritura
 
-        // homing sequence
-        octoKin.home(0,0,HOME_Z); 
     #endif
 
     DrawProgressBarScreen("secuencia de home...", 80, font);
+    // homing sequence
+    octoKin.home(0,0,HOME_Z); 
     // move to starting position
     x = 0;
     y = 0;
     z = -220;
     octoKin.inverse_kinematics(x, y, z);
-    #if ARCH_ARM
     octoKin.updateKinematics();
-    #endif
-    // lastX = x;
-    // lastY = y;
-    // lastZ = z;
+    lastX = x;
+    lastY = y;
+    lastZ = z;
 
     std::cout << "a: " << octoKin.a << std::endl;
     std::cout << "b: " << octoKin.b << std::endl;
@@ -474,15 +604,18 @@ int main(int argc, char** argv)
     std::cout << "y: " << y << std::endl;
     std::cout << "z: " << z << std::endl;
 
-    DrawProgressBarScreen("iniciando video...", 90, font);
-    // inicio captura de video
-    Texture2D captureTexture;
+    // DrawProgressBarScreen("iniciando video...", 90, font);
+    // // inicio captura de video
+    // Texture2D captureTexture;
 
-    std::thread t1(captureVideo);
+    // std::thread t1(captureVideo);
 
-    while(!CAPTURE_READY && CAMERA_AVAILABLE){};
-    if(CAMERA_AVAILABLE)
-        captureTexture = LoadTextureFromImage(MatToImage(image));
+    // while(!CAPTURE_READY && CAMERA_AVAILABLE){};
+    // if(CAMERA_AVAILABLE)
+    //     captureTexture = LoadTextureFromImage(MatToImage(image));
+
+    DrawProgressBarScreen("iniciando hilo de cinemática...", 90, font);
+    std::thread t1(calculateKinematics,std::ref(x),std::ref(y),std::ref(z),std::ref(octoKin));
 
     DrawProgressBarScreen("listo", 100, font);
 
@@ -503,11 +636,11 @@ int main(int argc, char** argv)
 
         SetShaderValue(shader, resolutionLoc, shaderResolution, SHADER_UNIFORM_VEC2);
 
-        if(CAPTURE_READY)
-        {
-            UpdateTexture(captureTexture,MatToImage(image).data);
-            CAPTURE_READY = false;
-        }
+        // if(CAPTURE_READY)
+        // {
+        //     UpdateTexture(captureTexture,MatToImage(image).data);
+        //     CAPTURE_READY = false;
+        // }
 
         if(STARTING_ANIMATION)
         {
@@ -608,19 +741,19 @@ int main(int argc, char** argv)
         //x = sin(GetTime()*1.0f)*30.0f;
         //y = cos(GetTime()*1.0f)*30.0f;
 
-        if(lastX != x || lastY != y || lastZ != z) // calcula solo si hubo variaciones
+        if(lastX != octoKin.x || lastY != octoKin.y || lastZ != octoKin.z) // calcula solo si hubo variaciones
         {
             // Cálculos de cinemática
-            octoKin.inverse_kinematics(x, y, z);
-            #if ARCH_ARM
-            octoKin.updateKinematics();
-            #endif
+            // octoKin.inverse_kinematics(x, y, z);
+            // #if ARCH_ARM
+            // octoKin.updateKinematics();
+            // #endif
 
             rod1Pos = (Vector3){arm1Pos.x,static_cast<float>(arm1Pos.y-ARM_LENGTH*sin(-octoKin.b*DEG2RAD)),static_cast<float>(arm1Pos.z-ARM_LENGTH*cos(-octoKin.b*DEG2RAD))};
             rod2Pos = (Vector3){static_cast<float>(arm2Pos.x+ARM_LENGTH*cos(-octoKin.c*DEG2RAD)*cos(30*DEG2RAD)),static_cast<float>(arm2Pos.y-ARM_LENGTH*sin(-octoKin.c*DEG2RAD)),static_cast<float>(arm2Pos.z+ARM_LENGTH*cos(-octoKin.c*DEG2RAD)*sin(30*DEG2RAD))};
             rod3Pos = (Vector3){static_cast<float>(arm3Pos.x-ARM_LENGTH*cos(-octoKin.a*DEG2RAD)*cos(30*DEG2RAD)),static_cast<float>(arm3Pos.y-ARM_LENGTH*sin(-octoKin.a*DEG2RAD)),static_cast<float>(arm3Pos.z+ARM_LENGTH*cos(-octoKin.a*DEG2RAD)*sin(30*DEG2RAD))};
 
-            basePos = (Vector3){static_cast<float>(x),static_cast<float>(BAS_POSITION.y+z),static_cast<float>(y)};
+            basePos = (Vector3){static_cast<float>(octoKin.x),static_cast<float>(BAS_POSITION.y+octoKin.z),static_cast<float>(octoKin.y)};
 
             // rod 1 angles
             arm1Projection = rod1Pos;
@@ -694,9 +827,9 @@ int main(int argc, char** argv)
             rodModel3->transform = MatrixMultiply(rodModel3->transform,MatrixTranslate(rod3Pos.x, rod3Pos.y, rod3Pos.z));
         }
 
-        lastX = x;
-        lastY = y;
-        lastZ = z;
+        lastX = octoKin.x;
+        lastY = octoKin.y;
+        lastZ = octoKin.z;
 
         //armModel->transform = MatrixRotateXYZ((Vector3){ 0, 0, x });
         //----------------------------------------------------------------------------------
@@ -707,7 +840,7 @@ int main(int argc, char** argv)
             ClearBackground((Color){0,0,0,0});  // Clear texture background
             BeginMode3D(camera);        // Begin 3d mode drawing
                 DrawModel(*platformModel,Vector3Scale(BAS_POSITION,DRAW_SCALE),DRAW_SCALE,WHITE);
-                DrawModel(*baseModel,Vector3Scale(basePos,DRAW_SCALE),DRAW_SCALE,WHITE);
+                // DrawModel(*baseModel,Vector3Scale(basePos,DRAW_SCALE),DRAW_SCALE,WHITE);
                 DrawModel(*armModel1, Vector3Zero(), DRAW_SCALE, WHITE);
                 DrawModel(*armModel2, Vector3Zero(), DRAW_SCALE, WHITE);
                 DrawModel(*armModel3, Vector3Zero(), DRAW_SCALE, WHITE);
@@ -721,6 +854,7 @@ int main(int argc, char** argv)
         ClearBackground(COLOR_BG);  // Clear texture background
             BeginMode3D(camera);        // Begin 3d mode drawing
                 DrawGrid((int)BAS_RADIUS/1.5f,BAS_RADIUS/2.0f);
+                DrawModel(*baseModel,Vector3Scale(basePos,DRAW_SCALE),DRAW_SCALE,COLOR_HL);
             EndMode3D();
         EndTextureMode();
 
@@ -729,19 +863,19 @@ int main(int argc, char** argv)
             
             Vector2 viewSize = {(float)renderTextureModel.texture.width/3, (float)renderTextureModel.texture.height/2};
             Rectangle viewRectangle = {(float)renderTextureModel.texture.width/2-viewSize.x/2, (float)renderTextureModel.texture.height/2-viewSize.y/2, viewSize.x, -viewSize.y};
-            Vector2 viewPos = { screenWidth-viewSize.x-MARGIN, MARGIN};
+            Vector2 viewPos = { screenWidth-viewSize.x-MARGIN, (int)(MARGIN*2+fontSize)};
             DrawTextureRec(renderTextureBackground.texture, viewRectangle, viewPos, WHITE);
             BeginShaderMode(shader);
                 // NOTE: Render texture must be y-flipped due to default OpenGL coordinates (left-bottom)
                 DrawTextureRec(renderTextureModel.texture, viewRectangle, viewPos, WHITE);
             EndShaderMode();
             Rectangle viewBorderRectangle = {viewPos.x, viewPos.y, viewSize.x, viewSize.y};
-            DrawRectangleLinesEx(viewBorderRectangle,2.0f,COLOR_FG);
+            DrawRectangleLinesEx(viewBorderRectangle,BORDER_THICKNESS,COLOR_FG);
 
-            Vector2 captureViewPos = { viewPos.x, viewPos.y+viewSize.y+MARGIN};
-            DrawTextureEx(captureTexture, captureViewPos, 0, viewSize.x/captureTexture.width,WHITE);
-            Rectangle captureViewRectangle = {captureViewPos.x, captureViewPos.y, captureTexture.width*(viewSize.x/captureTexture.width), captureTexture.height*(viewSize.x/captureTexture.width)};
-            DrawRectangleLinesEx(captureViewRectangle,2.0f,COLOR_FG);
+            // Vector2 captureViewPos = { viewPos.x, viewPos.y+viewSize.y+MARGIN};
+            // DrawTextureEx(captureTexture, captureViewPos, 0, viewSize.x/captureTexture.width,WHITE);
+            // Rectangle captureViewRectangle = {captureViewPos.x, captureViewPos.y, captureTexture.width*(viewSize.x/captureTexture.width), captureTexture.height*(viewSize.x/captureTexture.width)};
+            // DrawRectangleLinesEx(captureViewRectangle,BORDER_THICKNESS,COLOR_FG);
 
             i = 2;
             DrawTextEx(font,menu[currentMenuID].title,(Vector2){MARGIN,MARGIN},fontSize,1,COLOR_FG);
@@ -750,7 +884,7 @@ int main(int argc, char** argv)
                 Vector2 optionPos = {MARGIN, MARGIN*i+fontSize*(i-1)};
                 Vector2 optionSize = {viewPos.x-MARGIN*2, fontSize};
                 Rectangle optionRectangle = {optionPos.x, optionPos.y, optionSize.x, optionSize.y};
-                DrawRectangleLinesEx(optionRectangle,2.0f,COLOR_FG);
+                DrawRectangleLinesEx(optionRectangle,BORDER_THICKNESS,COLOR_FG);
                 sprintf(c," %s",(*it));
                 if(it == highlightedMenu)
                 {
@@ -824,10 +958,11 @@ int main(int argc, char** argv)
 
     UnloadShader(shader);
 
-    std::cout << "Joining capture thread...";
+    fprintf(stdout, "[INFO] THREAD: Joining kinematics thread...");
+    fflush(stdout);
 	while(!t1.joinable()){}
 	t1.join();
-	std::cout << " Done." << std::endl;
+	fprintf(stdout, " Done.\n");
 
     return 0;
 }

@@ -151,6 +151,7 @@ void OctoKinematics::set_axis_direction(bool dir)
 
 void OctoKinematics::set_step_precision(int stepsNum)
 {
+    #if ARCH_ARM
     if(stepsNum == 1)
     {
         gpioWrite(this->pin_ms1,0);
@@ -173,6 +174,7 @@ void OctoKinematics::set_step_precision(int stepsNum)
         gpioWrite(this->pin_ms2,1);
         gpioWrite(this->pin_ms3,1);
     }
+    #endif
 
     this->steps_num = stepsNum;
     this->step_angle = 1.8/(this->steps_num*this->trans_ratio);
@@ -223,10 +225,12 @@ void OctoKinematics::set_pulse_width(useconds_t us)
 
 void OctoKinematics::step(int step_pin, int dir_pin, bool dir)
 {
-    gpioWrite(dir_pin, dir);
-    gpioWrite(step_pin, 1);
-    usleep(this->pulse_width);
-    gpioWrite(step_pin, 0);
+    #if ARCH_ARM
+        gpioWrite(dir_pin, dir);
+        gpioWrite(step_pin, 1);
+        usleep(this->pulse_width);
+        gpioWrite(step_pin, 0);
+    #endif
 }
 
 void OctoKinematics::updateKinematics(void)
@@ -328,12 +332,10 @@ int OctoKinematics::home(float x, float y, float z)
 
     fprintf(stdout, "Homing...");
     fflush(stdout);
-    // half step
-    // gpioWrite(this->pin_ms1,1);//1
-    // gpioWrite(this->pin_ms2,1);//0
-    // gpioWrite(this->pin_ms3,1);//0
+    
     this->set_step_precision(8);
 
+    #if ARCH_ARM
     while(!m1_ready || !m2_ready || !m3_ready)
     {
         if(!gpioRead(this->pin_ls1))
@@ -362,6 +364,7 @@ int OctoKinematics::home(float x, float y, float z)
 
         fflush(stdout);
     }
+    #endif
 
     this->inverse_kinematics(x,y,z);
     this->a = 45;
