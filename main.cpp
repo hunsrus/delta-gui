@@ -74,12 +74,12 @@
     #define DISPLAY_WIDTH 320
     #define DISPLAY_HEIGHT 240
 #else
-    #define DISPLAY_WIDTH 1024
-    #define DISPLAY_HEIGHT 768
+    #define DISPLAY_WIDTH 320
+    #define DISPLAY_HEIGHT 240
 #endif
 #define TARGET_FPS 30
 #define MARGIN 20*(DISPLAY_HEIGHT/768.0f)
-#define FONT_PIXELS 48
+#define FONT_PIXELS 16
 
 #define CAMERA_FOV 90
 #define DRAW_SCALE 0.5
@@ -179,6 +179,21 @@ int captureVideo(void)
     return EXIT_SUCCESS;
 }
 
+void DrawProgressBarScreen(const char* text, int progress, Font font)
+{
+    Vector2 barSize = {DISPLAY_WIDTH*0.8, DISPLAY_HEIGHT*0.1};
+    Vector2 barPos = {DISPLAY_WIDTH/2-barSize.x/2, DISPLAY_HEIGHT/2-barSize.y/2};
+    Vector2 textPos = {barPos.x,barPos.y-font.baseSize};
+    BeginDrawing();
+        ClearBackground(COLOR_BG);
+        Rectangle barRec = {barPos.x, barPos.y, barSize.x, barSize.y};
+        DrawRectangleLinesEx(barRec, 2, COLOR_FG);
+        barRec.width *= progress/100.0f;
+        DrawRectangleRec(barRec,COLOR_FG);
+        DrawTextEx(font, text, textPos, font.baseSize, 1, COLOR_FG);
+    EndDrawing();
+}
+
 int main(int argc, char** argv)
 {
     // Initialization
@@ -186,6 +201,17 @@ int main(int argc, char** argv)
     const int screenWidth = DISPLAY_WIDTH;
     const int screenHeight = DISPLAY_HEIGHT;
 
+    //SetConfigFlags(FLAG_FULLSCREEN_MODE);
+    //SetConfigFlags(FLAG_MSAA_4X_HINT);
+    InitWindow(screenWidth, screenHeight, "delta gui test");
+
+    Font font = LoadFontEx("resources/fonts/JetBrainsMono/JetBrainsMono-Bold.ttf", FONT_PIXELS, 0, 250);
+    float fontSize = font.baseSize;//DISPLAY_HEIGHT/20;
+
+    HideCursor();
+    SetTargetFPS(TARGET_FPS);
+
+    DrawProgressBarScreen("inicializando variables...", 10, font);
     int i;
     char c[100];
     float auxValue = 0;
@@ -193,6 +219,7 @@ int main(int argc, char** argv)
     int animationStep = 0;
     int animationState = 0;
 
+    DrawProgressBarScreen("inicializando cinemática...", 20, font);
     OctoKinematics octoKin = OctoKinematics(ARM_LENGTH, ROD_LENGTH, EFF_RADIUS, BAS_RADIUS);
     double x = 0, y = 0, z = HOME_Z;
     double lastX = -1, lastY = -1, lastZ = -1;
@@ -201,7 +228,7 @@ int main(int argc, char** argv)
     double rod3Phi, rod3Theta;
 
     Vector3 auxVector;
-
+    
     Vector3 arm1Pos = Vector3Add(BAS_POSITION,Vector3Scale(Vector3Normalize((Vector3){0.0f,0.0f,-1.0f}), BAS_RADIUS));
     Vector3 arm2Pos = Vector3Add(BAS_POSITION,Vector3Scale(Vector3Normalize((Vector3){1.0f*cos(30*DEG2RAD),0.0f,1.0f*sin(30*DEG2RAD)}), BAS_RADIUS));
     Vector3 arm3Pos = Vector3Add(BAS_POSITION,Vector3Scale(Vector3Normalize((Vector3){-1.0f*cos(30*DEG2RAD),0.0f,1.0f*sin(30*DEG2RAD)}), BAS_RADIUS));
@@ -215,6 +242,7 @@ int main(int argc, char** argv)
     Vector3 basePos = (Vector3){static_cast<float>(x),static_cast<float>(z),static_cast<float>(y)};
     Vector3 arm1Projection, arm2Projection, arm3Projection;
 
+    DrawProgressBarScreen("cargando menú...", 30, font);
     Screen menu[MENUS_AMOUNT];
     menu[0].id = 0;
     menu[0].title = "Menú principal";
@@ -237,15 +265,10 @@ int main(int argc, char** argv)
     menu[3].options.push_back("Atrás");
     menu[4].id = 4;
     menu[4].title = "Guardar/Abrir";
+    menu[4].parent = &menu[0];
+    menu[4].options.push_back("Atrás");
     
     highlightedMenu = menu[currentMenuID].options.begin();
-
-	//SetConfigFlags(FLAG_FULLSCREEN_MODE);
-    //SetConfigFlags(FLAG_MSAA_4X_HINT);
-    InitWindow(screenWidth, screenHeight, "delta gui test");
-
-    Font font = LoadFontEx("resources/fonts/JetBrainsMono/JetBrainsMono-Bold.ttf", FONT_PIXELS, 0, 250);
-    float fontSize = font.baseSize;//DISPLAY_HEIGHT/20;
 
     #if ARCH_ARM
         std::cout << "ARCHITECTURE: ARM" << std::endl;
@@ -253,6 +276,7 @@ int main(int argc, char** argv)
         std::cout << "ARCHITECTURE: x86_64" << std::endl;
     #endif
 
+    DrawProgressBarScreen("generando modelos 3D...", 40, font);
     // CARGAR LOS MODELOS DESPUÉS DE INICIAR LA VENTANA
     Model* platformModel = new Model(LoadModelFromMesh(GenMeshPoly(10,BAS_RADIUS)));
     //Model* platformModel = new Model(LoadModel(std::string("resources/models/platform/platform.obj").c_str()));
@@ -263,15 +287,14 @@ int main(int argc, char** argv)
     //Model* baseModel = new Model(LoadModel(std::string("resources/models/effector/effector.obj").c_str()));
     //baseModel->transform = MatrixScale(1000,1000,1000);
     //baseModel->transform = MatrixMultiply(baseModel->transform, MatrixRotate((Vector3){0,1,0},45*DEG2RAD));
-    Model* armModel1 = new Model(LoadModelFromMesh(GenMeshCube(8.0f,ARM_LENGTH,8.0f)));
-    Model* armModel2 = new Model(LoadModelFromMesh(GenMeshCube(8.0f,ARM_LENGTH,8.0f)));
-    Model* armModel3 = new Model(LoadModelFromMesh(GenMeshCube(8.0f,ARM_LENGTH,8.0f)));
+    
+    float modelRadius = 16.0f;
+    Model* armModel1 = new Model(LoadModelFromMesh(GenMeshCylinder(modelRadius,ARM_LENGTH,10)));
+    Model* armModel2 = new Model(LoadModelFromMesh(GenMeshCylinder(modelRadius,ARM_LENGTH,10)));
+    Model* armModel3 = new Model(LoadModelFromMesh(GenMeshCylinder(modelRadius,ARM_LENGTH,10)));
     Matrix arm1InitialMatrix = MatrixIdentity();
     Matrix arm2InitialMatrix = MatrixIdentity();
     Matrix arm3InitialMatrix = MatrixIdentity();
-    arm1InitialMatrix = MatrixMultiply(arm1InitialMatrix,MatrixTranslate(0,ARM_LENGTH/2.0f,0));
-    arm2InitialMatrix = MatrixMultiply(arm2InitialMatrix,MatrixTranslate(0,ARM_LENGTH/2.0f,0));
-    arm3InitialMatrix = MatrixMultiply(arm3InitialMatrix,MatrixTranslate(0,ARM_LENGTH/2.0f,0));
     arm1InitialMatrix = MatrixMultiply(arm1InitialMatrix,MatrixRotate((Vector3){0,0,1}, -M_PI_2));
     arm2InitialMatrix = MatrixMultiply(arm2InitialMatrix,MatrixRotate((Vector3){0,0,1}, -M_PI_2));
     arm3InitialMatrix = MatrixMultiply(arm3InitialMatrix,MatrixRotate((Vector3){0,0,1}, -M_PI_2));
@@ -280,15 +303,12 @@ int main(int argc, char** argv)
     Model* armModel2 = new Model(LoadModel(std::string("resources/models/arm/simplify_arm.obj").c_str()));
     Model* armModel3 = new Model(LoadModel(std::string("resources/models/arm/simplify_arm.obj").c_str()));
     */
-    Model* rodModel1 = new Model(LoadModelFromMesh(GenMeshCube(8.0f,ROD_LENGTH,8.0f)));
-    Model* rodModel2 = new Model(LoadModelFromMesh(GenMeshCube(8.0f,ROD_LENGTH,8.0f)));
-    Model* rodModel3 = new Model(LoadModelFromMesh(GenMeshCube(8.0f,ROD_LENGTH,8.0f)));
+    Model* rodModel1 = new Model(LoadModelFromMesh(GenMeshCylinder(modelRadius,ROD_LENGTH,10)));
+    Model* rodModel2 = new Model(LoadModelFromMesh(GenMeshCylinder(modelRadius,ROD_LENGTH,10)));
+    Model* rodModel3 = new Model(LoadModelFromMesh(GenMeshCylinder(modelRadius,ROD_LENGTH,10)));
     Matrix rod1InitialMatrix = MatrixIdentity();
     Matrix rod2InitialMatrix = MatrixIdentity();
     Matrix rod3InitialMatrix = MatrixIdentity();
-    rod1InitialMatrix = MatrixMultiply(rod1InitialMatrix,MatrixTranslate(0,ROD_LENGTH/2.0f,0));
-    rod2InitialMatrix = MatrixMultiply(rod2InitialMatrix,MatrixTranslate(0,ROD_LENGTH/2.0f,0));
-    rod3InitialMatrix = MatrixMultiply(rod3InitialMatrix,MatrixTranslate(0,ROD_LENGTH/2.0f,0));
     rod1InitialMatrix = MatrixMultiply(rod1InitialMatrix,MatrixRotate((Vector3){0,0,1}, -M_PI_2));
     rod2InitialMatrix = MatrixMultiply(rod2InitialMatrix,MatrixRotate((Vector3){0,0,1}, -M_PI_2));
     rod3InitialMatrix = MatrixMultiply(rod3InitialMatrix,MatrixRotate((Vector3){0,0,1}, -M_PI_2));
@@ -301,9 +321,9 @@ int main(int argc, char** argv)
     armModel1->materials[0].maps[MATERIAL_MAP_DIFFUSE].color = YELLOW;
     armModel2->materials[0].maps[MATERIAL_MAP_DIFFUSE].color = ORANGE;
     armModel3->materials[0].maps[MATERIAL_MAP_DIFFUSE].color = BROWN;
-    rodModel1->materials[0].maps[MATERIAL_MAP_DIFFUSE].color = RED;
-    rodModel2->materials[0].maps[MATERIAL_MAP_DIFFUSE].color = GREEN;
-    rodModel3->materials[0].maps[MATERIAL_MAP_DIFFUSE].color = BLUE;
+    rodModel1->materials[0].maps[MATERIAL_MAP_DIFFUSE].color = YELLOW;
+    rodModel2->materials[0].maps[MATERIAL_MAP_DIFFUSE].color = ORANGE;
+    rodModel3->materials[0].maps[MATERIAL_MAP_DIFFUSE].color = BROWN;
 
     //Matrix arm1InitialMatrix = MatrixScale(1000,1000,1000);
     arm1InitialMatrix = MatrixMultiply(arm1InitialMatrix,MatrixRotate((Vector3){0,1,0}, M_PI_2));
@@ -322,12 +342,14 @@ int main(int argc, char** argv)
     rod3InitialMatrix = MatrixMultiply(rod3InitialMatrix,MatrixRotate((Vector3){0,1,0}, M_PI_2));
     rod3InitialMatrix = MatrixMultiply(rod3InitialMatrix,MatrixRotate((Vector3){0.0f,1.0f,0.0f},120.0f*DEG2RAD));
 
+    DrawProgressBarScreen("definiendo vista 3D...", 50, font);
     // Define the camera to look into our 3d world
     //Camera camera = { {-20.0f, 12.0f, 0.0f}, { 0.0f, 4.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, 45.0f, 0 };
     Camera camera = { {-BAS_RADIUS*2.0f, (ARM_LENGTH+ROD_LENGTH)*0.7f, 0.0f}, {BAS_POSITION.x, BAS_POSITION.y/3.0f, BAS_POSITION.z}, { 0.0f, 1.0f, 0.0f }, 45.0f, 0 };
     camera.fovy = 179.0f;
     camera.projection = CAMERA_PERSPECTIVE;
 
+    DrawProgressBarScreen("cargando shaders...", 60, font);
     // Create a RenderTexture2D to be used for render to texture
     RenderTexture2D renderTextureModel = LoadRenderTexture(screenWidth, screenHeight);
     RenderTexture2D renderTextureBackground = LoadRenderTexture(screenWidth, screenHeight);
@@ -338,7 +360,7 @@ int main(int argc, char** argv)
     Vector4 normalizedBGColor = ColorNormalize(COLOR_BG);
     float edgeColor[3] = {normalizedFGColor.x, normalizedFGColor.y, normalizedFGColor.z};
     float backgroundColor[3] = {normalizedBGColor.x, normalizedBGColor.y, normalizedBGColor.z};
-    float shaderResolution[2] = {840, 840};
+    float shaderResolution[2] = {300, 300};
     int edgeColorLoc = GetShaderLocation(shader, "edgeColor");
     int backgroundColorLoc = GetShaderLocation(shader, "backgroundColor");
     int resolutionLoc = GetShaderLocation(shader, "resolution");
@@ -346,13 +368,11 @@ int main(int argc, char** argv)
     SetShaderValue(shader, backgroundColorLoc, backgroundColor, SHADER_UNIFORM_VEC3);
     SetShaderValue(shader, resolutionLoc, shaderResolution, SHADER_UNIFORM_VEC2);
 
-
     //SetCameraMode(camera, CAMERA_THIRD_PERSON);
 	//SetCameraMode(camera, CAMERA_ORBITAL);
     SetCameraMode(camera, CAMERA_CUSTOM);
-    HideCursor();
-    SetTargetFPS(TARGET_FPS);
 
+    DrawProgressBarScreen("inicializando puertos i/o...", 70, font);
     // inicio control de i/o
     #if ARCH_ARM
         if (gpioInitialise() < 0)
@@ -434,6 +454,7 @@ int main(int argc, char** argv)
         octoKin.home(0,0,HOME_Z); 
     #endif
 
+    DrawProgressBarScreen("secuencia de home...", 80, font);
     // move to starting position
     x = 0;
     y = 0;
@@ -453,6 +474,7 @@ int main(int argc, char** argv)
     std::cout << "y: " << y << std::endl;
     std::cout << "z: " << z << std::endl;
 
+    DrawProgressBarScreen("iniciando video...", 90, font);
     // inicio captura de video
     Texture2D captureTexture;
 
@@ -461,6 +483,8 @@ int main(int argc, char** argv)
     while(!CAPTURE_READY && CAMERA_AVAILABLE){};
     if(CAMERA_AVAILABLE)
         captureTexture = LoadTextureFromImage(MatToImage(image));
+
+    DrawProgressBarScreen("listo", 100, font);
 
     //--------------------------------------------------------------------------------------
     //--------------------------------------------------------------------------------------
@@ -707,10 +731,10 @@ int main(int argc, char** argv)
             Rectangle viewRectangle = {(float)renderTextureModel.texture.width/2-viewSize.x/2, (float)renderTextureModel.texture.height/2-viewSize.y/2, viewSize.x, -viewSize.y};
             Vector2 viewPos = { screenWidth-viewSize.x-MARGIN, MARGIN};
             DrawTextureRec(renderTextureBackground.texture, viewRectangle, viewPos, WHITE);
-            //BeginShaderMode(shader);
+            BeginShaderMode(shader);
                 // NOTE: Render texture must be y-flipped due to default OpenGL coordinates (left-bottom)
                 DrawTextureRec(renderTextureModel.texture, viewRectangle, viewPos, WHITE);
-            //EndShaderMode();
+            EndShaderMode();
             Rectangle viewBorderRectangle = {viewPos.x, viewPos.y, viewSize.x, viewSize.y};
             DrawRectangleLinesEx(viewBorderRectangle,2.0f,COLOR_FG);
 
@@ -750,11 +774,11 @@ int main(int argc, char** argv)
             if(SHOW_FPS)
             {
                 sprintf(c,"FPS %d",GetFPS());
-                DrawTextEx(font,c,(Vector2){screenWidth-MARGIN-3*fontSize,MARGIN},fontSize,1,COLOR_FG);
+                DrawTextEx(font,c,(Vector2){screenWidth-MARGIN-3*fontSize,screenHeight-MARGIN-fontSize},fontSize,1,ORANGE);
                 // sprintf(c,"STARTING_ANIMATION %i",STARTING_ANIMATION);
                 // DrawTextEx(font,c,(Vector2){MARGIN,MARGIN*2+fontSize},fontSize,1,COLOR_FG);
-                // sprintf(c,"SHADER_RESOLUTION %.2f",shaderResolution[0]);
-                // DrawTextEx(font,c,(Vector2){MARGIN,MARGIN*3+fontSize*2},fontSize,1,COLOR_FG);
+                sprintf(c,"SHADER_RESOLUTION %.2f",shaderResolution[0]);
+                DrawTextEx(font,c,(Vector2){MARGIN,screenHeight-MARGIN-fontSize},fontSize,1,COLOR_FG);
                 // sprintf(c,"A:\t%+03.2f\tB:\t%+03.2f\tC:\t%+03.2f",octoKin.a, octoKin.b, octoKin.c);
                 // DrawTextEx(font,c,(Vector2){MARGIN,MARGIN*4+fontSize*3},fontSize,1,COLOR_FG);
                 // sprintf(c,"X:\t%+03.2f\tY:\t%+03.2f\tZ:\t%+03.2f",x, y, z);
