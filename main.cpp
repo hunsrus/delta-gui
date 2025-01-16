@@ -69,13 +69,13 @@
     #define DISPLAY_HEIGHT 240
     #define BORDER_THICKNESS 2.0f
 #else
-    #define DISPLAY_WIDTH 1024
-    #define DISPLAY_HEIGHT 768
-    #define BORDER_THICKNESS 4.0f
+    #define DISPLAY_WIDTH 320
+    #define DISPLAY_HEIGHT 240
+    #define BORDER_THICKNESS 2.0f
 #endif
 #define TARGET_FPS 30
 #define MARGIN 20*(DISPLAY_HEIGHT/768.0f)
-#define FONT_PIXELS 16*DISPLAY_HEIGHT/240
+#define FONT_PIXELS 24*DISPLAY_HEIGHT/240
 
 #define CAMERA_FOV 65
 #define DRAW_SCALE 0.5
@@ -312,16 +312,17 @@ int calculateKinematics(double &x,double &y,double &z, OctoKinematics &octoKin)
 
 void DrawProgressBarScreen(const char* text, int progress, Font font)
 {
+    float fontSize = font.baseSize/2.0f;
     Vector2 barSize = {DISPLAY_WIDTH*0.8, DISPLAY_HEIGHT*0.1};
     Vector2 barPos = {DISPLAY_WIDTH/2-barSize.x/2, DISPLAY_HEIGHT/2-barSize.y/2};
-    Vector2 textPos = {barPos.x,barPos.y-font.baseSize};
+    Vector2 textPos = {barPos.x,barPos.y-fontSize};
     BeginDrawing();
         ClearBackground(COLOR_BG);
         Rectangle barRec = {barPos.x, barPos.y, barSize.x, barSize.y};
         DrawRectangleLinesEx(barRec, BORDER_THICKNESS, COLOR_FG);
         barRec.width *= progress/100.0f;
         DrawRectangleRec(barRec,COLOR_FG);
-        DrawTextEx(font, text, textPos, font.baseSize, 1, COLOR_FG);
+        DrawTextEx(font, text, textPos, fontSize, 1, COLOR_FG);
     EndDrawing();
 }
 
@@ -378,27 +379,34 @@ int main(int argc, char** argv)
     Screen menu[MENUS_AMOUNT];
     menu[0].id = 0;
     menu[0].title = "Menú principal";
-    menu[0].options.push_back("Elegir archivo");
-    menu[0].options.push_back("Zona de componentes");
-    menu[0].options.push_back("Calibrar referencia");
-    menu[0].options.push_back("Guardar/Abrir");
+    menu[0].options.push_back("Trabajos");
+    menu[0].options.push_back("Calibración");
+    menu[0].options.push_back("Interfaz");
+    menu[0].options.push_back("Salir");
     menu[1].id = 1;
-    menu[1].title = "Elegir archivo";
+    menu[1].title = "Trabajos";
     menu[1].parent = &menu[0];
     menu[1].options.push_back("Atrás");
-    menu[1].options.push_back("AEEA");
+    menu[1].options.push_back("Iniciar rutina");
+    menu[1].options.push_back("Archivo");
+    menu[1].options.push_back("Componentes");
+    menu[1].options.push_back("Referencias");
+    menu[1].options.push_back("Guardar rutina");
+    menu[1].options.push_back("Abrir rutina");
     menu[2].id = 2;
-    menu[2].title = "Zona de componentes";
+    menu[2].title = "Calibración";
     menu[2].parent = &menu[0];
     menu[2].options.push_back("Atrás");
     menu[3].id = 3;
-    menu[3].title = "Calibrar referencia";
+    menu[3].title = "Interfaz";
     menu[3].parent = &menu[0];
     menu[3].options.push_back("Atrás");
     menu[4].id = 4;
-    menu[4].title = "Guardar/Abrir";
+    menu[4].title = "Salir";
     menu[4].parent = &menu[0];
     menu[4].options.push_back("Atrás");
+    menu[4].options.push_back("Apagar");
+    menu[4].options.push_back("Reiniciar");
     
     highlightedMenu = menu[currentMenuID].options.begin();
 
@@ -908,11 +916,11 @@ int main(int argc, char** argv)
             if(SHOW_FPS)
             {
                 sprintf(c,"FPS %d",GetFPS());
-                DrawTextEx(font,c,(Vector2){screenWidth-MARGIN-3*fontSize,screenHeight-MARGIN-fontSize},fontSize,1,ORANGE);
+                DrawTextEx(font,c,(Vector2){screenWidth-MARGIN-3*fontSize,MARGIN},fontSize,1,ORANGE);
                 // sprintf(c,"STARTING_ANIMATION %i",STARTING_ANIMATION);
                 // DrawTextEx(font,c,(Vector2){MARGIN,MARGIN*2+fontSize},fontSize,1,COLOR_FG);
-                sprintf(c,"SHADER_RESOLUTION %.2f",shaderResolution[0]);
-                DrawTextEx(font,c,(Vector2){MARGIN,screenHeight-MARGIN-fontSize},fontSize,1,COLOR_FG);
+                // sprintf(c,"SHADER_RESOLUTION %.2f",shaderResolution[0]);
+                // DrawTextEx(font,c,(Vector2){MARGIN,screenHeight-MARGIN-fontSize},fontSize,1,COLOR_FG);
                 // sprintf(c,"A:\t%+03.2f\tB:\t%+03.2f\tC:\t%+03.2f",octoKin.a, octoKin.b, octoKin.c);
                 // DrawTextEx(font,c,(Vector2){MARGIN,MARGIN*4+fontSize*3},fontSize,1,COLOR_FG);
                 // sprintf(c,"X:\t%+03.2f\tY:\t%+03.2f\tZ:\t%+03.2f",x, y, z);
