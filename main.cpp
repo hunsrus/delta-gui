@@ -49,11 +49,17 @@
 #define PIN_MS2 4
 #define PIN_MS3 3
 
-#define PIN_JOY_X0 0
-#define PIN_JOY_X1 0
-#define PIN_JOY_Y0 0
-#define PIN_JOY_Y1 0
-#define PIN_JOY_PB 2
+#define PIN_REG_PL 7
+#define PIN_REG_CP 0
+#define PIN_REG_OUT 1
+
+#define REG_BIT_Y0 0
+#define REG_BIT_Y1 1
+#define REG_BIT_X0 2
+#define REG_BIT_X1 3
+#define REG_BIT_R3 4
+#define REG_BIT_R1 5
+#define REG_BIT_R2 6
 
 #define PIN_FC_M1 5
 #define PIN_FC_M2 6
@@ -174,6 +180,36 @@ int captureVideo(void)
     }
 
     return EXIT_SUCCESS;
+}
+
+char readRegister(int pin_data, int pin_pl, int pin_cp)
+{
+    char data = 0;
+
+    // generar un pulso en PL para cargar los datos del registro paralelo al registro de desplazamiento
+    #if ARCH_ARM
+    gpioWrite(pin_pl, 0);
+    gpioWrite(pin_pl, 1);
+
+    // leer los 8 bits del registro desplazándolos al acumulador "data"
+    for (int i = 0; i < 8; i++) {
+        // leer el bit actual desde el pin de salida
+        int bit = gpioRead(pin_data);
+
+        // colocar el bit leído en la posición correspondiente en "data"
+        data |= (bit << (7 - i));
+
+        // generar un pulso en el pin CP para avanzar al siguiente bit
+        gpioWrite(pin_cp, 1);
+        gpioWrite(pin_cp, 0);
+    }
+    #endif
+
+    return data;
+}
+
+int readBit(char data, int bit) {
+    return (data >> (7 - bit)) & 0x01;
 }
 
 int calculateKinematics(double &x,double &y,double &z, OctoKinematics &octoKin)
@@ -661,78 +697,88 @@ int main(int argc, char** argv)
             }
         }else camera.fovy = CAMERA_FOV;
 
-        #if ARCH_ARM
-            // centro x0=1 x1=0 / y0=1 y1=0
-            if(gpioRead(PIN_JOY_X0) == 0 && gpioRead(PIN_JOY_X1) == 0) //izq
-            {
-                x -= 1.0f;
-            }
-            if(gpioRead(PIN_JOY_X0) == 1 && gpioRead(PIN_JOY_X1) == 1) //der
-            {
-                x += 1.0f;
-            }
-            if(gpioRead(PIN_JOY_Y0) == 1 && gpioRead(PIN_JOY_Y1) == 1) //abajo
-            {
-                y -= 1.0f;
-            }
-            if(gpioRead(PIN_JOY_Y0) == 0 && gpioRead(PIN_JOY_Y1) == 0) //arriba
-            {
-                y += 1.0f;
-            }
-        #else
-            if(IsKeyDown(KEY_A))
-            {
-                y -= 1.0f;
-            }
-            if(IsKeyDown(KEY_D))
-            {
-                y += 1.0f;
-            }
-            if(IsKeyDown(KEY_S))
-            {
-                x -= 1.0f;
-            }
-            if(IsKeyDown(KEY_W))
-            {
-                x += 1.0f;
-            }
-            if(IsKeyDown(KEY_LEFT_SHIFT))
-            {
-                z -= 1.0f;
-            }
-            if(IsKeyDown(KEY_LEFT_CONTROL))
-            {
-                z += 1.0f;
-            }
+        // LEER INPUTS -----------------------------------------------------
+        char inputRegData = readRegister(PIN_REG_OUT, PIN_REG_PL, PIN_REG_CP);
+        bool axis_state_X0 = readBit(inputRegData, REG_BIT_X0);
+        bool axis_state_X1 = readBit(inputRegData, REG_BIT_X1);
+        bool axis_state_Y0 = readBit(inputRegData, REG_BIT_Y0);
+        bool axis_state_Y1 = readBit(inputRegData, REG_BIT_Y1);
+        bool button_state_R1 = readBit(inputRegData, REG_BIT_R1);
+        bool button_state_R2 = readBit(inputRegData, REG_BIT_R2);
+        bool button_state_R3 = readBit(inputRegData, REG_BIT_R3);
 
-            if(IsKeyPressed(KEY_DOWN))
-            {
-                if(highlightedMenu < std::prev(menu[currentMenuID].options.end()))
-                    highlightedMenu++;
-                else
-                    highlightedMenu = menu[currentMenuID].options.begin();
-            }
-            if(IsKeyPressed(KEY_UP))
-            {
-                if(highlightedMenu > menu[currentMenuID].options.begin())
-                    highlightedMenu--;
-                else
-                    highlightedMenu = std::prev(menu[currentMenuID].options.end());
-            }
-            if(IsKeyPressed(KEY_ENTER))
-            {
-                if((*highlightedMenu) == "Atrás")
-                {
-                    currentMenuID = menu[currentMenuID].parent->id;
-                    highlightedMenu = menu[currentMenuID].options.begin();
-                }else{
-                    for(i = 0; i < MENUS_AMOUNT; i++)
-                        if((*highlightedMenu) == menu[i].title) currentMenuID = i;
-                    highlightedMenu = menu[currentMenuID].options.begin();
-                }
-            }
+        int axis_state_X = 0;
+        int axis_state_Y = 0;
 
-        #endif
+        // centro x0=1 x1=0 / y0=1 y1=0
+        if(axis_state_X0 == 0 && axis_state_X1 == 0) //izq
+        {
+            axis_state_X = -1;
+        }
+        if(axis_state_X0 == 1 && axis_state_X1 == 1) //der
+        {
+            axis_state_X = 1;
+        }
+        if(axis_state_Y0 == 1 && axis_state_Y1 == 1) //abajo
+        {
+            axis_state_Y = -1;
+        }
+        if(axis_state_Y0 == 0 && axis_state_Y1 == 0) //arriba
+        {
+            axis_state_Y = 1;
+        }
+
+        if(IsKeyDown(KEY_A))
+        {
+            y -= 1.0f;
+        }
+        if(IsKeyDown(KEY_D))
+        {
+            y += 1.0f;
+        }
+        if(IsKeyDown(KEY_S))
+        {
+            x -= 1.0f;
+        }
+        if(IsKeyDown(KEY_W))
+        {
+            x += 1.0f;
+        }
+        if(IsKeyDown(KEY_LEFT_SHIFT))
+        {
+            z -= 1.0f;
+        }
+        if(IsKeyDown(KEY_LEFT_CONTROL))
+        {
+            z += 1.0f;
+        }
+
+        if(IsKeyPressed(KEY_DOWN) || axis_state_Y == -1)
+        {
+            if(highlightedMenu < std::prev(menu[currentMenuID].options.end()))
+                highlightedMenu++;
+            else
+                highlightedMenu = menu[currentMenuID].options.begin();
+        }
+        if(IsKeyPressed(KEY_UP) || axis_state_Y == 1)
+        {
+            if(highlightedMenu > menu[currentMenuID].options.begin())
+                highlightedMenu--;
+            else
+                highlightedMenu = std::prev(menu[currentMenuID].options.end());
+        }
+        if(IsKeyPressed(KEY_ENTER) || button_state_R3)
+        {
+            if((*highlightedMenu) == "Atrás")
+            {
+                currentMenuID = menu[currentMenuID].parent->id;
+                highlightedMenu = menu[currentMenuID].options.begin();
+            }else{
+                for(i = 0; i < MENUS_AMOUNT; i++)
+                    if((*highlightedMenu) == menu[i].title) currentMenuID = i;
+                highlightedMenu = menu[currentMenuID].options.begin();
+            }
+        }
 
         if(IsKeyPressed(KEY_F1))
         {
@@ -917,6 +963,10 @@ int main(int argc, char** argv)
             {
                 sprintf(c,"FPS %d",GetFPS());
                 DrawTextEx(font,c,(Vector2){screenWidth-MARGIN-3*fontSize,MARGIN},fontSize,1,ORANGE);
+                sprintf(c, "X0\tX1\tY0\tY1\tR1\tR2\tR3");
+                DrawTextEx(font,c,(Vector2){MARGIN,screenHeight-MARGIN-fontSize*2},fontSize,1,COLOR_FG);
+                sprintf(c, " %i\t %i\t %i\t %i\t %i\t %i\t %i",axis_state_X0,axis_state_X1,axis_state_Y0,axis_state_Y1,button_state_R1,button_state_R2,button_state_R3);
+                DrawTextEx(font,c,(Vector2){MARGIN,screenHeight-MARGIN-fontSize},fontSize,1,COLOR_FG);
                 // sprintf(c,"STARTING_ANIMATION %i",STARTING_ANIMATION);
                 // DrawTextEx(font,c,(Vector2){MARGIN,MARGIN*2+fontSize},fontSize,1,COLOR_FG);
                 // sprintf(c,"SHADER_RESOLUTION %.2f",shaderResolution[0]);
