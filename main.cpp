@@ -390,6 +390,22 @@ int main(int argc, char** argv)
     int animationStep = 0;
     int animationState = 0;
 
+    char inputRegData = 0;
+    bool axis_state_X0 = 0;
+    bool axis_state_X1 = 0;
+    bool axis_state_Y0 = 0;
+    bool axis_state_Y1 = 0;
+    bool button_state_R1 = 1;
+    bool button_state_R2 = 1;
+    bool button_state_R3 = 1;
+    int axis_state_X = 0;
+    int axis_state_Y = 0;
+    int last_axis_state_X = 0;
+    int last_axis_state_Y = 0;
+    bool last_button_state_R1 = 1;
+    bool last_button_state_R2 = 1;
+    bool last_button_state_R3 = 1;
+
     DrawProgressBarScreen("inicializando cinemática...", 20, font);
     OctoKinematics octoKin = OctoKinematics(ARM_LENGTH, ROD_LENGTH, EFF_RADIUS, BAS_RADIUS);
     double x = 0, y = 0, z = HOME_Z;
@@ -698,17 +714,14 @@ int main(int argc, char** argv)
         }else camera.fovy = CAMERA_FOV;
 
         // LEER INPUTS -----------------------------------------------------
-        char inputRegData = readRegister(PIN_REG_OUT, PIN_REG_PL, PIN_REG_CP);
-        bool axis_state_X0 = readBit(inputRegData, REG_BIT_X0);
-        bool axis_state_X1 = readBit(inputRegData, REG_BIT_X1);
-        bool axis_state_Y0 = readBit(inputRegData, REG_BIT_Y0);
-        bool axis_state_Y1 = readBit(inputRegData, REG_BIT_Y1);
-        bool button_state_R1 = readBit(inputRegData, REG_BIT_R1);
-        bool button_state_R2 = readBit(inputRegData, REG_BIT_R2);
-        bool button_state_R3 = readBit(inputRegData, REG_BIT_R3);
-
-        int axis_state_X = 0;
-        int axis_state_Y = 0;
+        inputRegData = readRegister(PIN_REG_OUT, PIN_REG_PL, PIN_REG_CP);
+        axis_state_X0 = readBit(inputRegData, REG_BIT_X0);
+        axis_state_X1 = readBit(inputRegData, REG_BIT_X1);
+        axis_state_Y0 = readBit(inputRegData, REG_BIT_Y0);
+        axis_state_Y1 = readBit(inputRegData, REG_BIT_Y1);
+        button_state_R1 = readBit(inputRegData, REG_BIT_R1);
+        button_state_R2 = readBit(inputRegData, REG_BIT_R2);
+        button_state_R3 = readBit(inputRegData, REG_BIT_R3);
 
         // centro x0=1 x1=0 / y0=1 y1=0
         if(axis_state_X0 == 0 && axis_state_X1 == 0) //izq
@@ -753,21 +766,21 @@ int main(int argc, char** argv)
             z += 1.0f;
         }
 
-        if(IsKeyPressed(KEY_DOWN) || axis_state_Y == -1)
+        if(IsKeyPressed(KEY_DOWN) || (axis_state_Y == -1 && axis_state_Y != last_axis_state_Y ))
         {
             if(highlightedMenu < std::prev(menu[currentMenuID].options.end()))
                 highlightedMenu++;
             else
                 highlightedMenu = menu[currentMenuID].options.begin();
         }
-        if(IsKeyPressed(KEY_UP) || axis_state_Y == 1)
+        if(IsKeyPressed(KEY_UP) || (axis_state_Y == 1 && axis_state_Y != last_axis_state_Y ))
         {
             if(highlightedMenu > menu[currentMenuID].options.begin())
                 highlightedMenu--;
             else
                 highlightedMenu = std::prev(menu[currentMenuID].options.end());
         }
-        if(IsKeyPressed(KEY_ENTER) || button_state_R3)
+        if(IsKeyPressed(KEY_ENTER) || (!button_state_R3 && button_state_R3 != last_button_state_R3 ))
         {
             if((*highlightedMenu) == "Atrás")
             {
@@ -884,6 +897,12 @@ int main(int argc, char** argv)
         lastX = octoKin.x;
         lastY = octoKin.y;
         lastZ = octoKin.z;
+
+        last_axis_state_X = axis_state_X;
+        last_axis_state_Y = axis_state_Y;
+        last_button_state_R1 = button_state_R1;
+        last_button_state_R2 = button_state_R2;
+        last_button_state_R3 = button_state_R3;
 
         //armModel->transform = MatrixRotateXYZ((Vector3){ 0, 0, x });
         //----------------------------------------------------------------------------------
