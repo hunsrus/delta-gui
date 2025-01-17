@@ -570,11 +570,9 @@ int main(int argc, char** argv)
         gpioSetMode(PIN_MS2,PI_OUTPUT);
         gpioSetMode(PIN_MS3,PI_OUTPUT);
 
-        gpioSetMode(PIN_JOY_X0,PI_INPUT);
-        gpioSetMode(PIN_JOY_X1,PI_INPUT);
-        gpioSetMode(PIN_JOY_Y0,PI_INPUT);
-        gpioSetMode(PIN_JOY_Y1,PI_INPUT);
-        gpioSetMode(PIN_JOY_PB,PI_INPUT);
+        gpioSetMode(PIN_REG_PL,PI_OUTPUT);
+        gpioSetMode(PIN_REG_CP,PI_OUTPUT);
+        gpioSetMode(PIN_REG_OUT,PI_INPUT);
 
         gpioSetMode(PIN_FC_M1,PI_INPUT);
         gpioSetMode(PIN_FC_M2,PI_INPUT);
