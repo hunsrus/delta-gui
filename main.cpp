@@ -725,6 +725,9 @@ int main(int argc, char** argv)
         button_state_R2 = readBit(inputRegData, REG_BIT_R2);
         button_state_R3 = readBit(inputRegData, REG_BIT_R3);
 
+        axis_state_X = 0;
+        axis_state_Y = 0;
+
         // centro x0=1 x1=0 / y0=1 y1=0
         if(axis_state_X0 == 0 && axis_state_X1 == 0) //izq
         {
@@ -768,14 +771,14 @@ int main(int argc, char** argv)
             z += 1.0f;
         }
 
-        if(IsKeyPressed(KEY_DOWN) || (axis_state_Y == -1))
+        if(IsKeyPressed(KEY_DOWN) || (axis_state_Y == -1 && axis_state_Y != last_axis_state_Y ))
         {
             if(highlightedMenu < std::prev(menu[currentMenuID].options.end()))
                 highlightedMenu++;
             else
                 highlightedMenu = menu[currentMenuID].options.begin();
         }
-        if(IsKeyPressed(KEY_UP) || (axis_state_Y == 1))
+        if(IsKeyPressed(KEY_UP) || (axis_state_Y == 1 && axis_state_Y != last_axis_state_Y ))
         {
             if(highlightedMenu > menu[currentMenuID].options.begin())
                 highlightedMenu--;
