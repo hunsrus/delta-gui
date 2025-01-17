@@ -14,6 +14,7 @@
 #include <opencv2/imgproc.hpp>
 
 #include <iostream>
+#include <fstream>
 #include <stdio.h>
 #include <thread>
 #include <unistd.h>
@@ -209,7 +210,8 @@ char readRegister(int pin_data, int pin_pl, int pin_cp)
 }
 
 int readBit(char data, int bit) {
-    return (data >> (7 - bit)) & 0x01;
+    return (data >> bit) & 0x01;
+    //return (data >> (7 - bit)) & 0x01;
 }
 
 int calculateKinematics(double &x,double &y,double &z, OctoKinematics &octoKin)
