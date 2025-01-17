@@ -87,7 +87,7 @@
 #define CAMERA_FOV 65
 #define DRAW_SCALE 0.5
 
-static bool SHOW_FPS = true;
+static bool SHOW_DEBUG_DATA = false;
 static bool STARTING_ANIMATION = true;
 
 static Color COLOR_BG = {34,34,34,255};
@@ -391,7 +391,7 @@ int main(int argc, char** argv)
     int animationStep = 0;
     int animationState = 0;
 
-    char inputRegData = 0;
+    char inputRegData = 255;
     bool axis_state_X0 = 0;
     bool axis_state_X1 = 0;
     bool axis_state_Y0 = 0;
@@ -434,6 +434,7 @@ int main(int argc, char** argv)
     Screen menu[MENUS_AMOUNT];
     menu[0].id = 0;
     menu[0].title = "Menú principal";
+    menu[0].options.push_back("Debug");
     menu[0].options.push_back("Trabajos");
     menu[0].options.push_back("Calibración");
     menu[0].options.push_back("Interfaz");
@@ -767,14 +768,14 @@ int main(int argc, char** argv)
             z += 1.0f;
         }
 
-        if(IsKeyPressed(KEY_DOWN) || (axis_state_Y == -1 && axis_state_Y != last_axis_state_Y ))
+        if(IsKeyPressed(KEY_DOWN) || (axis_state_Y == -1))
         {
             if(highlightedMenu < std::prev(menu[currentMenuID].options.end()))
                 highlightedMenu++;
             else
                 highlightedMenu = menu[currentMenuID].options.begin();
         }
-        if(IsKeyPressed(KEY_UP) || (axis_state_Y == 1 && axis_state_Y != last_axis_state_Y ))
+        if(IsKeyPressed(KEY_UP) || (axis_state_Y == 1))
         {
             if(highlightedMenu > menu[currentMenuID].options.begin())
                 highlightedMenu--;
@@ -787,6 +788,9 @@ int main(int argc, char** argv)
             {
                 currentMenuID = menu[currentMenuID].parent->id;
                 highlightedMenu = menu[currentMenuID].options.begin();
+            }else if((*highlightedMenu) == "Debug")
+            {
+                SHOW_DEBUG_DATA = !SHOW_DEBUG_DATA;   
             }else{
                 for(i = 0; i < MENUS_AMOUNT; i++)
                     if((*highlightedMenu) == menu[i].title) currentMenuID = i;
@@ -796,7 +800,7 @@ int main(int argc, char** argv)
 
         if(IsKeyPressed(KEY_F1))
         {
-            SHOW_FPS = !SHOW_FPS;
+            SHOW_DEBUG_DATA = !SHOW_DEBUG_DATA;
         }
 
         if(IsKeyDown(KEY_SPACE))
@@ -979,7 +983,7 @@ int main(int argc, char** argv)
                 i++;
             }
 
-            if(SHOW_FPS)
+            if(SHOW_DEBUG_DATA)
             {
                 sprintf(c,"FPS %d",GetFPS());
                 DrawTextEx(font,c,(Vector2){screenWidth-MARGIN-3*fontSize,MARGIN},fontSize,1,ORANGE);
