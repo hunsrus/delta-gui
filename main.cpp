@@ -350,6 +350,7 @@ int calculateKinematics(double &x,double &y,double &z, OctoKinematics &octoKin)
 
 void DrawProgressBarScreen(const char* text, int progress, Font font)
 {
+    HideCursor();
     float fontSize = font.baseSize/2.0f;
     Vector2 barSize = {DISPLAY_WIDTH*0.8, DISPLAY_HEIGHT*0.1};
     Vector2 barPos = {DISPLAY_WIDTH/2-barSize.x/2, DISPLAY_HEIGHT/2-barSize.y/2};
