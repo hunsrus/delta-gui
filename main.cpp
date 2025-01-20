@@ -97,6 +97,9 @@ static bool SHOW_3D_VIEW = true;
 static bool SHOW_MENU_INFO = false;
 static bool SHOW_FIELD_VALUES = false;
 
+#define MCGREEN CLITERAL(Color){150,182,171,255}   // Verde Colin McRae
+#define POP_BLUE CLITERAL(Color){99,177,188,255}
+#define GRIS CLITERAL(Color){34,34,34,255}
 static Color COLOR_BG = {34,34,34,255};
 static Color COLOR_FG = {238,238,238,255};
 static Color COLOR_HL = ORANGE;
@@ -122,6 +125,13 @@ typedef struct Menu{
     Menu* parent = NULL;
     std::vector<Option> options;
 }Menu;
+
+typedef struct Theme
+{
+    Color background = MCGREEN;
+    Color foreground = WHITE;
+    Color accent = RED;
+}Theme;
 
 Menu* CURRENT_MENU;
 std::vector<Option>::iterator HIGHLIGHTED_OPTION;
@@ -560,6 +570,24 @@ int main(int argc, char** argv)
     std::vector<std::string> archivos;
     std::string currentPosFile = "";
 
+    int THEMES_COUNT = 9;
+    Theme themes[THEMES_COUNT] = {{MCGREEN, WHITE, (Color){92,65,93,255}},
+    //{(Color){34,34,34,255},(Color){99,177,188,255}, RED},
+    // {(Color){34,34,34,255},(Color){238,238,238,255},(Color){48,128,203,255}},
+    {(Color){34,34,34,255},(Color){238,238,238,255},ORANGE},
+    {(Color){46,52,64,255},(Color){229,233,240,255},(Color){221,115,115,255}},
+    {(Color){3,57,75,255},(Color){187,231,250,255},(Color){181,137,0,255}},
+    {(Color){78,70,67,255},(Color){254,167,0,255},(Color){244,43,3,255}},
+    {(Color){82,76,70,255},(Color){234,233,233,255},(Color){214,64,69,255}},
+    {(Color){43,43,43,255},(Color){155,155,155,255},(Color){182,70,95,255}},
+    {BLACK, WHITE, (Color){240,58,71,255}},
+    {WHITE, BLACK, (Color){240,58,71,255}}};
+
+    int CURRENT_THEME = 1;
+    COLOR_BG = themes[CURRENT_THEME].background;
+    COLOR_FG = themes[CURRENT_THEME].foreground;
+    COLOR_HL = themes[CURRENT_THEME].accent;
+
     DrawProgressBarScreen("inicializando cinemática...", 20, font);
     OctoKinematics octoKin = OctoKinematics(ARM_LENGTH, ROD_LENGTH, EFF_RADIUS, BAS_RADIUS);
     double x = 0, y = 0, z = HOME_Z;
@@ -624,7 +652,7 @@ int main(int argc, char** argv)
     sprintf(c,"%.0f",fontSize);
     auxMenu->options.push_back((Option){1,"Letra",c});
     auxMenu->options.push_back((Option){3,"Botones",std::to_string(OPTIONS_PER_WINDOW)});
-    auxMenu->options.push_back((Option){4,"Tema"});
+    auxMenu->options.push_back((Option){4,"Tema",std::to_string(CURRENT_THEME)});
     menus.push_back(auxMenu);
     auxMenu = new Menu();
     auxMenu->title = "Salir";
@@ -992,7 +1020,26 @@ int main(int argc, char** argv)
                 }
             }else if(HIGHLIGHTED_OPTION->text == "Tema")
             {
-                HIGHLIGHTED_OPTION->value = "";
+                if (CURRENT_THEME > 0) CURRENT_THEME--;
+                else CURRENT_THEME = THEMES_COUNT-1;
+                
+                COLOR_BG = themes[CURRENT_THEME].background;
+                COLOR_FG = themes[CURRENT_THEME].foreground;
+                COLOR_HL = themes[CURRENT_THEME].accent;
+
+                normalizedFGColor = ColorNormalize(COLOR_FG);
+                normalizedBGColor = ColorNormalize(COLOR_BG);
+                edgeColor[0] = normalizedFGColor.x;
+                edgeColor[1] = normalizedFGColor.y;
+                edgeColor[2] = normalizedFGColor.z;
+                backgroundColor[0] = normalizedBGColor.x;
+                backgroundColor[1] = normalizedBGColor.y;
+                backgroundColor[2] = normalizedBGColor.z;
+                SetShaderValue(shader, edgeColorLoc, edgeColor, SHADER_UNIFORM_VEC3);
+                SetShaderValue(shader, backgroundColorLoc, backgroundColor, SHADER_UNIFORM_VEC3);
+                SetShaderValue(shader, resolutionLoc, shaderResolution, SHADER_UNIFORM_VEC2);
+                
+                HIGHLIGHTED_OPTION->value = std::to_string(CURRENT_THEME);
             }
         }
         if(IsKeyPressed(KEY_RIGHT) || (axis_state_X == 1 && axis_state_X != last_axis_state_X ))
@@ -1017,7 +1064,26 @@ int main(int argc, char** argv)
                 }
             }else if(HIGHLIGHTED_OPTION->text == "Tema")
             {
-                HIGHLIGHTED_OPTION->value = "";
+                if (CURRENT_THEME < THEMES_COUNT-1) CURRENT_THEME++;
+                else CURRENT_THEME = 0;
+                
+                COLOR_BG = themes[CURRENT_THEME].background;
+                COLOR_FG = themes[CURRENT_THEME].foreground;
+                COLOR_HL = themes[CURRENT_THEME].accent;
+
+                normalizedFGColor = ColorNormalize(COLOR_FG);
+                normalizedBGColor = ColorNormalize(COLOR_BG);
+                edgeColor[0] = normalizedFGColor.x;
+                edgeColor[1] = normalizedFGColor.y;
+                edgeColor[2] = normalizedFGColor.z;
+                backgroundColor[0] = normalizedBGColor.x;
+                backgroundColor[1] = normalizedBGColor.y;
+                backgroundColor[2] = normalizedBGColor.z;
+                SetShaderValue(shader, edgeColorLoc, edgeColor, SHADER_UNIFORM_VEC3);
+                SetShaderValue(shader, backgroundColorLoc, backgroundColor, SHADER_UNIFORM_VEC3);
+                SetShaderValue(shader, resolutionLoc, shaderResolution, SHADER_UNIFORM_VEC2);
+                
+                HIGHLIGHTED_OPTION->value = std::to_string(CURRENT_THEME);
             }
         }
         
@@ -1300,21 +1366,21 @@ int main(int argc, char** argv)
             }
             
             Vector2 statusBarPos = {viewPos.x,MARGIN};
-            if(STATUS_MOTOR_ENABLED) DrawTextEx(font,"o",statusBarPos,fontSize,1,GREEN);
+            if(STATUS_MOTOR_ENABLED) DrawTextEx(font,"o",statusBarPos,fontSize,1,COLOR_HL);
             else DrawTextEx(font,"o",statusBarPos,fontSize,1,ORANGE);
             statusBarPos.x += fontSize;
-            if(STATUS_MOTOR_ENABLED) DrawTextEx(font,"o",statusBarPos,fontSize,1,GREEN);
+            if(STATUS_MOTOR_ENABLED) DrawTextEx(font,"o",statusBarPos,fontSize,1,COLOR_HL);
             statusBarPos.x += fontSize;
-            if(STATUS_MOTOR_ENABLED) DrawTextEx(font,"o",statusBarPos,fontSize,1,RED);
+            if(STATUS_MOTOR_ENABLED) DrawTextEx(font,"o",statusBarPos,fontSize,1,COLOR_HL);
             statusBarPos.x += fontSize;
-            if(STATUS_MOTOR_ENABLED) DrawTextEx(font,"o",statusBarPos,fontSize,1,ORANGE);
+            if(STATUS_MOTOR_ENABLED) DrawTextEx(font,"o",statusBarPos,fontSize,1,COLOR_HL);
             statusBarPos.x += fontSize;
-            if(STATUS_MOTOR_ENABLED) DrawTextEx(font,"o",statusBarPos,fontSize,1,RED);
+            if(STATUS_MOTOR_ENABLED) DrawTextEx(font,"o",statusBarPos,fontSize,1,COLOR_HL);
 
             if(SHOW_DEBUG_DATA)
             {
                 sprintf(c,"FPS %d",GetFPS());
-                DrawTextEx(font,c,(Vector2){screenWidth-MARGIN-3*fontSize,MARGIN},fontSize,1,ORANGE);
+                DrawTextEx(font,c,(Vector2){screenWidth-MARGIN-3*fontSize,MARGIN},fontSize,1,COLOR_HL);
                 sprintf(c, "X0\tX1\tY0\tY1\tR1\tR2\tR3");
                 DrawTextEx(font,c,(Vector2){MARGIN,screenHeight-MARGIN-fontSize*2},fontSize,1,COLOR_FG);
                 sprintf(c, " %i\t %i\t %i\t %i\t %i\t %i\t %i",axis_state_X0,axis_state_X1,axis_state_Y0,axis_state_Y1,button_state_R1,button_state_R2,button_state_R3);
