@@ -83,6 +83,8 @@
 #define TARGET_FPS 30
 #define MARGIN 20*(DISPLAY_HEIGHT/768.0f)
 #define FONT_PIXELS 24*DISPLAY_HEIGHT/240
+#define OPTIONS_PER_WINDOW 5
+#define BUTTON_SIZE (DISPLAY_HEIGHT-MARGIN*3-MARGIN*(OPTIONS_PER_WINDOW-1)-FONT_PIXELS)/OPTIONS_PER_WINDOW
 
 #define CAMERA_FOV 65
 #define DRAW_SCALE 0.5
@@ -100,9 +102,6 @@ static bool CAMERA_AVAILABLE = true;
 static bool CAPTURE_READY = false;
 
 static bool EXIT = false;
-
-// Determinar el paso actual
-static int stepIndex = 0; // BORRAR?
 
 // interfaz de usuario
 const int MENUS_AMOUNT = 5;
@@ -185,7 +184,7 @@ int captureVideo(void)
 
 char readRegister(int pin_data, int pin_pl, int pin_cp)
 {
-    char data = 0;
+    char data = 255;
 
     // generar un pulso en PL para cargar los datos del registro paralelo al registro de desplazamiento
     #if ARCH_ARM
@@ -436,7 +435,7 @@ int main(int argc, char** argv)
     menu[0].title = "Menú principal";
     menu[0].options.push_back("Debug");
     menu[0].options.push_back("Trabajos");
-    menu[0].options.push_back("Calibración");
+    menu[0].options.push_back("Control");
     menu[0].options.push_back("Interfaz");
     menu[0].options.push_back("Salir");
     menu[1].id = 1;
@@ -450,9 +449,13 @@ int main(int argc, char** argv)
     menu[1].options.push_back("Guardar rutina");
     menu[1].options.push_back("Abrir rutina");
     menu[2].id = 2;
-    menu[2].title = "Calibración";
+    menu[2].title = "Control";
     menu[2].parent = &menu[0];
     menu[2].options.push_back("Atrás");
+    menu[2].options.push_back("Mover");
+    menu[2].options.push_back("Girar");
+    menu[2].options.push_back("Succión");
+    menu[2].options.push_back("Deshabilitar");
     menu[3].id = 3;
     menu[3].title = "Interfaz";
     menu[3].parent = &menu[0];
@@ -746,30 +749,34 @@ int main(int argc, char** argv)
             axis_state_Y = 1;
         }
 
-        if(IsKeyDown(KEY_A))
+        if(MODE_MANUAL)
         {
-            y -= 1.0f;
+            if(IsKeyDown(KEY_A) || axis_state_X == -1)
+            {
+                y -= 1.0f;
+            }
+            if(IsKeyDown(KEY_D) || axis_state_X == 1)
+            {
+                y += 1.0f;
+            }
+            if(IsKeyDown(KEY_S) || axis_state_Y == -1)
+            {
+                x -= 1.0f;
+            }
+            if(IsKeyDown(KEY_W) || axis_state_Y == 1)
+            {
+                x += 1.0f;
+            }
+            if(IsKeyDown(KEY_LEFT_SHIFT) || button_state_R2)
+            {
+                z -= 1.0f;
+            }
+            if(IsKeyDown(KEY_LEFT_CONTROL) || button_state_R1)
+            {
+                z += 1.0f;
+            }
         }
-        if(IsKeyDown(KEY_D))
-        {
-            y += 1.0f;
-        }
-        if(IsKeyDown(KEY_S))
-        {
-            x -= 1.0f;
-        }
-        if(IsKeyDown(KEY_W))
-        {
-            x += 1.0f;
-        }
-        if(IsKeyDown(KEY_LEFT_SHIFT))
-        {
-            z -= 1.0f;
-        }
-        if(IsKeyDown(KEY_LEFT_CONTROL))
-        {
-            z += 1.0f;
-        }
+        
 
         if(IsKeyPressed(KEY_DOWN) || (axis_state_Y == -1 && axis_state_Y != last_axis_state_Y ))
         {
@@ -794,7 +801,14 @@ int main(int argc, char** argv)
             }else if((*highlightedMenu) == "Debug")
             {
                 SHOW_DEBUG_DATA = !SHOW_DEBUG_DATA;   
-            }else{
+            }else if((*highlightedMenu) == "Deshabilitar")
+            {
+                STATUS_MOTOR_ENABLED = !STATUS_MOTOR_ENABLED;
+            }else if((*highlightedMenu) == "Mover")
+            {
+                
+            }else
+            {
                 for(i = 0; i < MENUS_AMOUNT; i++)
                     if((*highlightedMenu) == menu[i].title) currentMenuID = i;
                 highlightedMenu = menu[currentMenuID].options.begin();
@@ -962,29 +976,48 @@ int main(int argc, char** argv)
             DrawTextEx(font,menu[currentMenuID].title,(Vector2){MARGIN,MARGIN},fontSize,1,COLOR_FG);
             for (std::vector<const char*>::iterator it = menu[currentMenuID].options.begin(); it != menu[currentMenuID].options.end(); it++)
             {
-                Vector2 optionPos = {MARGIN, MARGIN*i+fontSize*(i-1)};
-                Vector2 optionSize = {viewPos.x-MARGIN*2, fontSize};
+                Vector2 optionPos = {MARGIN, MARGIN*i+BUTTON_SIZE*(i-1)-(BUTTON_SIZE-fontSize)};
+                if(i == 2)  // la primera opción arranca debajo del título del menú
+                    optionPos = {MARGIN, MARGIN*i+fontSize*(i-1)};    
+                Vector2 optionSize = {viewPos.x-MARGIN*2, BUTTON_SIZE};
                 Rectangle optionRectangle = {optionPos.x, optionPos.y, optionSize.x, optionSize.y};
+                // dibujo el recuadro de la opción
                 DrawRectangleLinesEx(optionRectangle,BORDER_THICKNESS,COLOR_FG);
-                sprintf(c," %s",(*it));
+                // el color por defecto del texto es el color principal de foreground
+                Color optionTextColor = COLOR_FG;
                 if(it == highlightedMenu)
                 {
+                    // la opción seleccionada se grafica con los colores invertidos
+                    optionTextColor = COLOR_BG;
                     DrawRectangleRec(optionRectangle, COLOR_FG);
-                    DrawTextEx(font,c,optionPos,fontSize,1,COLOR_BG);
-                    if((*it) != "Atrás")
-                        DrawTextEx(font,">",Vector2Add(optionPos,(Vector2){optionSize.x-MARGIN-fontSize/2,0}),fontSize,1,COLOR_BG);
-                    else
-                        DrawTextEx(font,"<",Vector2Add(optionPos,(Vector2){optionSize.x-MARGIN-fontSize/2,0}),fontSize,1,COLOR_BG);
-                }else
-                {
-                    DrawTextEx(font,c,optionPos,fontSize,1,COLOR_FG);
-                    if((*it) != "Atrás")
-                        DrawTextEx(font,">",Vector2Add(optionPos,(Vector2){optionSize.x-MARGIN-fontSize/2,0}),fontSize,1,COLOR_FG);
-                    else
-                        DrawTextEx(font,"<",Vector2Add(optionPos,(Vector2){optionSize.x-MARGIN-fontSize/2,0}),fontSize,1,COLOR_FG);
                 }
+                // cargo el texto de la opción en un string
+                sprintf(c," %s",(*it));
+                // reposiciono el texto para que quede centrado en el recuadro
+                optionPos.y += (BUTTON_SIZE-fontSize)/2;
+                // dibujo el texto
+                DrawTextEx(font,c,optionPos,fontSize,1,optionTextColor);
+                // defino la posición del ícono de acción
+                optionPos.x += optionSize.x-MARGIN-fontSize/2;
+                // dibujo el ícono de acción
+                if((*it) != "Atrás")
+                    DrawTextEx(font,">",optionPos,fontSize,1,optionTextColor);
+                else
+                    DrawTextEx(font,"<",optionPos,fontSize,1,optionTextColor);
                 i++;
             }
+            
+            Vector2 statusBarPos = {viewPos.x,MARGIN};
+            if(STATUS_MOTOR_ENABLED) DrawTextEx(font,"o",statusBarPos,fontSize,1,GREEN);
+            else DrawTextEx(font,"o",statusBarPos,fontSize,1,ORANGE);
+            statusBarPos.x += fontSize;
+            if(STATUS_MOTOR_ENABLED) DrawTextEx(font,"o",statusBarPos,fontSize,1,GREEN);
+            statusBarPos.x += fontSize;
+            if(STATUS_MOTOR_ENABLED) DrawTextEx(font,"o",statusBarPos,fontSize,1,RED);
+            statusBarPos.x += fontSize;
+            if(STATUS_MOTOR_ENABLED) DrawTextEx(font,"o",statusBarPos,fontSize,1,ORANGE);
+            statusBarPos.x += fontSize;
+            if(STATUS_MOTOR_ENABLED) DrawTextEx(font,"o",statusBarPos,fontSize,1,RED);
 
             if(SHOW_DEBUG_DATA)
             {
