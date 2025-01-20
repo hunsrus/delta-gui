@@ -16,9 +16,11 @@
 #include <iostream>
 #include <fstream>
 #include <stdio.h>
+#include <stdlib.h>
 #include <thread>
 #include <unistd.h>
 #include <vector>
+#include <dirent.h>
 
 #if ARCH_ARM
     #include <pigpio.h>
@@ -102,9 +104,11 @@ static bool CAMERA_AVAILABLE = true;
 static bool CAPTURE_READY = false;
 
 static bool EXIT = false;
+static bool STATUS_MOTOR_ENABLED = true;
+static bool MODE_MANUAL = false;
 
 // interfaz de usuario
-const int MENUS_AMOUNT = 5;
+const int MENUS_AMOUNT = 10;
 int currentMenuID = 0;
 std::vector<const char*>::iterator highlightedMenu;
 
@@ -211,6 +215,139 @@ char readRegister(int pin_data, int pin_pl, int pin_cp)
 int readBit(char data, int bit) {
     return (data >> bit) & 0x01;
     //return (data >> (7 - bit)) & 0x01;
+}
+
+// Estructura para almacenar la información de cada componente
+struct Componente {
+    std::string reference;
+    std::string value;
+    std::string package;
+    double posx;
+    double posy;
+    double rotation;
+};
+
+// Función para parsear el archivo
+std::vector<Componente> parsearArchivo(const std::string& nombreArchivo) {
+    std::vector<Componente> componentes;
+    std::ifstream archivo(nombreArchivo);
+    if (archivo.is_open()) {
+        std::string linea;
+        // Saltar las líneas de comentario y encabezado
+        while (std::getline(archivo, linea)) {
+            if (linea.find('#') == 0 || linea.empty()) {
+                continue;
+            }
+            // Parsear la línea
+            std::istringstream iss(linea);
+            Componente componente;
+            iss >> componente.reference >> componente.value >> componente.package
+                >> componente.posx >> componente.posy >> componente.rotation;
+            componentes.push_back(componente);
+        }
+        archivo.close();
+    } else {
+        std::cerr << "Error al abrir el archivo." << std::endl;
+    }
+    return componentes;
+}
+
+int executeInstruction(char* instruction, OctoKinematics &octoKin)
+{
+    if(instruction[0] == 'L')       // movimiento lineal
+    {
+        double x = instruction[1];
+        double y = instruction[2];
+        double z = instruction[3];
+        octoKin.linear_move(x, y, z, 0.4, 0);
+    }else if(instruction[0] == 'D') // delay
+    {
+        int us = instruction[1];
+        usleep(us);
+        
+    }else if(instruction[0] == 'B') // controlar bomba
+    {
+        if(instruction[1] == '1') gpioWrite(PIN_BOMBA,1);
+        else if(instruction[1] == '0') gpioWrite(PIN_BOMBA,0);
+        else
+        {
+            fprintf(stderr, "invalid instruction: %s\n",instruction);
+            return EXIT_FAILURE;
+        }
+    }else if(instruction[0] == 'E') // girar efector
+    {
+        bool dir = -1;
+
+        if(instruction[1] == 'H') dir = 1;
+        else if(instruction[1] == 'A') dir = 0;
+        else
+        {
+            fprintf(stderr, "invalid instruction: %s\n",instruction);
+            return EXIT_FAILURE;
+        }
+
+        // TODO: parsear argumento de grados de rotación
+
+    }
+}
+
+void readPosFile()
+{
+    std::string nombreArchivo = "../tests/usb-top.pos"; // reemplazar con el nombre del archivo
+    std::vector<Componente> componentes = parsearArchivo(nombreArchivo);
+
+    std::vector<std::string> job;
+    std::string instruction;
+    
+    instruction = "LX0Y0Z"+std::to_string(LIM_Z+30);
+    job.push_back(instruction);
+    instruction = "D20000";
+    job.push_back(instruction);
+
+    for (const auto& componente : componentes)
+    {
+        instruction = ("LX"+std::to_string(componente.posx)+"Y"+std::to_string(componente.posy));
+        job.push_back(instruction);
+        instruction = "D20000";
+        job.push_back(instruction);
+        instruction = ("LZ"+std::to_string(LIM_Z));
+        job.push_back(instruction);
+        instruction = "D20000";
+        job.push_back(instruction);
+        instruction = ("LZ"+std::to_string(LIM_Z+30));
+        job.push_back(instruction);
+        instruction = "D20000";
+        job.push_back(instruction);
+        // std::cout << "Referencia: " << componente.reference << std::endl;
+        // std::cout << "Valor: " << componente.value << std::endl;
+        // std::cout << "Paquete: " << componente.package << std::endl;
+        // std::cout << "Posición X: " << componente.posx << std::endl;
+        // std::cout << "Posición Y: " << componente.posy << std::endl;
+        // std::cout << "Rotación: " << componente.rotation << std::endl;
+        // std::cout << std::endl;
+    }
+}
+
+// Función para listar los archivos en una carpeta
+std::vector<std::string> listarArchivos(const std::string& rutaCarpeta) {
+    std::vector<std::string> archivos;
+    DIR* dir;
+    struct dirent* ent;
+
+    // Abrir la carpeta
+    if ((dir = opendir(rutaCarpeta.c_str())) != NULL) {
+        // Leer los archivos en la carpeta
+        while ((ent = readdir(dir)) != NULL) {
+            // Verificar si es un archivo regular (no carpeta)
+            if (ent->d_type == DT_REG) {
+                archivos.push_back(ent->d_name);
+            }
+        }
+        closedir(dir);
+    } else {
+        std::cerr << "Error al abrir la carpeta." << std::endl;
+    }
+    return archivos;
 }
 
 int calculateKinematics(double &x,double &y,double &z, OctoKinematics &octoKin)
@@ -443,29 +580,33 @@ int main(int argc, char** argv)
     menu[1].parent = &menu[0];
     menu[1].options.push_back("Atrás");
     menu[1].options.push_back("Iniciar rutina");
-    menu[1].options.push_back("Archivo");
+    menu[1].options.push_back("Archivos");
     menu[1].options.push_back("Componentes");
     menu[1].options.push_back("Referencias");
     menu[1].options.push_back("Guardar rutina");
     menu[1].options.push_back("Abrir rutina");
     menu[2].id = 2;
-    menu[2].title = "Control";
-    menu[2].parent = &menu[0];
+    menu[2].title = "Archivos";
+    menu[2].parent = &menu[1];
     menu[2].options.push_back("Atrás");
-    menu[2].options.push_back("Mover");
-    menu[2].options.push_back("Girar");
-    menu[2].options.push_back("Succión");
-    menu[2].options.push_back("Deshabilitar");
     menu[3].id = 3;
-    menu[3].title = "Interfaz";
+    menu[3].title = "Control";
     menu[3].parent = &menu[0];
     menu[3].options.push_back("Atrás");
+    menu[3].options.push_back("Mover");
+    menu[3].options.push_back("Girar");
+    menu[3].options.push_back("Succión");
+    menu[3].options.push_back("Deshabilitar");
     menu[4].id = 4;
-    menu[4].title = "Salir";
+    menu[4].title = "Interfaz";
     menu[4].parent = &menu[0];
     menu[4].options.push_back("Atrás");
-    menu[4].options.push_back("Apagar");
-    menu[4].options.push_back("Reiniciar");
+    menu[5].id = 5;
+    menu[5].title = "Salir";
+    menu[5].parent = &menu[0];
+    menu[5].options.push_back("Atrás");
+    menu[5].options.push_back("Apagar");
+    menu[5].options.push_back("Reiniciar");
     
     highlightedMenu = menu[currentMenuID].options.begin();
 
@@ -806,7 +947,21 @@ int main(int argc, char** argv)
                 STATUS_MOTOR_ENABLED = !STATUS_MOTOR_ENABLED;
             }else if((*highlightedMenu) == "Mover")
             {
+                MODE_MANUAL = !MODE_MANUAL;
                 
+            }else if((*highlightedMenu) == "Archivos")
+            {
+                for(i = 0; i < MENUS_AMOUNT; i++)
+                    if((*highlightedMenu) == menu[i].title) currentMenuID = i;
+                highlightedMenu = menu[currentMenuID].options.begin();
+                std::string rutaCarpeta = "../tests/"; // reemplazar con la ruta de tu carpeta
+                std::vector<std::string> archivos = listarArchivos(rutaCarpeta);
+                menu[currentMenuID].options.clear();
+                menu[currentMenuID].options.push_back("Atrás");
+                for (const auto& archivo : archivos) {
+                    menu[currentMenuID].options.push_back(archivo.c_str());
+                    std::cout << archivo.c_str() << std::endl;
+                }
             }else
             {
                 for(i = 0; i < MENUS_AMOUNT; i++)
