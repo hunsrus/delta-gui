@@ -84,8 +84,8 @@
 #endif
 #define TARGET_FPS 30
 #define MARGIN 20*(DISPLAY_HEIGHT/768.0f)
-#define FONT_PIXELS 24*DISPLAY_HEIGHT/240
-#define OPTIONS_PER_WINDOW 5
+static float FONT_PIXELS = 24*DISPLAY_HEIGHT/240;
+static unsigned int OPTIONS_PER_WINDOW = 6;
 #define BUTTON_SIZE (DISPLAY_HEIGHT-MARGIN*3-MARGIN*(OPTIONS_PER_WINDOW-1)-FONT_PIXELS)/OPTIONS_PER_WINDOW
 
 #define CAMERA_FOV 65
@@ -93,6 +93,9 @@
 
 static bool SHOW_DEBUG_DATA = false;
 static bool STARTING_ANIMATION = true;
+static bool SHOW_3D_VIEW = true;
+static bool SHOW_MENU_INFO = false;
+static bool SHOW_FIELD_VALUES = false;
 
 static Color COLOR_BG = {34,34,34,255};
 static Color COLOR_FG = {238,238,238,255};
@@ -108,15 +111,26 @@ static bool STATUS_MOTOR_ENABLED = true;
 static bool MODE_MANUAL = false;
 
 // interfaz de usuario
+typedef struct Option{
+    unsigned int id;
+    const char* text;
+    std::string value = "";
+}Option;
+
 typedef struct Menu{
     const char* title;
     Menu* parent = NULL;
-    std::vector<const char*> options;
+    std::vector<Option> options;
 }Menu;
 
-int currentMenuID = 0;
-std::vector<Menu*> menus;
-std::vector<const char*>::iterator highlightedOption;
+Menu* CURRENT_MENU;
+std::vector<Option>::iterator HIGHLIGHTED_OPTION;
+
+void goBackOneMenu()
+{
+    CURRENT_MENU = CURRENT_MENU->parent;
+    HIGHLIGHTED_OPTION = CURRENT_MENU->options.begin();
+}
 
 Image MatToImage(const cv::Mat &mat) {
     // Asegúrate de que la imagen está en formato RGB
@@ -520,7 +534,7 @@ int main(int argc, char** argv)
 
     DrawProgressBarScreen("inicializando variables...", 10, font);
     int i;
-    char c[100];
+    char c[255];
     float auxValue = 0;
 
     int animationStep = 0;
@@ -541,6 +555,10 @@ int main(int argc, char** argv)
     bool last_button_state_R1 = 1;
     bool last_button_state_R2 = 1;
     bool last_button_state_R3 = 1;
+
+    std::string rutaCarpeta = "../tests/";
+    std::vector<std::string> archivos;
+    std::string currentPosFile = "";
 
     DrawProgressBarScreen("inicializando cinemática...", 20, font);
     OctoKinematics octoKin = OctoKinematics(ARM_LENGTH, ROD_LENGTH, EFF_RADIUS, BAS_RADIUS);
@@ -566,56 +584,68 @@ int main(int argc, char** argv)
     Vector3 arm1Projection, arm2Projection, arm3Projection;
 
     DrawProgressBarScreen("cargando menú...", 30, font);
+
+    std::vector<Menu*> menus;
+
     Menu *auxMenu;
     auxMenu = new Menu();
     auxMenu->title = "Menú principal";
     auxMenu->parent = NULL;
-    auxMenu->options.push_back("Debug");
-    auxMenu->options.push_back("Trabajos");
-    auxMenu->options.push_back("Control");
-    auxMenu->options.push_back("Interfaz");
-    auxMenu->options.push_back("Salir");
+    auxMenu->options.push_back((Option){0,"Debug"});
+    auxMenu->options.push_back((Option){1,"Trabajos"});
+    auxMenu->options.push_back((Option){2,"Control"});
+    auxMenu->options.push_back((Option){3,"Interfaz"});
+    auxMenu->options.push_back((Option){4,"Salir"});
     menus.push_back(auxMenu);
     auxMenu = new Menu();
     auxMenu->title = "Trabajos";
     auxMenu->parent = menus.at(0);
-    auxMenu->options.push_back("Atrás");
-    auxMenu->options.push_back("Iniciar rutina");
-    auxMenu->options.push_back("Archivos");
-    auxMenu->options.push_back("Componentes");
-    auxMenu->options.push_back("Referencias");
-    auxMenu->options.push_back("Guardar rutina");
-    auxMenu->options.push_back("Abrir rutina");
+    auxMenu->options.push_back((Option){0,"Atrás"});
+    auxMenu->options.push_back((Option){1,"Iniciar rutina"});
+    auxMenu->options.push_back((Option){2,"Archivos"});
+    auxMenu->options.push_back((Option){3,"Componentes"});
+    auxMenu->options.push_back((Option){4,"Referencias"});
+    auxMenu->options.push_back((Option){5,"Guardar rutina"});
+    auxMenu->options.push_back((Option){6,"Abrir rutina"});
     menus.push_back(auxMenu);
     auxMenu = new Menu();
     auxMenu->title = "Control";
     auxMenu->parent = menus.at(0);
-    auxMenu->options.push_back("Atrás");
-    auxMenu->options.push_back("Mover");
-    auxMenu->options.push_back("Girar");
-    auxMenu->options.push_back("Succión");
-    auxMenu->options.push_back("Deshabilitar");
+    auxMenu->options.push_back((Option){0,"Atrás"});
+    auxMenu->options.push_back((Option){1,"Mover"});
+    auxMenu->options.push_back((Option){2,"Girar"});
+    auxMenu->options.push_back((Option){3,"Succión"});
+    auxMenu->options.push_back((Option){4,"Deshabilitar"});
     menus.push_back(auxMenu);
     auxMenu = new Menu();
     auxMenu->title = "Interfaz";
     auxMenu->parent = menus.at(0);
-    auxMenu->options.push_back("Atrás");
+    auxMenu->options.push_back((Option){0,"Atrás"});
+    sprintf(c,"%.0f",fontSize);
+    auxMenu->options.push_back((Option){1,"Letra",c});
+    auxMenu->options.push_back((Option){3,"Botones",std::to_string(OPTIONS_PER_WINDOW)});
+    auxMenu->options.push_back((Option){4,"Tema"});
     menus.push_back(auxMenu);
     auxMenu = new Menu();
     auxMenu->title = "Salir";
     auxMenu->parent = menus.at(0);
-    auxMenu->options.push_back("Atrás");
-    auxMenu->options.push_back("Apagar");
-    auxMenu->options.push_back("Reiniciar");
+    auxMenu->options.push_back((Option){0,"Atrás"});
+    auxMenu->options.push_back((Option){1,"Apagar"});
+    auxMenu->options.push_back((Option){2,"Reiniciar"});
     menus.push_back(auxMenu);
     auxMenu = new Menu();
     auxMenu->title = "Archivos";
     auxMenu->parent = menus.at(1);
-    auxMenu->options.push_back("Atrás");
+    auxMenu->options.push_back((Option){0,"Atrás"});
+    menus.push_back(auxMenu);
+    auxMenu = new Menu();
+    auxMenu->title = "Componentes";
+    auxMenu->parent = menus.at(1);
+    auxMenu->options.push_back((Option){0,"Atrás"});
     menus.push_back(auxMenu);
     
-    Menu* currentMenu = menus.at(0);
-    highlightedOption = currentMenu->options.begin();
+    CURRENT_MENU = menus.at(0);
+    HIGHLIGHTED_OPTION = CURRENT_MENU->options.begin();
 
     #if ARCH_ARM
         std::cout << "ARCHITECTURE: ARM" << std::endl;
@@ -928,52 +958,134 @@ int main(int argc, char** argv)
 
         if(IsKeyPressed(KEY_DOWN) || (axis_state_Y == -1 && axis_state_Y != last_axis_state_Y ))
         {
-            if(highlightedOption < std::prev(currentMenu->options.end()))
-                highlightedOption++;
+            if(HIGHLIGHTED_OPTION < std::prev(CURRENT_MENU->options.end()))
+                HIGHLIGHTED_OPTION++;
             else
-                highlightedOption = currentMenu->options.begin();
+                HIGHLIGHTED_OPTION = CURRENT_MENU->options.begin();
         }
         if(IsKeyPressed(KEY_UP) || (axis_state_Y == 1 && axis_state_Y != last_axis_state_Y ))
         {
-            if(highlightedOption > currentMenu->options.begin())
-                highlightedOption--;
+            if(HIGHLIGHTED_OPTION > CURRENT_MENU->options.begin())
+                HIGHLIGHTED_OPTION--;
             else
-                highlightedOption = std::prev(currentMenu->options.end());
+                HIGHLIGHTED_OPTION = std::prev(CURRENT_MENU->options.end());
         }
+        if(IsKeyPressed(KEY_LEFT) || (axis_state_X == -1 && axis_state_X != last_axis_state_X ))
+        {
+            if(HIGHLIGHTED_OPTION->text == "Letra")
+            {
+                if(FONT_PIXELS > 16)
+                {
+                    FONT_PIXELS -= 1;
+                    UnloadFont(font);
+                    font = LoadFontEx("resources/fonts/JetBrainsMono/JetBrainsMono-Bold.ttf", FONT_PIXELS, 0, 250);
+                    fontSize = font.baseSize;//DISPLAY_HEIGHT/20;
+                    sprintf(c,"%.0f",fontSize);
+                    HIGHLIGHTED_OPTION->value = c; 
+                }
+            }else if(HIGHLIGHTED_OPTION->text == "Botones")
+            {
+                if(OPTIONS_PER_WINDOW > 4)
+                {
+                    OPTIONS_PER_WINDOW -= 1;
+                    HIGHLIGHTED_OPTION->value = std::to_string(OPTIONS_PER_WINDOW);
+                }
+            }else if(HIGHLIGHTED_OPTION->text == "Tema")
+            {
+                HIGHLIGHTED_OPTION->value = "";
+            }
+        }
+        if(IsKeyPressed(KEY_RIGHT) || (axis_state_X == 1 && axis_state_X != last_axis_state_X ))
+        {
+            if(HIGHLIGHTED_OPTION->text == "Letra")
+            {
+                if(FONT_PIXELS < 42)
+                {
+                    FONT_PIXELS += 1;
+                    UnloadFont(font);
+                    font = LoadFontEx("resources/fonts/JetBrainsMono/JetBrainsMono-Bold.ttf", FONT_PIXELS, 0, 250);
+                    fontSize = font.baseSize;//DISPLAY_HEIGHT/20;
+                    sprintf(c,"%.0f",fontSize);
+                    HIGHLIGHTED_OPTION->value = c; 
+                }
+            }else if(HIGHLIGHTED_OPTION->text == "Botones")
+            {
+                if(OPTIONS_PER_WINDOW < 8)
+                {
+                    OPTIONS_PER_WINDOW += 1;
+                    HIGHLIGHTED_OPTION->value = std::to_string(OPTIONS_PER_WINDOW);
+                }
+            }else if(HIGHLIGHTED_OPTION->text == "Tema")
+            {
+                HIGHLIGHTED_OPTION->value = "";
+            }
+        }
+        
+        // ACCIONES AL PRESIONAR ENTER
         if(IsKeyPressed(KEY_ENTER) || (!button_state_R3 && button_state_R3 != last_button_state_R3 ))
         {
-            if((*highlightedOption) == "Atrás")
+            if(HIGHLIGHTED_OPTION->text == "Atrás")
             {
-                currentMenu = currentMenu->parent;
-                highlightedOption = currentMenu->options.begin();
-            }else if((*highlightedOption) == "Debug")
+                goBackOneMenu();
+            }else if(HIGHLIGHTED_OPTION->text == "Debug")
             {
                 SHOW_DEBUG_DATA = !SHOW_DEBUG_DATA;   
-            }else if((*highlightedOption) == "Deshabilitar")
+            }else if(HIGHLIGHTED_OPTION->text == "Deshabilitar")
             {
                 STATUS_MOTOR_ENABLED = !STATUS_MOTOR_ENABLED;
-            }else if((*highlightedOption) == "Mover")
+            }else if(HIGHLIGHTED_OPTION->text == "Mover")
             {
                 MODE_MANUAL = !MODE_MANUAL;
                 
-            }else if((*highlightedOption) == "Archivos")
-            {
-                for (const auto& menu : menus) 
-                    if((*highlightedOption) == menu->title) currentMenu = menu;
-                highlightedOption = currentMenu->options.begin();
-                std::string rutaCarpeta = "../tests/"; // reemplazar con la ruta de tu carpeta
-                std::vector<std::string> archivos = listarArchivos(rutaCarpeta);
-                currentMenu->options.clear();
-                currentMenu->options.push_back("Atrás");
-                for (const auto& archivo : archivos) {
-                    currentMenu->options.push_back(archivo.c_str());
-                    std::cout << archivo.c_str() << std::endl;
-                }
             }else
             {
-                for (const auto& menu : menus) 
-                    if((*highlightedOption) == menu->title) currentMenu = menu;
-                highlightedOption = currentMenu->options.begin();
+                if(CURRENT_MENU->title == "Archivos")
+                {
+                    currentPosFile = HIGHLIGHTED_OPTION->text;
+                    goBackOneMenu();
+                }else
+                {
+                    for (const auto& menu : menus) 
+                    {
+                        if(HIGHLIGHTED_OPTION->text == menu->title)
+                        {
+                            CURRENT_MENU = menu;
+                            HIGHLIGHTED_OPTION = CURRENT_MENU->options.begin();
+                        }
+                    }
+                }
+            }
+
+            if(CURRENT_MENU->title == "Menú principal")
+            {
+                SHOW_3D_VIEW = true;
+                SHOW_MENU_INFO = false;
+                SHOW_FIELD_VALUES = false;
+            }else if(CURRENT_MENU->title == "Interfaz")
+            {
+                SHOW_3D_VIEW = false;
+                SHOW_MENU_INFO = false;
+                SHOW_FIELD_VALUES = true;
+            }else if(CURRENT_MENU->title == "Trabajos")
+            {
+                SHOW_3D_VIEW = false;
+                SHOW_MENU_INFO = true;
+                SHOW_FIELD_VALUES = false;
+            }else if(CURRENT_MENU->title == "Archivos")
+            {
+                SHOW_3D_VIEW = false;
+                SHOW_MENU_INFO = false;
+                SHOW_FIELD_VALUES = false;
+
+                archivos = listarArchivos(rutaCarpeta);
+                CURRENT_MENU->options.clear();
+                CURRENT_MENU->options.push_back((Option){0,"Atrás"});
+                unsigned int fileCount = 1;
+                for (const auto& archivo : archivos) {
+                    CURRENT_MENU->options.push_back((Option){fileCount,archivo.c_str()});
+                    fileCount++;
+                }
+                HIGHLIGHTED_OPTION = CURRENT_MENU->options.begin();
             }
         }
 
@@ -1121,13 +1233,16 @@ int main(int argc, char** argv)
             Vector2 viewSize = {(float)renderTextureModel.texture.width/3, (float)renderTextureModel.texture.height/2};
             Rectangle viewRectangle = {(float)renderTextureModel.texture.width/2-viewSize.x/2, (float)renderTextureModel.texture.height/2-viewSize.y/2, viewSize.x, -viewSize.y};
             Vector2 viewPos = { screenWidth-viewSize.x-MARGIN, (int)(MARGIN*2+fontSize)};
-            DrawTextureRec(renderTextureBackground.texture, viewRectangle, viewPos, WHITE);
-            BeginShaderMode(shader);
-                // NOTE: Render texture must be y-flipped due to default OpenGL coordinates (left-bottom)
-                DrawTextureRec(renderTextureModel.texture, viewRectangle, viewPos, WHITE);
-            EndShaderMode();
-            Rectangle viewBorderRectangle = {viewPos.x, viewPos.y, viewSize.x, viewSize.y};
-            DrawRectangleLinesEx(viewBorderRectangle,BORDER_THICKNESS,COLOR_FG);
+            if(SHOW_3D_VIEW)
+            {
+                DrawTextureRec(renderTextureBackground.texture, viewRectangle, viewPos, WHITE);
+                BeginShaderMode(shader);
+                    // NOTE: Render texture must be y-flipped due to default OpenGL coordinates (left-bottom)
+                    DrawTextureRec(renderTextureModel.texture, viewRectangle, viewPos, WHITE);
+                EndShaderMode();
+                Rectangle viewBorderRectangle = {viewPos.x, viewPos.y, viewSize.x, viewSize.y};
+                DrawRectangleLinesEx(viewBorderRectangle,BORDER_THICKNESS,COLOR_FG);
+            }
 
             // Vector2 captureViewPos = { viewPos.x, viewPos.y+viewSize.y+MARGIN};
             // DrawTextureEx(captureTexture, captureViewPos, 0, viewSize.x/captureTexture.width,WHITE);
@@ -1135,26 +1250,34 @@ int main(int argc, char** argv)
             // DrawRectangleLinesEx(captureViewRectangle,BORDER_THICKNESS,COLOR_FG);
 
             i = 2;
-            DrawTextEx(font,currentMenu->title,(Vector2){MARGIN,MARGIN},fontSize,1,COLOR_FG);
-            for (std::vector<const char*>::iterator it = currentMenu->options.begin(); it != currentMenu->options.end(); it++)
+            DrawTextEx(font,CURRENT_MENU->title,(Vector2){MARGIN,MARGIN},fontSize,1,COLOR_FG);
+            std::vector<Option>::iterator startingOption = CURRENT_MENU->options.begin();
+            if(HIGHLIGHTED_OPTION->id >= OPTIONS_PER_WINDOW)
+            {
+                // TODO: dividir por la cantidad de opciones para calcular el offset
+                startingOption = CURRENT_MENU->options.begin()+OPTIONS_PER_WINDOW;
+            }
+            for (std::vector<Option>::iterator it = startingOption; it != CURRENT_MENU->options.end(); it++)
             {
                 Vector2 optionPos = {MARGIN, MARGIN*i+BUTTON_SIZE*(i-1)-(BUTTON_SIZE-fontSize)};
                 if(i == 2)  // la primera opción arranca debajo del título del menú
-                    optionPos = {MARGIN, MARGIN*i+fontSize*(i-1)};    
+                    optionPos = {MARGIN, MARGIN*i+fontSize*(i-1)};
                 Vector2 optionSize = {viewPos.x-MARGIN*2, BUTTON_SIZE};
+                if(!SHOW_3D_VIEW && !SHOW_MENU_INFO && !SHOW_FIELD_VALUES)
+                    optionSize.x = screenWidth-MARGIN*2;
                 Rectangle optionRectangle = {optionPos.x, optionPos.y, optionSize.x, optionSize.y};
                 // dibujo el recuadro de la opción
                 DrawRectangleLinesEx(optionRectangle,BORDER_THICKNESS,COLOR_FG);
                 // el color por defecto del texto es el color principal de foreground
                 Color optionTextColor = COLOR_FG;
-                if(it == highlightedOption)
+                if(it == HIGHLIGHTED_OPTION)
                 {
                     // la opción seleccionada se grafica con los colores invertidos
                     optionTextColor = COLOR_BG;
                     DrawRectangleRec(optionRectangle, COLOR_FG);
                 }
                 // cargo el texto de la opción en un string
-                sprintf(c," %s",(*it));
+                sprintf(c," %s",it->text);
                 // reposiciono el texto para que quede centrado en el recuadro
                 optionPos.y += (BUTTON_SIZE-fontSize)/2;
                 // dibujo el texto
@@ -1162,10 +1285,17 @@ int main(int argc, char** argv)
                 // defino la posición del ícono de acción
                 optionPos.x += optionSize.x-MARGIN-fontSize/2;
                 // dibujo el ícono de acción
-                if((*it) != "Atrás")
+                if(it->text != "Atrás")
                     DrawTextEx(font,">",optionPos,fontSize,1,optionTextColor);
                 else
                     DrawTextEx(font,"<",optionPos,fontSize,1,optionTextColor);
+                
+                if(SHOW_FIELD_VALUES)
+                {
+                    optionPos.x = MARGIN+optionSize.x+MARGIN;
+                    sprintf(c,"%s",it->value.c_str());
+                    DrawTextEx(font,c,optionPos,fontSize,1,COLOR_FG);
+                }
                 i++;
             }
             
@@ -1230,6 +1360,7 @@ int main(int argc, char** argv)
     //cleanup in the reverse order of creation/initialization
 
 	///-----cleanup_start-----
+    UnloadFont(font);
 
     UnloadModel(*platformModel);
     UnloadModel(*baseModel);
