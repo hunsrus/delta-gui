@@ -108,16 +108,15 @@ static bool STATUS_MOTOR_ENABLED = true;
 static bool MODE_MANUAL = false;
 
 // interfaz de usuario
-const int MENUS_AMOUNT = 10;
-int currentMenuID = 0;
-std::vector<const char*>::iterator highlightedMenu;
-
-typedef struct Screen{
-    int id;
+typedef struct Menu{
     const char* title;
-    Screen* parent;
+    Menu* parent = NULL;
     std::vector<const char*> options;
-}Screen;
+}Menu;
+
+int currentMenuID = 0;
+std::vector<Menu*> menus;
+std::vector<const char*>::iterator highlightedOption;
 
 Image MatToImage(const cv::Mat &mat) {
     // Asegúrate de que la imagen está en formato RGB
@@ -567,48 +566,56 @@ int main(int argc, char** argv)
     Vector3 arm1Projection, arm2Projection, arm3Projection;
 
     DrawProgressBarScreen("cargando menú...", 30, font);
-    Screen menu[MENUS_AMOUNT];
-    menu[0].id = 0;
-    menu[0].title = "Menú principal";
-    menu[0].options.push_back("Debug");
-    menu[0].options.push_back("Trabajos");
-    menu[0].options.push_back("Control");
-    menu[0].options.push_back("Interfaz");
-    menu[0].options.push_back("Salir");
-    menu[1].id = 1;
-    menu[1].title = "Trabajos";
-    menu[1].parent = &menu[0];
-    menu[1].options.push_back("Atrás");
-    menu[1].options.push_back("Iniciar rutina");
-    menu[1].options.push_back("Archivos");
-    menu[1].options.push_back("Componentes");
-    menu[1].options.push_back("Referencias");
-    menu[1].options.push_back("Guardar rutina");
-    menu[1].options.push_back("Abrir rutina");
-    menu[2].id = 2;
-    menu[2].title = "Archivos";
-    menu[2].parent = &menu[1];
-    menu[2].options.push_back("Atrás");
-    menu[3].id = 3;
-    menu[3].title = "Control";
-    menu[3].parent = &menu[0];
-    menu[3].options.push_back("Atrás");
-    menu[3].options.push_back("Mover");
-    menu[3].options.push_back("Girar");
-    menu[3].options.push_back("Succión");
-    menu[3].options.push_back("Deshabilitar");
-    menu[4].id = 4;
-    menu[4].title = "Interfaz";
-    menu[4].parent = &menu[0];
-    menu[4].options.push_back("Atrás");
-    menu[5].id = 5;
-    menu[5].title = "Salir";
-    menu[5].parent = &menu[0];
-    menu[5].options.push_back("Atrás");
-    menu[5].options.push_back("Apagar");
-    menu[5].options.push_back("Reiniciar");
+    Menu *auxMenu;
+    auxMenu = new Menu();
+    auxMenu->title = "Menú principal";
+    auxMenu->parent = NULL;
+    auxMenu->options.push_back("Debug");
+    auxMenu->options.push_back("Trabajos");
+    auxMenu->options.push_back("Control");
+    auxMenu->options.push_back("Interfaz");
+    auxMenu->options.push_back("Salir");
+    menus.push_back(auxMenu);
+    auxMenu = new Menu();
+    auxMenu->title = "Trabajos";
+    auxMenu->parent = menus.at(0);
+    auxMenu->options.push_back("Atrás");
+    auxMenu->options.push_back("Iniciar rutina");
+    auxMenu->options.push_back("Archivos");
+    auxMenu->options.push_back("Componentes");
+    auxMenu->options.push_back("Referencias");
+    auxMenu->options.push_back("Guardar rutina");
+    auxMenu->options.push_back("Abrir rutina");
+    menus.push_back(auxMenu);
+    auxMenu = new Menu();
+    auxMenu->title = "Control";
+    auxMenu->parent = menus.at(0);
+    auxMenu->options.push_back("Atrás");
+    auxMenu->options.push_back("Mover");
+    auxMenu->options.push_back("Girar");
+    auxMenu->options.push_back("Succión");
+    auxMenu->options.push_back("Deshabilitar");
+    menus.push_back(auxMenu);
+    auxMenu = new Menu();
+    auxMenu->title = "Interfaz";
+    auxMenu->parent = menus.at(0);
+    auxMenu->options.push_back("Atrás");
+    menus.push_back(auxMenu);
+    auxMenu = new Menu();
+    auxMenu->title = "Salir";
+    auxMenu->parent = menus.at(0);
+    auxMenu->options.push_back("Atrás");
+    auxMenu->options.push_back("Apagar");
+    auxMenu->options.push_back("Reiniciar");
+    menus.push_back(auxMenu);
+    auxMenu = new Menu();
+    auxMenu->title = "Archivos";
+    auxMenu->parent = menus.at(1);
+    auxMenu->options.push_back("Atrás");
+    menus.push_back(auxMenu);
     
-    highlightedMenu = menu[currentMenuID].options.begin();
+    Menu* currentMenu = menus.at(0);
+    highlightedOption = currentMenu->options.begin();
 
     #if ARCH_ARM
         std::cout << "ARCHITECTURE: ARM" << std::endl;
@@ -921,52 +928,52 @@ int main(int argc, char** argv)
 
         if(IsKeyPressed(KEY_DOWN) || (axis_state_Y == -1 && axis_state_Y != last_axis_state_Y ))
         {
-            if(highlightedMenu < std::prev(menu[currentMenuID].options.end()))
-                highlightedMenu++;
+            if(highlightedOption < std::prev(currentMenu->options.end()))
+                highlightedOption++;
             else
-                highlightedMenu = menu[currentMenuID].options.begin();
+                highlightedOption = currentMenu->options.begin();
         }
         if(IsKeyPressed(KEY_UP) || (axis_state_Y == 1 && axis_state_Y != last_axis_state_Y ))
         {
-            if(highlightedMenu > menu[currentMenuID].options.begin())
-                highlightedMenu--;
+            if(highlightedOption > currentMenu->options.begin())
+                highlightedOption--;
             else
-                highlightedMenu = std::prev(menu[currentMenuID].options.end());
+                highlightedOption = std::prev(currentMenu->options.end());
         }
         if(IsKeyPressed(KEY_ENTER) || (!button_state_R3 && button_state_R3 != last_button_state_R3 ))
         {
-            if((*highlightedMenu) == "Atrás")
+            if((*highlightedOption) == "Atrás")
             {
-                currentMenuID = menu[currentMenuID].parent->id;
-                highlightedMenu = menu[currentMenuID].options.begin();
-            }else if((*highlightedMenu) == "Debug")
+                currentMenu = currentMenu->parent;
+                highlightedOption = currentMenu->options.begin();
+            }else if((*highlightedOption) == "Debug")
             {
                 SHOW_DEBUG_DATA = !SHOW_DEBUG_DATA;   
-            }else if((*highlightedMenu) == "Deshabilitar")
+            }else if((*highlightedOption) == "Deshabilitar")
             {
                 STATUS_MOTOR_ENABLED = !STATUS_MOTOR_ENABLED;
-            }else if((*highlightedMenu) == "Mover")
+            }else if((*highlightedOption) == "Mover")
             {
                 MODE_MANUAL = !MODE_MANUAL;
                 
-            }else if((*highlightedMenu) == "Archivos")
+            }else if((*highlightedOption) == "Archivos")
             {
-                for(i = 0; i < MENUS_AMOUNT; i++)
-                    if((*highlightedMenu) == menu[i].title) currentMenuID = i;
-                highlightedMenu = menu[currentMenuID].options.begin();
+                for (const auto& menu : menus) 
+                    if((*highlightedOption) == menu->title) currentMenu = menu;
+                highlightedOption = currentMenu->options.begin();
                 std::string rutaCarpeta = "../tests/"; // reemplazar con la ruta de tu carpeta
                 std::vector<std::string> archivos = listarArchivos(rutaCarpeta);
-                menu[currentMenuID].options.clear();
-                menu[currentMenuID].options.push_back("Atrás");
+                currentMenu->options.clear();
+                currentMenu->options.push_back("Atrás");
                 for (const auto& archivo : archivos) {
-                    menu[currentMenuID].options.push_back(archivo.c_str());
+                    currentMenu->options.push_back(archivo.c_str());
                     std::cout << archivo.c_str() << std::endl;
                 }
             }else
             {
-                for(i = 0; i < MENUS_AMOUNT; i++)
-                    if((*highlightedMenu) == menu[i].title) currentMenuID = i;
-                highlightedMenu = menu[currentMenuID].options.begin();
+                for (const auto& menu : menus) 
+                    if((*highlightedOption) == menu->title) currentMenu = menu;
+                highlightedOption = currentMenu->options.begin();
             }
         }
 
@@ -1128,8 +1135,8 @@ int main(int argc, char** argv)
             // DrawRectangleLinesEx(captureViewRectangle,BORDER_THICKNESS,COLOR_FG);
 
             i = 2;
-            DrawTextEx(font,menu[currentMenuID].title,(Vector2){MARGIN,MARGIN},fontSize,1,COLOR_FG);
-            for (std::vector<const char*>::iterator it = menu[currentMenuID].options.begin(); it != menu[currentMenuID].options.end(); it++)
+            DrawTextEx(font,currentMenu->title,(Vector2){MARGIN,MARGIN},fontSize,1,COLOR_FG);
+            for (std::vector<const char*>::iterator it = currentMenu->options.begin(); it != currentMenu->options.end(); it++)
             {
                 Vector2 optionPos = {MARGIN, MARGIN*i+BUTTON_SIZE*(i-1)-(BUTTON_SIZE-fontSize)};
                 if(i == 2)  // la primera opción arranca debajo del título del menú
@@ -1140,7 +1147,7 @@ int main(int argc, char** argv)
                 DrawRectangleLinesEx(optionRectangle,BORDER_THICKNESS,COLOR_FG);
                 // el color por defecto del texto es el color principal de foreground
                 Color optionTextColor = COLOR_FG;
-                if(it == highlightedMenu)
+                if(it == highlightedOption)
                 {
                     // la opción seleccionada se grafica con los colores invertidos
                     optionTextColor = COLOR_BG;
