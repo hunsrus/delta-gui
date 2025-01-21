@@ -120,6 +120,8 @@ static bool EXECUTING_INSTRUCTION = false;
 std::vector<std::string> CURRENT_JOB;
 std::list<std::string> MANUAL_QUEUE;
 
+static double STEP_SIZE = 0.002;
+
 //----------------------------------------------------------------------------------
 // INTERFAZ
 //----------------------------------------------------------------------------------
@@ -281,6 +283,7 @@ int calculateKinematics(double &x,double &y,double &z, OctoKinematics &octoKin)
             }
         }else if(MODE_MANUAL)
         {
+            STEP_SIZE = 1.0f;
             JOB_SHOULD_STOP = false;
             if(!MANUAL_QUEUE.empty())
             {
@@ -420,10 +423,10 @@ int main(int argc, char** argv)
     auxMenu->title = "Interfaz";
     auxMenu->parent = menus.at(0);
     auxMenu->options.push_back((Option){0,"Atrás"});
-    sprintf(c,"%.0f",fontSize);
-    auxMenu->options.push_back((Option){1,"Letra",c});
+    auxMenu->options.push_back((Option){1,"Letra",std::to_string((int)fontSize)});
     auxMenu->options.push_back((Option){3,"Botones",std::to_string(OPTIONS_PER_WINDOW)});
     auxMenu->options.push_back((Option){4,"Tema",std::to_string(CURRENT_THEME)});
+    auxMenu->options.push_back((Option){5,"División",std::to_string(SCREEN_DIVISION_RATIO)});
     menus.push_back(auxMenu);
     auxMenu = new Menu();
     auxMenu->title = "Salir";
@@ -729,22 +732,22 @@ int main(int argc, char** argv)
             {
                 if(IsKeyDown(KEY_A) || axis_state_X == -1)
                 {
-                    sprintf(c, "LX%.4f",octoKin.x-1.0f);
+                    sprintf(c, "LY%.4f",octoKin.y-1.0f);
                     MANUAL_QUEUE.push_back(c);
                 }
                 if(IsKeyDown(KEY_D) || axis_state_X == 1)
                 {
-                    sprintf(c, "LX%.4f",octoKin.x+1.0f);
+                    sprintf(c, "LY%.4f",octoKin.y+1.0f);
                     MANUAL_QUEUE.push_back(c);
                 }
                 if(IsKeyDown(KEY_S) || axis_state_Y == -1)
                 {
-                    sprintf(c, "LY%.4f",octoKin.y-1.0f);
+                    sprintf(c, "LX%.4f",octoKin.x-1.0f);
                     MANUAL_QUEUE.push_back(c);
                 }
                 if(IsKeyDown(KEY_W) || axis_state_Y == 1)
                 {
-                    sprintf(c, "LY%.4f",octoKin.y+1.0f);
+                    sprintf(c, "LX%.4f",octoKin.x+1.0f);
                     MANUAL_QUEUE.push_back(c);
                 }
                 if(IsKeyDown(KEY_LEFT_SHIFT) || button_state_R2)
@@ -785,8 +788,7 @@ int main(int argc, char** argv)
                     UnloadFont(font);
                     font = LoadFontEx("resources/fonts/JetBrainsMono/JetBrainsMono-Bold.ttf", FONT_PIXELS, 0, 250);
                     fontSize = font.baseSize;//DISPLAY_HEIGHT/20;
-                    sprintf(c,"%.0f",fontSize);
-                    HIGHLIGHTED_OPTION->value = c; 
+                    HIGHLIGHTED_OPTION->value = std::to_string((int)fontSize); 
                 }
             }else if(HIGHLIGHTED_OPTION->text == "Botones")
             {
@@ -817,6 +819,10 @@ int main(int argc, char** argv)
                 SetShaderValue(shader, resolutionLoc, shaderResolution, SHADER_UNIFORM_VEC2);
                 
                 HIGHLIGHTED_OPTION->value = std::to_string(CURRENT_THEME);
+            }else if(HIGHLIGHTED_OPTION->text == "División")
+            {
+                SCREEN_DIVISION_RATIO -= 0.1;
+                HIGHLIGHTED_OPTION->value = std::to_string(SCREEN_DIVISION_RATIO);
             }
         }
         if(IsKeyPressed(KEY_RIGHT) || (axis_state_X == 1 && axis_state_X != last_axis_state_X ))
@@ -829,8 +835,7 @@ int main(int argc, char** argv)
                     UnloadFont(font);
                     font = LoadFontEx("resources/fonts/JetBrainsMono/JetBrainsMono-Bold.ttf", FONT_PIXELS, 0, 250);
                     fontSize = font.baseSize;//DISPLAY_HEIGHT/20;
-                    sprintf(c,"%.0f",fontSize);
-                    HIGHLIGHTED_OPTION->value = c; 
+                    HIGHLIGHTED_OPTION->value = std::to_string((int)fontSize);
                 }
             }else if(HIGHLIGHTED_OPTION->text == "Botones")
             {
@@ -861,6 +866,10 @@ int main(int argc, char** argv)
                 SetShaderValue(shader, resolutionLoc, shaderResolution, SHADER_UNIFORM_VEC2);
                 
                 HIGHLIGHTED_OPTION->value = std::to_string(CURRENT_THEME);
+            }else if(HIGHLIGHTED_OPTION->text == "División")
+            {
+                SCREEN_DIVISION_RATIO += 0.1;
+                HIGHLIGHTED_OPTION->value = std::to_string(SCREEN_DIVISION_RATIO);
             }
         }
         
@@ -1379,7 +1388,7 @@ int executeInstruction(std::string instruction, OctoKinematics &octoKin)
         // if (has_z) printf("Coordenada Z: %.4f\n", z);
         
         
-        octoKin.linear_move(x, y, z, 0.002, 0);
+        octoKin.linear_move(x, y, z, STEP_SIZE, 0);
     }else if(instruction[0] == 'D') // delay
     {
         char *d_pos = strchr((char*)instruction.c_str(), 'D');
@@ -1409,6 +1418,10 @@ int executeInstruction(std::string instruction, OctoKinematics &octoKin)
 
         // TODO: parsear argumento de grados de rotación
 
+    }else if(instruction[0] == 'S') // cambiar tamaño del paso (STEP_SIZE) para movimiento lineal
+    {
+        char *s_pos = strchr((char*)instruction.c_str(), 'S');
+        STEP_SIZE = atof(s_pos + 1);
     }
 
     return EXIT_SUCCESS;
@@ -1425,6 +1438,8 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
     std::vector<std::string> job;
     std::string instruction;
     
+    instruction = "S0.002";
+    job.push_back(instruction);
     instruction = "LX0Y0Z"+std::to_string(LIM_Z+30);
     job.push_back(instruction);
     instruction = "D250000";
