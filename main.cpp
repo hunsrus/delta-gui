@@ -215,6 +215,8 @@ char readRegister(int pin_data, int pin_pl, int pin_cp)
 
     // generar un pulso en PL para cargar los datos del registro paralelo al registro de desplazamiento
     #if ARCH_ARM
+    data = 0;
+
     gpioWrite(pin_pl, 0);
     gpioWrite(pin_pl, 1);
 
