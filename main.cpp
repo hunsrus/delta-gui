@@ -21,6 +21,7 @@
 #include <thread>
 #include <unistd.h>
 #include <vector>
+#include <list>
 #include <dirent.h>
 
 #if ARCH_ARM
@@ -109,32 +110,35 @@ static Color COLOR_HL = ORANGE;
 
 Font font;
 
-// image detection definitions
-static cv::Mat image;
-static bool CAMERA_AVAILABLE = true;
-static bool CAPTURE_READY = false;
-
 static bool EXIT = false;
 static bool STATUS_MOTOR_ENABLED = true;
 static bool MODE_MANUAL = false;
 static bool JOB_RUNNING = false;
 static bool JOB_SHOULD_STOP = false;
+static bool EXECUTING_INSTRUCTION = false;
 
 std::vector<std::string> CURRENT_JOB;
+std::list<std::string> MANUAL_QUEUE;
 
-// interfaz de usuario
+//----------------------------------------------------------------------------------
+// INTERFAZ
+//----------------------------------------------------------------------------------
+
+// opciones de menú
 typedef struct Option{
     unsigned int id;
     const char* text;
     std::string value = "";
 }Option;
 
+// estructura del menú
 typedef struct Menu{
     const char* title;
     Menu* parent = NULL;
     std::vector<Option> options;
 }Menu;
 
+// estructura de tema gráfico
 typedef struct Theme
 {
     Color background = MCGREEN;
@@ -145,11 +149,17 @@ typedef struct Theme
 Menu* CURRENT_MENU;
 std::vector<Option>::iterator HIGHLIGHTED_OPTION;
 
-void goBackOneMenu()
-{
-    CURRENT_MENU = CURRENT_MENU->parent;
-    HIGHLIGHTED_OPTION = CURRENT_MENU->options.begin();
-}
+void goBackOneMenu(void);
+void DrawProgressBarScreen(const char* text, int progress, Font font);
+void DrawProgressBarIndicator(const char* text, int progress, Font font);
+
+//----------------------------------------------------------------------------------
+// DETECCIÓN DE IMÁGENES
+//----------------------------------------------------------------------------------
+/*
+static cv::Mat image;
+static bool CAMERA_AVAILABLE = true;
+static bool CAPTURE_READY = false;
 
 Image MatToImage(const cv::Mat &mat) {
     // Asegúrate de que la imagen está en formato RGB
@@ -169,44 +179,6 @@ Image MatToImage(const cv::Mat &mat) {
     memcpy(image.data, matRGB.data, matRGB.total() * matRGB.elemSize());
 
     return image;
-}
-
-float mapear(float x, float in_min, float in_max, float out_min, float out_max) {
-  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
-}
-
-void DrawProgressBarScreen(const char* text, int progress, Font font)
-{
-    HideCursor();
-    float fontSize = font.baseSize/2.0f;
-    Vector2 barSize = {DISPLAY_WIDTH*0.8, DISPLAY_HEIGHT*0.1};
-    Vector2 barPos = {DISPLAY_WIDTH/2-barSize.x/2, DISPLAY_HEIGHT/2-barSize.y/2};
-    Vector2 textPos = {barPos.x,barPos.y-fontSize};
-    BeginDrawing();
-        ClearBackground(COLOR_BG);
-        Rectangle barRec = {barPos.x, barPos.y, barSize.x, barSize.y};
-        DrawRectangleLinesEx(barRec, BORDER_THICKNESS, COLOR_FG);
-        barRec.width *= progress/100.0f;
-        DrawRectangleRec(barRec,COLOR_FG);
-        DrawTextEx(font, text, textPos, fontSize, 1, COLOR_FG);
-    EndDrawing();
-}
-
-void DrawProgressBarIndicator(const char* text, int progress, Font font)
-{
-    float fontSize = font.baseSize/2.0f;
-    Vector2 barSize = {DISPLAY_WIDTH*SCREEN_DIVISION_RATIO, fontSize};
-    Vector2 barPos = {DISPLAY_WIDTH-DISPLAY_WIDTH*SCREEN_DIVISION_RATIO-MARGIN, MARGIN+fontSize};
-    Vector2 textPos = {barPos.x,barPos.y-fontSize};
-    BeginDrawing();
-        // ClearBackground(COLOR_BG);
-        DrawRectangle(barPos.x,MARGIN,barSize.x,MARGIN*2+fontSize,COLOR_BG);
-        Rectangle barRec = {barPos.x, barPos.y, barSize.x, barSize.y};
-        DrawRectangleLinesEx(barRec, BORDER_THICKNESS, COLOR_FG);
-        barRec.width *= progress/100.0f;
-        DrawRectangleRec(barRec,COLOR_FG);
-        DrawTextEx(font, text, textPos, fontSize, 1, COLOR_FG);
-    EndDrawing();
 }
 
 int captureVideo(void)
@@ -255,41 +227,13 @@ int captureVideo(void)
 
     return EXIT_SUCCESS;
 }
+*/
 
-char readRegister(int pin_data, int pin_pl, int pin_cp)
-{
-    char data = 255;
+//----------------------------------------------------------------------------------
+// MANEJO DE ARCHIVOS
+//----------------------------------------------------------------------------------
 
-    // generar un pulso en PL para cargar los datos del registro paralelo al registro de desplazamiento
-    #if ARCH_ARM
-    data = 0;
-
-    gpioWrite(pin_pl, 0);
-    gpioWrite(pin_pl, 1);
-
-    // leer los 8 bits del registro desplazándolos al acumulador "data"
-    for (int i = 0; i < 8; i++) {
-        // leer el bit actual desde el pin de salida
-        int bit = gpioRead(pin_data);
-
-        // colocar el bit leído en la posición correspondiente en "data"
-        data |= (bit << (7 - i));
-
-        // generar un pulso en el pin CP para avanzar al siguiente bit
-        gpioWrite(pin_cp, 1);
-        gpioWrite(pin_cp, 0);
-    }
-    #endif
-
-    return data;
-}
-
-int readBit(char data, int bit) {
-    return (data >> bit) & 0x01;
-    //return (data >> (7 - bit)) & 0x01;
-}
-
-// Estructura para almacenar la información de cada componente
+// estructura para almacenar la información de cada componente
 struct Componente {
     std::string reference;
     std::string value;
@@ -299,198 +243,20 @@ struct Componente {
     double rotation;
 };
 
-// Función para parsear el archivo
-std::vector<Componente> parsearArchivo(const std::string& nombreArchivo) {
-    int progress = 0;
+std::vector<Componente> parsearArchivo(const std::string& nombreArchivo);
+int executeInstruction(std::string instruction, OctoKinematics &octoKin);
+std::vector<std::string> generateJob(std::vector<Componente> componentes);
+std::vector<std::string> listarArchivos(const std::string& rutaCarpeta);
 
-    std::vector<Componente> componentes;
-    std::ifstream archivo(nombreArchivo);
-    if (archivo.is_open()) {
-        std::string linea;
-        // Saltar las líneas de comentario y encabezado
-        while (std::getline(archivo, linea)) {
-            if (linea.find('#') == 0 || linea.empty()) {
-                continue;
-            }
-            // Parsear la línea
-            std::istringstream iss(linea);
-            Componente componente;
-            iss >> componente.reference >> componente.value >> componente.package
-            >> componente.posx >> componente.posy >> componente.rotation;
-            componentes.push_back(componente);
-            DrawProgressBarIndicator("Parseando...", progress, font);
-            if(progress < 90) progress += 10;
-        }
-        archivo.close();
-    } else {
-        std::cerr << "Error al abrir el archivo." << std::endl;
-    }
-    return componentes;
+//----------------------------------------------------------------------------------
+// UTILIDADES
+//----------------------------------------------------------------------------------
+float mapear(float x, float in_min, float in_max, float out_min, float out_max) {
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
-int executeInstruction(std::string instruction, OctoKinematics &octoKin)
-{
-    std::string format;
-
-    if(instruction[0] == 'L')       // movimiento lineal
-    {
-        std::cout << "Ejecutando L" << std::endl;
-
-        double x = octoKin.x;
-        double y = octoKin.y;
-        double z = octoKin.z;
-
-        format = "%."+std::to_string(NUMERIC_PRECISION)+"f";
-        format = "LX"+format+"Y"+format+"Z"+format;
-
-        int has_x = 0, has_y = 0, has_z = 0;  // Bandera para coordenadas presentes
-
-        // Buscar coordenada X
-        char *x_pos = strchr((char*)instruction.c_str(), 'X');
-        if (x_pos) {
-            x = atof(x_pos + 1);  // Convertir valor después de 'X'
-            has_x = 1;  // Indicar que X fue encontrada
-        }
-
-        // Buscar coordenada Y
-        char *y_pos = strchr((char*)instruction.c_str(), 'Y');
-        if (y_pos) {
-            y = atof(y_pos + 1);  // Convertir valor después de 'Y'
-            has_y = 1;  // Indicar que Y fue encontrada
-        }
-
-        // Buscar coordenada Z
-        char *z_pos = strchr((char*)instruction.c_str(), 'Z');
-        if (z_pos) {
-            z = atof(z_pos + 1);  // Convertir valor después de 'Z'
-            has_z = 1;  // Indicar que Z fue encontrada
-        }
-
-        // Mostrar resultados
-        printf("Instrucción: %c\n", instruction[0]);
-        if (has_x) printf("Coordenada X: %.4f\n", x);
-        if (has_y) printf("Coordenada Y: %.4f\n", y);
-        if (has_z) printf("Coordenada Z: %.4f\n", z);
-        
-        
-        octoKin.linear_move(x, y, z, 0.002, 0);
-    }else if(instruction[0] == 'D') // delay
-    {
-        char *d_pos = strchr((char*)instruction.c_str(), 'D');
-        int us = atoi(d_pos + 1);  // Convertir valor después de 'D'
-        usleep(us);
-        std::cout << "Ejecutando D" << std::endl;
-        
-    }else if(instruction[0] == 'B') // controlar bomba
-    {
-        if(instruction[1] == '1') gpioWrite(PIN_BOMBA,1);
-        else if(instruction[1] == '0') gpioWrite(PIN_BOMBA,0);
-        else
-        {
-            fprintf(stderr, "invalid instruction: %s\n",instruction);
-            return EXIT_FAILURE;
-        }
-    }else if(instruction[0] == 'E') // girar efector
-    {
-        bool dir = -1;
-
-        if(instruction[1] == 'H') dir = 1;
-        else if(instruction[1] == 'A') dir = 0;
-        else
-        {
-            fprintf(stderr, "invalid instruction: %s\n",instruction);
-            return EXIT_FAILURE;
-        }
-
-        // TODO: parsear argumento de grados de rotación
-
-    }
-
-    return EXIT_SUCCESS;
-}
-
-std::vector<std::string> generateJob(std::vector<Componente> componentes)
-{
-    char aux_x[20], aux_y[20], aux_z[20];
-    std::string format = "%."+std::to_string(NUMERIC_PRECISION)+"f";
-    int progress = 0;
-    int componentCount = 0;
-    DrawProgressBarIndicator("Convirtiendo...", progress, font);
-
-    std::vector<std::string> job;
-    std::string instruction;
-    
-    instruction = "LX0Y0Z"+std::to_string(LIM_Z+30);
-    job.push_back(instruction);
-    instruction = "D250000";
-    job.push_back(instruction);
-
-    for (const auto& componente : componentes)
-    {
-        sprintf(aux_x, format.c_str(), componente.posx);
-        sprintf(aux_y, format.c_str(), componente.posy);
-        
-        instruction = "LX";
-        instruction.append(aux_x);
-        instruction += "Y";
-        instruction.append(aux_y);
-        job.push_back(instruction);
-
-        instruction = "D250000";
-        job.push_back(instruction);
-
-        sprintf(aux_z, format.c_str(), LIM_Z);
-        instruction = "LZ";
-        instruction.append(aux_z);
-        job.push_back(instruction);
-
-        instruction = "D250000";
-        job.push_back(instruction);
-
-        sprintf(aux_z, format.c_str(), LIM_Z+30);
-        instruction = "LZ";
-        instruction.append(aux_z);
-        job.push_back(instruction);
-
-        instruction = "D250000";
-        job.push_back(instruction);
-
-        // std::cout << "Referencia: " << componente.reference << std::endl;
-        // std::cout << "Valor: " << componente.value << std::endl;
-        // std::cout << "Paquete: " << componente.package << std::endl;
-        // std::cout << "Posición X: " << componente.posx << std::endl;
-        // std::cout << "Posición Y: " << componente.posy << std::endl;
-        // std::cout << "Rotación: " << componente.rotation << std::endl;
-        // std::cout << std::endl;
-        componentCount++;
-        progress = mapear(componentCount,0,componentes.size(),0,100);
-        DrawProgressBarIndicator("Convirtiendo...", progress, font);
-    }
-
-    return job;
-}
-
-// Función para listar los archivos en una carpeta
-std::vector<std::string> listarArchivos(const std::string& rutaCarpeta) {
-    std::vector<std::string> archivos;
-    DIR* dir;
-    struct dirent* ent;
-
-    // Abrir la carpeta
-    if ((dir = opendir(rutaCarpeta.c_str())) != NULL) {
-        // Leer los archivos en la carpeta
-        while ((ent = readdir(dir)) != NULL) {
-            // Verificar si es un archivo regular (no carpeta)
-            if (ent->d_type == DT_REG) {
-                archivos.push_back(ent->d_name);
-            }
-        }
-        closedir(dir);
-    } else {
-        std::cerr << "Error al abrir la carpeta." << std::endl;
-    }
-    return archivos;
-}
+char readRegister(int pin_data, int pin_pl, int pin_cp);
+int readBit(char data, int bit);
 
 int calculateKinematics(double &x,double &y,double &z, OctoKinematics &octoKin)
 {
@@ -504,7 +270,20 @@ int calculateKinematics(double &x,double &y,double &z, OctoKinematics &octoKin)
             for (const auto& instruction : CURRENT_JOB) 
             {
                 executeInstruction(instruction,octoKin);
-                if(JOB_SHOULD_STOP || EXIT) break;
+                if(JOB_SHOULD_STOP || EXIT)
+                {
+                    JOB_RUNNING = false;
+                    break;
+                }
+            }
+        }else if(MODE_MANUAL)
+        {
+            if(!MANUAL_QUEUE.empty())
+            {
+                EXECUTING_INSTRUCTION = true;
+                executeInstruction(MANUAL_QUEUE.front(),octoKin);
+                MANUAL_QUEUE.pop_front();
+                EXECUTING_INSTRUCTION = false;
             }
         }
     }
@@ -940,31 +719,35 @@ int main(int argc, char** argv)
             axis_state_Y = 1;
         }
 
-        if(MODE_MANUAL)
+        if(MODE_MANUAL && !EXECUTING_INSTRUCTION)
         {
             if(IsKeyDown(KEY_A) || axis_state_X == -1)
             {
-                y -= 1.0f;
+                sprintf(c, "LX%.4f",octoKin.x-1.0f);
+                MANUAL_QUEUE.push_back(c);
             }
             if(IsKeyDown(KEY_D) || axis_state_X == 1)
             {
-                y += 1.0f;
+                sprintf(c, "LX%.4f",octoKin.x+1.0f);
+                MANUAL_QUEUE.push_back(c);
             }
             if(IsKeyDown(KEY_S) || axis_state_Y == -1)
             {
-                x -= 1.0f;
+                sprintf(c, "LY%.4f",octoKin.y-1.0f);
+                MANUAL_QUEUE.push_back(c);
             }
             if(IsKeyDown(KEY_W) || axis_state_Y == 1)
             {
-                x += 1.0f;
+                sprintf(c, "LY%.4f",octoKin.y+1.0f);
+                MANUAL_QUEUE.push_back(c);
             }
             if(IsKeyDown(KEY_LEFT_SHIFT) || button_state_R2)
             {
-                z -= 1.0f;
+                // z -= 1.0f;
             }
             if(IsKeyDown(KEY_LEFT_CONTROL) || button_state_R1)
             {
-                z += 1.0f;
+                // z += 1.0f;
             }
         }
         
@@ -1087,8 +870,11 @@ int main(int argc, char** argv)
             }else if(HIGHLIGHTED_OPTION->text == "Mover")
             {
                 MODE_MANUAL = !MODE_MANUAL;
+                JOB_SHOULD_STOP = true;
             }else if(HIGHLIGHTED_OPTION->text == "Iniciar rutina")
             {
+                MODE_MANUAL = false;
+                JOB_SHOULD_STOP = false;
                 JOB_RUNNING = true;
             }else
             {
@@ -1428,4 +1214,267 @@ int main(int argc, char** argv)
 	fprintf(stdout, " Done.\n");
 
     return 0;
+}
+
+//----------------------------------------------------------------------------------
+// DEFINICION DE FUNCIONES
+//----------------------------------------------------------------------------------
+
+void goBackOneMenu(void)
+{
+    CURRENT_MENU = CURRENT_MENU->parent;
+    HIGHLIGHTED_OPTION = CURRENT_MENU->options.begin();
+}
+
+void DrawProgressBarScreen(const char* text, int progress, Font font)
+{
+    HideCursor();
+    float fontSize = font.baseSize/2.0f;
+    Vector2 barSize = {DISPLAY_WIDTH*0.8, DISPLAY_HEIGHT*0.1};
+    Vector2 barPos = {DISPLAY_WIDTH/2-barSize.x/2, DISPLAY_HEIGHT/2-barSize.y/2};
+    Vector2 textPos = {barPos.x,barPos.y-fontSize};
+    BeginDrawing();
+        ClearBackground(COLOR_BG);
+        Rectangle barRec = {barPos.x, barPos.y, barSize.x, barSize.y};
+        DrawRectangleLinesEx(barRec, BORDER_THICKNESS, COLOR_FG);
+        barRec.width *= progress/100.0f;
+        DrawRectangleRec(barRec,COLOR_FG);
+        DrawTextEx(font, text, textPos, fontSize, 1, COLOR_FG);
+    EndDrawing();
+}
+
+void DrawProgressBarIndicator(const char* text, int progress, Font font)
+{
+    float fontSize = font.baseSize/2.0f;
+    Vector2 barSize = {DISPLAY_WIDTH*SCREEN_DIVISION_RATIO, fontSize};
+    Vector2 barPos = {DISPLAY_WIDTH-DISPLAY_WIDTH*SCREEN_DIVISION_RATIO-MARGIN, MARGIN+fontSize};
+    Vector2 textPos = {barPos.x,barPos.y-fontSize};
+    BeginDrawing();
+        // ClearBackground(COLOR_BG);
+        DrawRectangle(barPos.x,MARGIN,barSize.x,MARGIN*2+fontSize,COLOR_BG);
+        Rectangle barRec = {barPos.x, barPos.y, barSize.x, barSize.y};
+        DrawRectangleLinesEx(barRec, BORDER_THICKNESS, COLOR_FG);
+        barRec.width *= progress/100.0f;
+        DrawRectangleRec(barRec,COLOR_FG);
+        DrawTextEx(font, text, textPos, fontSize, 1, COLOR_FG);
+    EndDrawing();
+}
+
+char readRegister(int pin_data, int pin_pl, int pin_cp)
+{
+    char data = 0b01110101; // para que la pc lea los botones sin presionar y el joystick centrado
+
+    // generar un pulso en PL para cargar los datos del registro paralelo al registro de desplazamiento
+    #if ARCH_ARM
+    data = 0;
+
+    gpioWrite(pin_pl, 0);
+    gpioWrite(pin_pl, 1);
+
+    // leer los 8 bits del registro desplazándolos al acumulador "data"
+    for (int i = 0; i < 8; i++) {
+        // leer el bit actual desde el pin de salida
+        int bit = gpioRead(pin_data);
+
+        // colocar el bit leído en la posición correspondiente en "data"
+        data |= (bit << (7 - i));
+
+        // generar un pulso en el pin CP para avanzar al siguiente bit
+        gpioWrite(pin_cp, 1);
+        gpioWrite(pin_cp, 0);
+    }
+    #endif
+
+    return data;
+}
+
+int readBit(char data, int bit) {
+    return (data >> bit) & 0x01;
+    //return (data >> (7 - bit)) & 0x01;
+}
+
+// Función para parsear el archivo
+std::vector<Componente> parsearArchivo(const std::string& nombreArchivo) {
+    int progress = 0;
+
+    std::vector<Componente> componentes;
+    std::ifstream archivo(nombreArchivo);
+    if (archivo.is_open()) {
+        std::string linea;
+        // Saltar las líneas de comentario y encabezado
+        while (std::getline(archivo, linea)) {
+            if (linea.find('#') == 0 || linea.empty()) {
+                continue;
+            }
+            // Parsear la línea
+            std::istringstream iss(linea);
+            Componente componente;
+            iss >> componente.reference >> componente.value >> componente.package
+            >> componente.posx >> componente.posy >> componente.rotation;
+            componentes.push_back(componente);
+            DrawProgressBarIndicator("Parseando...", progress, font);
+            if(progress < 90) progress += 10;
+        }
+        archivo.close();
+    } else {
+        std::cerr << "Error al abrir el archivo." << std::endl;
+    }
+    return componentes;
+}
+
+int executeInstruction(std::string instruction, OctoKinematics &octoKin)
+{
+    std::string format;
+
+    if(instruction[0] == 'L')       // movimiento lineal
+    {
+        std::cout << "Ejecutando L" << std::endl;
+
+        double x = octoKin.x;
+        double y = octoKin.y;
+        double z = octoKin.z;
+
+        format = "%."+std::to_string(NUMERIC_PRECISION)+"f";
+        format = "LX"+format+"Y"+format+"Z"+format;
+
+        int has_x = 0, has_y = 0, has_z = 0;  // Bandera para coordenadas presentes
+
+        // Buscar coordenada X
+        char *x_pos = strchr((char*)instruction.c_str(), 'X');
+        if (x_pos) {
+            x = atof(x_pos + 1);  // Convertir valor después de 'X'
+            has_x = 1;  // Indicar que X fue encontrada
+        }
+
+        // Buscar coordenada Y
+        char *y_pos = strchr((char*)instruction.c_str(), 'Y');
+        if (y_pos) {
+            y = atof(y_pos + 1);  // Convertir valor después de 'Y'
+            has_y = 1;  // Indicar que Y fue encontrada
+        }
+
+        // Buscar coordenada Z
+        char *z_pos = strchr((char*)instruction.c_str(), 'Z');
+        if (z_pos) {
+            z = atof(z_pos + 1);  // Convertir valor después de 'Z'
+            has_z = 1;  // Indicar que Z fue encontrada
+        }
+
+        // Mostrar resultados
+        printf("Instrucción: %c\n", instruction[0]);
+        if (has_x) printf("Coordenada X: %.4f\n", x);
+        if (has_y) printf("Coordenada Y: %.4f\n", y);
+        if (has_z) printf("Coordenada Z: %.4f\n", z);
+        
+        
+        octoKin.linear_move(x, y, z, 0.002, 0);
+    }else if(instruction[0] == 'D') // delay
+    {
+        char *d_pos = strchr((char*)instruction.c_str(), 'D');
+        int us = atoi(d_pos + 1);  // Convertir valor después de 'D'
+        usleep(us);
+        std::cout << "Ejecutando D" << std::endl;
+        
+    }else if(instruction[0] == 'B') // controlar bomba
+    {
+        if(instruction[1] == '1') gpioWrite(PIN_BOMBA,1);
+        else if(instruction[1] == '0') gpioWrite(PIN_BOMBA,0);
+        else
+        {
+            fprintf(stderr, "invalid instruction: %s\n",instruction);
+            return EXIT_FAILURE;
+        }
+    }else if(instruction[0] == 'E') // girar efector
+    {
+        bool dir = -1;
+
+        if(instruction[1] == 'H') dir = 1;
+        else if(instruction[1] == 'A') dir = 0;
+        else
+        {
+            fprintf(stderr, "invalid instruction: %s\n",instruction);
+            return EXIT_FAILURE;
+        }
+
+        // TODO: parsear argumento de grados de rotación
+
+    }
+
+    return EXIT_SUCCESS;
+}
+
+std::vector<std::string> generateJob(std::vector<Componente> componentes)
+{
+    char aux_x[20], aux_y[20], aux_z[20];
+    std::string format = "%."+std::to_string(NUMERIC_PRECISION)+"f";
+    int progress = 0;
+    int componentCount = 0;
+    DrawProgressBarIndicator("Convirtiendo...", progress, font);
+
+    std::vector<std::string> job;
+    std::string instruction;
+    
+    instruction = "LX0Y0Z"+std::to_string(LIM_Z+30);
+    job.push_back(instruction);
+    instruction = "D250000";
+    job.push_back(instruction);
+
+    for (const auto& componente : componentes)
+    {
+        sprintf(aux_x, format.c_str(), componente.posx);
+        sprintf(aux_y, format.c_str(), componente.posy);
+        
+        instruction = "LX";
+        instruction.append(aux_x);
+        instruction += "Y";
+        instruction.append(aux_y);
+        job.push_back(instruction);
+
+        instruction = "D250000";
+        job.push_back(instruction);
+
+        sprintf(aux_z, format.c_str(), LIM_Z);
+        instruction = "LZ";
+        instruction.append(aux_z);
+        job.push_back(instruction);
+
+        instruction = "D250000";
+        job.push_back(instruction);
+
+        sprintf(aux_z, format.c_str(), LIM_Z+30);
+        instruction = "LZ";
+        instruction.append(aux_z);
+        job.push_back(instruction);
+
+        instruction = "D250000";
+        job.push_back(instruction);
+
+        componentCount++;
+        progress = mapear(componentCount,0,componentes.size(),0,100);
+        DrawProgressBarIndicator("Convirtiendo...", progress, font);
+    }
+
+    return job;
+}
+
+// Función para listar los archivos en una carpeta
+std::vector<std::string> listarArchivos(const std::string& rutaCarpeta) {
+    std::vector<std::string> archivos;
+    DIR* dir;
+    struct dirent* ent;
+
+    // Abrir la carpeta
+    if ((dir = opendir(rutaCarpeta.c_str())) != NULL) {
+        // Leer los archivos en la carpeta
+        while ((ent = readdir(dir)) != NULL) {
+            // Verificar si es un archivo regular (no carpeta)
+            if (ent->d_type == DT_REG) {
+                archivos.push_back(ent->d_name);
+            }
+        }
+        closedir(dir);
+    } else {
+        std::cerr << "Error al abrir la carpeta." << std::endl;
+    }
+    return archivos;
 }
