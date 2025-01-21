@@ -269,15 +269,19 @@ int calculateKinematics(double &x,double &y,double &z, OctoKinematics &octoKin)
         {
             for (const auto& instruction : CURRENT_JOB) 
             {
+                EXECUTING_INSTRUCTION = true;
                 executeInstruction(instruction,octoKin);
+                EXECUTING_INSTRUCTION = false;
                 if(JOB_SHOULD_STOP || EXIT)
                 {
                     JOB_RUNNING = false;
+                    JOB_SHOULD_STOP = false;
                     break;
                 }
             }
         }else if(MODE_MANUAL)
         {
+            JOB_SHOULD_STOP = false;
             if(!MANUAL_QUEUE.empty())
             {
                 EXECUTING_INSTRUCTION = true;
@@ -749,23 +753,25 @@ int main(int argc, char** argv)
             {
                 // z += 1.0f;
             }
+        }else
+        {
+            if(IsKeyPressed(KEY_DOWN) || (axis_state_Y == -1 && axis_state_Y != last_axis_state_Y ))
+            {
+                if(HIGHLIGHTED_OPTION < std::prev(CURRENT_MENU->options.end()))
+                    HIGHLIGHTED_OPTION++;
+                else
+                    HIGHLIGHTED_OPTION = CURRENT_MENU->options.begin();
+            }
+            if(IsKeyPressed(KEY_UP) || (axis_state_Y == 1 && axis_state_Y != last_axis_state_Y ))
+            {
+                if(HIGHLIGHTED_OPTION > CURRENT_MENU->options.begin())
+                    HIGHLIGHTED_OPTION--;
+                else
+                    HIGHLIGHTED_OPTION = std::prev(CURRENT_MENU->options.end());
+            }
         }
         
 
-        if(IsKeyPressed(KEY_DOWN) || (axis_state_Y == -1 && axis_state_Y != last_axis_state_Y ))
-        {
-            if(HIGHLIGHTED_OPTION < std::prev(CURRENT_MENU->options.end()))
-                HIGHLIGHTED_OPTION++;
-            else
-                HIGHLIGHTED_OPTION = CURRENT_MENU->options.begin();
-        }
-        if(IsKeyPressed(KEY_UP) || (axis_state_Y == 1 && axis_state_Y != last_axis_state_Y ))
-        {
-            if(HIGHLIGHTED_OPTION > CURRENT_MENU->options.begin())
-                HIGHLIGHTED_OPTION--;
-            else
-                HIGHLIGHTED_OPTION = std::prev(CURRENT_MENU->options.end());
-        }
         if(IsKeyPressed(KEY_LEFT) || (axis_state_X == -1 && axis_state_X != last_axis_state_X ))
         {
             if(HIGHLIGHTED_OPTION->text == "Letra")
@@ -1138,16 +1144,22 @@ int main(int argc, char** argv)
             }
             
             Vector2 statusBarPos = {DISPLAY_WIDTH-DISPLAY_WIDTH*SCREEN_DIVISION_RATIO-MARGIN,MARGIN};
-            if(STATUS_MOTOR_ENABLED) DrawTextEx(font,"o",statusBarPos,fontSize,1,COLOR_HL);
-            else DrawTextEx(font,"o",statusBarPos,fontSize,1,ORANGE);
-            statusBarPos.x += fontSize;
-            if(STATUS_MOTOR_ENABLED) DrawTextEx(font,"o",statusBarPos,fontSize,1,COLOR_HL);
-            statusBarPos.x += fontSize;
-            if(STATUS_MOTOR_ENABLED) DrawTextEx(font,"o",statusBarPos,fontSize,1,COLOR_HL);
-            statusBarPos.x += fontSize;
-            if(STATUS_MOTOR_ENABLED) DrawTextEx(font,"o",statusBarPos,fontSize,1,COLOR_HL);
-            statusBarPos.x += fontSize;
-            if(STATUS_MOTOR_ENABLED) DrawTextEx(font,"o",statusBarPos,fontSize,1,COLOR_HL);
+            Vector2 statusBarSize = {DISPLAY_WIDTH*SCREEN_DIVISION_RATIO, MARGIN+fontSize};
+            Vector2 iconPos = statusBarPos;
+            if(JOB_RUNNING) DrawTextEx(font,"R",iconPos,fontSize,1,COLOR_HL);
+            else DrawTextEx(font,"R",iconPos,fontSize,1,COLOR_FG);
+            iconPos.x += fontSize;
+            if(MODE_MANUAL) DrawTextEx(font,"M",iconPos,fontSize,1,COLOR_HL);
+            else DrawTextEx(font,"M",iconPos,fontSize,1,COLOR_FG);
+            iconPos.x += fontSize;
+            if(STATUS_MOTOR_ENABLED) DrawTextEx(font,"E",iconPos,fontSize,1,COLOR_HL);
+            else DrawTextEx(font,"E",iconPos,fontSize,1,COLOR_FG);
+
+            if(JOB_SHOULD_STOP && EXECUTING_INSTRUCTION)
+            {   
+                DrawRectangle(statusBarPos.x,statusBarPos.y,statusBarSize.x,statusBarSize.y,COLOR_BG);
+                DrawTextEx(font, "Deteniendo...", statusBarPos, fontSize*0.5f, 1, COLOR_FG);
+            }
 
             if(SHOW_DEBUG_DATA)
             {
@@ -1328,8 +1340,6 @@ int executeInstruction(std::string instruction, OctoKinematics &octoKin)
 
     if(instruction[0] == 'L')       // movimiento lineal
     {
-        std::cout << "Ejecutando L" << std::endl;
-
         double x = octoKin.x;
         double y = octoKin.y;
         double z = octoKin.z;
@@ -1361,10 +1371,9 @@ int executeInstruction(std::string instruction, OctoKinematics &octoKin)
         }
 
         // Mostrar resultados
-        printf("Instrucción: %c\n", instruction[0]);
-        if (has_x) printf("Coordenada X: %.4f\n", x);
-        if (has_y) printf("Coordenada Y: %.4f\n", y);
-        if (has_z) printf("Coordenada Z: %.4f\n", z);
+        // if (has_x) printf("Coordenada X: %.4f\n", x);
+        // if (has_y) printf("Coordenada Y: %.4f\n", y);
+        // if (has_z) printf("Coordenada Z: %.4f\n", z);
         
         
         octoKin.linear_move(x, y, z, 0.002, 0);
@@ -1373,7 +1382,6 @@ int executeInstruction(std::string instruction, OctoKinematics &octoKin)
         char *d_pos = strchr((char*)instruction.c_str(), 'D');
         int us = atoi(d_pos + 1);  // Convertir valor después de 'D'
         usleep(us);
-        std::cout << "Ejecutando D" << std::endl;
         
     }else if(instruction[0] == 'B') // controlar bomba
     {
