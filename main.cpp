@@ -723,35 +723,38 @@ int main(int argc, char** argv)
             axis_state_Y = 1;
         }
 
-        if(MODE_MANUAL && !EXECUTING_INSTRUCTION)
+        if(MODE_MANUAL)
         {
-            if(IsKeyDown(KEY_A) || axis_state_X == -1)
+            if(!EXECUTING_INSTRUCTION)
             {
-                sprintf(c, "LX%.4f",octoKin.x-1.0f);
-                MANUAL_QUEUE.push_back(c);
-            }
-            if(IsKeyDown(KEY_D) || axis_state_X == 1)
-            {
-                sprintf(c, "LX%.4f",octoKin.x+1.0f);
-                MANUAL_QUEUE.push_back(c);
-            }
-            if(IsKeyDown(KEY_S) || axis_state_Y == -1)
-            {
-                sprintf(c, "LY%.4f",octoKin.y-1.0f);
-                MANUAL_QUEUE.push_back(c);
-            }
-            if(IsKeyDown(KEY_W) || axis_state_Y == 1)
-            {
-                sprintf(c, "LY%.4f",octoKin.y+1.0f);
-                MANUAL_QUEUE.push_back(c);
-            }
-            if(IsKeyDown(KEY_LEFT_SHIFT) || button_state_R2)
-            {
-                // z -= 1.0f;
-            }
-            if(IsKeyDown(KEY_LEFT_CONTROL) || button_state_R1)
-            {
-                // z += 1.0f;
+                if(IsKeyDown(KEY_A) || axis_state_X == -1)
+                {
+                    sprintf(c, "LX%.4f",octoKin.x-1.0f);
+                    MANUAL_QUEUE.push_back(c);
+                }
+                if(IsKeyDown(KEY_D) || axis_state_X == 1)
+                {
+                    sprintf(c, "LX%.4f",octoKin.x+1.0f);
+                    MANUAL_QUEUE.push_back(c);
+                }
+                if(IsKeyDown(KEY_S) || axis_state_Y == -1)
+                {
+                    sprintf(c, "LY%.4f",octoKin.y-1.0f);
+                    MANUAL_QUEUE.push_back(c);
+                }
+                if(IsKeyDown(KEY_W) || axis_state_Y == 1)
+                {
+                    sprintf(c, "LY%.4f",octoKin.y+1.0f);
+                    MANUAL_QUEUE.push_back(c);
+                }
+                if(IsKeyDown(KEY_LEFT_SHIFT) || button_state_R2)
+                {
+                    // z -= 1.0f;
+                }
+                if(IsKeyDown(KEY_LEFT_CONTROL) || button_state_R1)
+                {
+                    // z += 1.0f;
+                }
             }
         }else
         {
