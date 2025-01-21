@@ -15,6 +15,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <iomanip> // para setprecision()
 #include <stdio.h>
 #include <stdlib.h>
 #include <thread>
@@ -37,6 +38,7 @@
 
 #define TRANS_MULTIPLIER 3
 #define STEPS_NUM 8
+#define NUMERIC_PRECISION 4 // cantidad de decimales
 
 // pinout definitions
 #define PIN_DIR1 12
@@ -87,6 +89,7 @@
 static float FONT_PIXELS = 24*DISPLAY_HEIGHT/240;
 static unsigned int OPTIONS_PER_WINDOW = 6;
 #define BUTTON_SIZE (DISPLAY_HEIGHT-MARGIN*3-MARGIN*(OPTIONS_PER_WINDOW-1)-FONT_PIXELS)/OPTIONS_PER_WINDOW
+static float SCREEN_DIVISION_RATIO = 1.0f/3.0f;
 
 #define CAMERA_FOV 65
 #define DRAW_SCALE 0.5
@@ -104,6 +107,8 @@ static Color COLOR_BG = {34,34,34,255};
 static Color COLOR_FG = {238,238,238,255};
 static Color COLOR_HL = ORANGE;
 
+Font font;
+
 // image detection definitions
 static cv::Mat image;
 static bool CAMERA_AVAILABLE = true;
@@ -112,6 +117,10 @@ static bool CAPTURE_READY = false;
 static bool EXIT = false;
 static bool STATUS_MOTOR_ENABLED = true;
 static bool MODE_MANUAL = false;
+static bool JOB_RUNNING = false;
+static bool JOB_SHOULD_STOP = false;
+
+std::vector<std::string> CURRENT_JOB;
 
 // interfaz de usuario
 typedef struct Option{
@@ -160,6 +169,44 @@ Image MatToImage(const cv::Mat &mat) {
     memcpy(image.data, matRGB.data, matRGB.total() * matRGB.elemSize());
 
     return image;
+}
+
+float mapear(float x, float in_min, float in_max, float out_min, float out_max) {
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+void DrawProgressBarScreen(const char* text, int progress, Font font)
+{
+    HideCursor();
+    float fontSize = font.baseSize/2.0f;
+    Vector2 barSize = {DISPLAY_WIDTH*0.8, DISPLAY_HEIGHT*0.1};
+    Vector2 barPos = {DISPLAY_WIDTH/2-barSize.x/2, DISPLAY_HEIGHT/2-barSize.y/2};
+    Vector2 textPos = {barPos.x,barPos.y-fontSize};
+    BeginDrawing();
+        ClearBackground(COLOR_BG);
+        Rectangle barRec = {barPos.x, barPos.y, barSize.x, barSize.y};
+        DrawRectangleLinesEx(barRec, BORDER_THICKNESS, COLOR_FG);
+        barRec.width *= progress/100.0f;
+        DrawRectangleRec(barRec,COLOR_FG);
+        DrawTextEx(font, text, textPos, fontSize, 1, COLOR_FG);
+    EndDrawing();
+}
+
+void DrawProgressBarIndicator(const char* text, int progress, Font font)
+{
+    float fontSize = font.baseSize/2.0f;
+    Vector2 barSize = {DISPLAY_WIDTH*SCREEN_DIVISION_RATIO, fontSize};
+    Vector2 barPos = {DISPLAY_WIDTH-DISPLAY_WIDTH*SCREEN_DIVISION_RATIO-MARGIN, MARGIN+fontSize};
+    Vector2 textPos = {barPos.x,barPos.y-fontSize};
+    BeginDrawing();
+        // ClearBackground(COLOR_BG);
+        DrawRectangle(barPos.x,MARGIN,barSize.x,MARGIN*2+fontSize,COLOR_BG);
+        Rectangle barRec = {barPos.x, barPos.y, barSize.x, barSize.y};
+        DrawRectangleLinesEx(barRec, BORDER_THICKNESS, COLOR_FG);
+        barRec.width *= progress/100.0f;
+        DrawRectangleRec(barRec,COLOR_FG);
+        DrawTextEx(font, text, textPos, fontSize, 1, COLOR_FG);
+    EndDrawing();
 }
 
 int captureVideo(void)
@@ -254,6 +301,8 @@ struct Componente {
 
 // Función para parsear el archivo
 std::vector<Componente> parsearArchivo(const std::string& nombreArchivo) {
+    int progress = 0;
+
     std::vector<Componente> componentes;
     std::ifstream archivo(nombreArchivo);
     if (archivo.is_open()) {
@@ -267,8 +316,10 @@ std::vector<Componente> parsearArchivo(const std::string& nombreArchivo) {
             std::istringstream iss(linea);
             Componente componente;
             iss >> componente.reference >> componente.value >> componente.package
-                >> componente.posx >> componente.posy >> componente.rotation;
+            >> componente.posx >> componente.posy >> componente.rotation;
             componentes.push_back(componente);
+            DrawProgressBarIndicator("Parseando...", progress, font);
+            if(progress < 90) progress += 10;
         }
         archivo.close();
     } else {
@@ -277,18 +328,58 @@ std::vector<Componente> parsearArchivo(const std::string& nombreArchivo) {
     return componentes;
 }
 
-int executeInstruction(char* instruction, OctoKinematics &octoKin)
+int executeInstruction(std::string instruction, OctoKinematics &octoKin)
 {
+    std::string format;
+
     if(instruction[0] == 'L')       // movimiento lineal
     {
-        double x = instruction[1];
-        double y = instruction[2];
-        double z = instruction[3];
-        octoKin.linear_move(x, y, z, 0.4, 0);
+        std::cout << "Ejecutando L" << std::endl;
+
+        double x = octoKin.x;
+        double y = octoKin.y;
+        double z = octoKin.z;
+
+        format = "%."+std::to_string(NUMERIC_PRECISION)+"f";
+        format = "LX"+format+"Y"+format+"Z"+format;
+
+        int has_x = 0, has_y = 0, has_z = 0;  // Bandera para coordenadas presentes
+
+        // Buscar coordenada X
+        char *x_pos = strchr((char*)instruction.c_str(), 'X');
+        if (x_pos) {
+            x = atof(x_pos + 1);  // Convertir valor después de 'X'
+            has_x = 1;  // Indicar que X fue encontrada
+        }
+
+        // Buscar coordenada Y
+        char *y_pos = strchr((char*)instruction.c_str(), 'Y');
+        if (y_pos) {
+            y = atof(y_pos + 1);  // Convertir valor después de 'Y'
+            has_y = 1;  // Indicar que Y fue encontrada
+        }
+
+        // Buscar coordenada Z
+        char *z_pos = strchr((char*)instruction.c_str(), 'Z');
+        if (z_pos) {
+            z = atof(z_pos + 1);  // Convertir valor después de 'Z'
+            has_z = 1;  // Indicar que Z fue encontrada
+        }
+
+        // Mostrar resultados
+        printf("Instrucción: %c\n", instruction[0]);
+        if (has_x) printf("Coordenada X: %.4f\n", x);
+        if (has_y) printf("Coordenada Y: %.4f\n", y);
+        if (has_z) printf("Coordenada Z: %.4f\n", z);
+        
+        
+        octoKin.linear_move(x, y, z, 0.002, 0);
     }else if(instruction[0] == 'D') // delay
     {
-        int us = instruction[1];
+        char *d_pos = strchr((char*)instruction.c_str(), 'D');
+        int us = atoi(d_pos + 1);  // Convertir valor después de 'D'
         usleep(us);
+        std::cout << "Ejecutando D" << std::endl;
         
     }else if(instruction[0] == 'B') // controlar bomba
     {
@@ -314,35 +405,56 @@ int executeInstruction(char* instruction, OctoKinematics &octoKin)
         // TODO: parsear argumento de grados de rotación
 
     }
+
+    return EXIT_SUCCESS;
 }
 
-void readPosFile()
+std::vector<std::string> generateJob(std::vector<Componente> componentes)
 {
-    std::string nombreArchivo = "../tests/usb-top.pos"; // reemplazar con el nombre del archivo
-    std::vector<Componente> componentes = parsearArchivo(nombreArchivo);
+    char aux_x[20], aux_y[20], aux_z[20];
+    std::string format = "%."+std::to_string(NUMERIC_PRECISION)+"f";
+    int progress = 0;
+    int componentCount = 0;
+    DrawProgressBarIndicator("Convirtiendo...", progress, font);
 
     std::vector<std::string> job;
     std::string instruction;
     
     instruction = "LX0Y0Z"+std::to_string(LIM_Z+30);
     job.push_back(instruction);
-    instruction = "D20000";
+    instruction = "D250000";
     job.push_back(instruction);
 
     for (const auto& componente : componentes)
     {
-        instruction = ("LX"+std::to_string(componente.posx)+"Y"+std::to_string(componente.posy));
+        sprintf(aux_x, format.c_str(), componente.posx);
+        sprintf(aux_y, format.c_str(), componente.posy);
+        
+        instruction = "LX";
+        instruction.append(aux_x);
+        instruction += "Y";
+        instruction.append(aux_y);
         job.push_back(instruction);
-        instruction = "D20000";
+
+        instruction = "D250000";
         job.push_back(instruction);
-        instruction = ("LZ"+std::to_string(LIM_Z));
+
+        sprintf(aux_z, format.c_str(), LIM_Z);
+        instruction = "LZ";
+        instruction.append(aux_z);
         job.push_back(instruction);
-        instruction = "D20000";
+
+        instruction = "D250000";
         job.push_back(instruction);
-        instruction = ("LZ"+std::to_string(LIM_Z+30));
+
+        sprintf(aux_z, format.c_str(), LIM_Z+30);
+        instruction = "LZ";
+        instruction.append(aux_z);
         job.push_back(instruction);
-        instruction = "D20000";
+
+        instruction = "D250000";
         job.push_back(instruction);
+
         // std::cout << "Referencia: " << componente.reference << std::endl;
         // std::cout << "Valor: " << componente.value << std::endl;
         // std::cout << "Paquete: " << componente.package << std::endl;
@@ -350,7 +462,12 @@ void readPosFile()
         // std::cout << "Posición Y: " << componente.posy << std::endl;
         // std::cout << "Rotación: " << componente.rotation << std::endl;
         // std::cout << std::endl;
+        componentCount++;
+        progress = mapear(componentCount,0,componentes.size(),0,100);
+        DrawProgressBarIndicator("Convirtiendo...", progress, font);
     }
+
+    return job;
 }
 
 // Función para listar los archivos en una carpeta
@@ -380,150 +497,19 @@ int calculateKinematics(double &x,double &y,double &z, OctoKinematics &octoKin)
     float low_z = LIM_Z;//-294
     float high_z = LIM_Z+10;
 
-    // dibujar grilla
-	double stepDist = 0.002;
-	for(int i=-30; i<=30; i=i+3)
+    while(!EXIT)
     {
-	  x = i;
-	  y = -30;
-	  z = high_z;
-	  octoKin.linear_move(x, y, z, stepDist, 0);
-	  usleep(250000);
-      if(EXIT) return EXIT_FAILURE;
-	  z = low_z;
-	  octoKin.linear_move(x, y, z, stepDist, 0);
-	  usleep(250000);
-      if(EXIT) return EXIT_FAILURE;
-	  x = i;
-	  y = 30;
-	  z = low_z;
-	  octoKin.linear_move(x, y, z, stepDist, 0);
-	  usleep(250000);
-      if(EXIT) return EXIT_FAILURE;
-	  z = high_z;
-	  octoKin.linear_move(x, y, z, stepDist, 0);
-	  usleep(250000);
-      if(EXIT) return EXIT_FAILURE;
-	}
-	for(int i=-30; i<=30; i=i+3)
-    {
-	  x = -30;
-	  y = i;
-	  z = high_z;
-	  octoKin.linear_move(x, y, z, stepDist, 0);
-	  usleep(250000);
-      if(EXIT) return EXIT_FAILURE;
-	  z = low_z;
-	  octoKin.linear_move(x, y, z, stepDist, 0);
-	  usleep(250000);
-      if(EXIT) return EXIT_FAILURE;
-	  x = 30;
-	  y = i;
-	  z = low_z;
-	  octoKin.linear_move(x, y, z, stepDist, 0);
-	  usleep(250000);
-      if(EXIT) return EXIT_FAILURE;
-	  z = high_z;
-	  octoKin.linear_move(x, y, z, stepDist, 0);
-	  usleep(250000);
-      if(EXIT) return EXIT_FAILURE;
-	}
-
-	// Ubicar componentes
-	std::vector<double> vect1_x = {-30.0, -30.0, -30.0, -30.0, -30.0, -30.0};
-	std::vector<double> vect1_y = {0.0, -3.0, -6.0, -9.0, -12.0, -15.0};
-	std::vector<double> vect2_x = {-15.0, -24.0, -7.0, -1.0, -10.0, -14.0};
-	std::vector<double> vect2_y = {-15.0, -8.0, -23.0, -30.0, -7.0, -1.0};
-	stepDist = 0.0008;
-	for(int i=0; i<=5; i++)
-    {
-	 x = vect1_x[i];
-	 y = vect1_y[i];
-	 z = high_z;
-	 octoKin.linear_move(x, y, z, stepDist, 0);
-	 usleep(250000);
-     if(EXIT) return EXIT_FAILURE;
-	 gpioWrite(PIN_BOMBA,1);
-	 usleep(25000);
-	 z = low_z;
-	 octoKin.linear_move(x, y, z, stepDist, 0);
-	 usleep(250000);
-     if(EXIT) return EXIT_FAILURE;
-	 z = high_z;
-	 octoKin.linear_move(x, y, z, stepDist, 0);
-	 usleep(250000);
-     if(EXIT) return EXIT_FAILURE;
-	 x = vect2_x[i];
-	 y = vect2_y[i];
-	 z = high_z;
-	 octoKin.linear_move(x, y, z, stepDist, 0);
-	 usleep(250000);
-     if(EXIT) return EXIT_FAILURE;
-	 z = low_z;
-	 octoKin.linear_move(x, y, z, stepDist, 0);
-	 usleep(25000);
-     if(EXIT) return EXIT_FAILURE;
-	 gpioWrite(PIN_BOMBA,0);
-	 usleep(250000);
-	 z = high_z;
-	 octoKin.linear_move(x, y, z, stepDist, 0);
-     if(EXIT) return EXIT_FAILURE;
-	 usleep(250000);
-	}
-	for(int i=0; i<=5; i++)
-    {
-	 x = vect2_x[i];
-	 y = vect2_y[i];
-	 z = high_z;
-	 octoKin.linear_move(x, y, z, stepDist, 0);
-     if(EXIT) return EXIT_FAILURE;
-	 usleep(250000);
-	 gpioWrite(PIN_BOMBA,1);
-	 usleep(25000);
-	 z = low_z;
-	 octoKin.linear_move(x, y, z, stepDist, 0);
-	 usleep(250000);
-     if(EXIT) return EXIT_FAILURE;
-	 z = high_z;
-	 octoKin.linear_move(x, y, z, stepDist, 0);
-	 usleep(250000);
-     if(EXIT) return EXIT_FAILURE;
-	 x = vect1_x[i];
-	 y = vect1_y[i];
-	 z = high_z;
-	 octoKin.linear_move(x, y, z, stepDist, 0);
-	 usleep(250000);
-     if(EXIT) return EXIT_FAILURE;
-	 z = low_z;
-	 octoKin.linear_move(x, y, z, stepDist, 0);
-	 usleep(25000);
-     if(EXIT) return EXIT_FAILURE;
-	 gpioWrite(PIN_BOMBA,0);
-	 usleep(250000);
-	 z = high_z;
-	 octoKin.linear_move(x, y, z, stepDist, 0);
-	 usleep(250000);
-     if(EXIT) return EXIT_FAILURE;
-	}
+        if(JOB_RUNNING)
+        {
+            for (const auto& instruction : CURRENT_JOB) 
+            {
+                executeInstruction(instruction,octoKin);
+                if(JOB_SHOULD_STOP || EXIT) break;
+            }
+        }
+    }
 
     return EXIT_SUCCESS;
-}
-
-void DrawProgressBarScreen(const char* text, int progress, Font font)
-{
-    HideCursor();
-    float fontSize = font.baseSize/2.0f;
-    Vector2 barSize = {DISPLAY_WIDTH*0.8, DISPLAY_HEIGHT*0.1};
-    Vector2 barPos = {DISPLAY_WIDTH/2-barSize.x/2, DISPLAY_HEIGHT/2-barSize.y/2};
-    Vector2 textPos = {barPos.x,barPos.y-fontSize};
-    BeginDrawing();
-        ClearBackground(COLOR_BG);
-        Rectangle barRec = {barPos.x, barPos.y, barSize.x, barSize.y};
-        DrawRectangleLinesEx(barRec, BORDER_THICKNESS, COLOR_FG);
-        barRec.width *= progress/100.0f;
-        DrawRectangleRec(barRec,COLOR_FG);
-        DrawTextEx(font, text, textPos, fontSize, 1, COLOR_FG);
-    EndDrawing();
 }
 
 int main(int argc, char** argv)
@@ -538,7 +524,7 @@ int main(int argc, char** argv)
     SetConfigFlags(FLAG_WINDOW_UNDECORATED);
     InitWindow(screenWidth, screenHeight, "delta gui test");
 
-    Font font = LoadFontEx("resources/fonts/JetBrainsMono/JetBrainsMono-Bold.ttf", FONT_PIXELS, 0, 250);
+    font = LoadFontEx("resources/fonts/JetBrainsMono/JetBrainsMono-Bold.ttf", FONT_PIXELS, 0, 250);
     float fontSize = font.baseSize;//DISPLAY_HEIGHT/20;
 
     HideCursor();
@@ -866,9 +852,6 @@ int main(int argc, char** argv)
     z = -220;
     octoKin.inverse_kinematics(x, y, z);
     octoKin.updateKinematics();
-    lastX = x;
-    lastY = y;
-    lastZ = z;
 
     std::cout << "a: " << octoKin.a << std::endl;
     std::cout << "b: " << octoKin.b << std::endl;
@@ -1104,12 +1087,18 @@ int main(int argc, char** argv)
             }else if(HIGHLIGHTED_OPTION->text == "Mover")
             {
                 MODE_MANUAL = !MODE_MANUAL;
-                
+            }else if(HIGHLIGHTED_OPTION->text == "Iniciar rutina")
+            {
+                JOB_RUNNING = true;
             }else
             {
                 if(CURRENT_MENU->title == "Archivos")
                 {
                     currentPosFile = HIGHLIGHTED_OPTION->text;
+
+                    std::vector<Componente> componentes = parsearArchivo("../tests/"+currentPosFile);
+                    CURRENT_JOB = generateJob(componentes);
+
                     goBackOneMenu();
                 }else
                 {
@@ -1136,8 +1125,8 @@ int main(int argc, char** argv)
                 SHOW_FIELD_VALUES = true;
             }else if(CURRENT_MENU->title == "Trabajos")
             {
-                SHOW_3D_VIEW = false;
-                SHOW_MENU_INFO = true;
+                SHOW_3D_VIEW = true;
+                SHOW_MENU_INFO = false;
                 SHOW_FIELD_VALUES = false;
             }else if(CURRENT_MENU->title == "Archivos")
             {
@@ -1155,11 +1144,6 @@ int main(int argc, char** argv)
                 }
                 HIGHLIGHTED_OPTION = CURRENT_MENU->options.begin();
             }
-        }
-
-        if(IsKeyPressed(KEY_F1))
-        {
-            SHOW_DEBUG_DATA = !SHOW_DEBUG_DATA;
         }
 
         if(IsKeyDown(KEY_SPACE))
@@ -1298,7 +1282,7 @@ int main(int argc, char** argv)
         BeginDrawing();
             ClearBackground(COLOR_BG);
             
-            Vector2 viewSize = {(float)renderTextureModel.texture.width/3, (float)renderTextureModel.texture.height/2};
+            Vector2 viewSize = {DISPLAY_WIDTH*SCREEN_DIVISION_RATIO, (float)renderTextureModel.texture.height/2};
             Rectangle viewRectangle = {(float)renderTextureModel.texture.width/2-viewSize.x/2, (float)renderTextureModel.texture.height/2-viewSize.y/2, viewSize.x, -viewSize.y};
             Vector2 viewPos = { screenWidth-viewSize.x-MARGIN, (int)(MARGIN*2+fontSize)};
             if(SHOW_3D_VIEW)
@@ -1367,7 +1351,7 @@ int main(int argc, char** argv)
                 i++;
             }
             
-            Vector2 statusBarPos = {viewPos.x,MARGIN};
+            Vector2 statusBarPos = {DISPLAY_WIDTH-DISPLAY_WIDTH*SCREEN_DIVISION_RATIO-MARGIN,MARGIN};
             if(STATUS_MOTOR_ENABLED) DrawTextEx(font,"o",statusBarPos,fontSize,1,COLOR_HL);
             else DrawTextEx(font,"o",statusBarPos,fontSize,1,ORANGE);
             statusBarPos.x += fontSize;
