@@ -35,7 +35,7 @@
 #define BAS_RADIUS 117.0f
 #define BAS_POSITION (Vector3){0,ARM_LENGTH+ROD_LENGTH,0}
 #define HOME_Z -170.0f
-#define LIM_Z -250.0f
+#define LIM_Z -230.0f
 
 #define TRANS_MULTIPLIER 3
 #define STEPS_NUM 8
@@ -1487,7 +1487,7 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
     std::vector<std::string> job;
     std::string instruction;
     
-    instruction = "S0.002";
+    instruction = "S0.02";
     job.push_back(instruction);
     instruction = "LX0Y0Z"+std::to_string(LIM_Z+30);
     job.push_back(instruction);
@@ -1496,8 +1496,13 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
 
     for (const auto& componente : componentes)
     {
-        Vector3 feederApproach = Vector3Subtract(POS_FEEDER,(Vector3){20.0f,20.0f,0.0f});
+        Vector3 feederApproach = Vector3Scale(POS_FEEDER, 0.8);
+        feederApproach.z = POS_FEEDER.z;
+        instruction = "S0.2";
+        job.push_back(instruction);
         instruction = "LX"+std::to_string(feederApproach.x)+"Y"+std::to_string(feederApproach.y)+"Z"+std::to_string(feederApproach.z);
+        job.push_back(instruction);
+        instruction = "S0.002";
         job.push_back(instruction);
         instruction = "LX"+std::to_string(POS_FEEDER.x)+"Y"+std::to_string(POS_FEEDER.y)+"Z"+std::to_string(POS_FEEDER.z);
         job.push_back(instruction);
@@ -1505,6 +1510,8 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
         sprintf(aux_x, format.c_str(), componente.posx);
         sprintf(aux_y, format.c_str(), componente.posy);
         
+        instruction = "S0.2";
+        job.push_back(instruction);
         instruction = "LX";
         instruction.append(aux_x);
         instruction += "Y";
@@ -1514,6 +1521,8 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
         instruction = "D250000";
         job.push_back(instruction);
 
+        instruction = "S0.002";
+        job.push_back(instruction);
         sprintf(aux_z, format.c_str(), LIM_Z);
         instruction = "LZ";
         instruction.append(aux_z);
