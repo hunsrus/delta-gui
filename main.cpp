@@ -35,7 +35,7 @@
 #define BAS_RADIUS 117.0f
 #define BAS_POSITION (Vector3){0,ARM_LENGTH+ROD_LENGTH,0}
 #define HOME_Z -170.0f
-#define LIM_Z -273.0f
+#define LIM_Z -250.0f
 
 #define TRANS_MULTIPLIER 3
 #define STEPS_NUM 8
@@ -418,7 +418,7 @@ int main(int argc, char** argv)
     auxMenu->parent = menus.at(0);
     auxMenu->options.push_back((Option){0,"Atrás"});
     auxMenu->options.push_back((Option){1,"Zona PCB"});
-    auxMenu->options.push_back((Option){2,"Feeders"});
+    auxMenu->options.push_back((Option){2,"Feeder"});
     menus.push_back(auxMenu);
     auxMenu = new Menu();
     auxMenu->title = "Control";
@@ -912,6 +912,17 @@ int main(int argc, char** argv)
                 JOB_SHOULD_STOP = true;
             }else if(HIGHLIGHTED_OPTION->text == "Zona PCB")
             {
+                if(MODE_MANUAL)
+                {
+                    POS_PCB = (Vector3){octoKin.x, octoKin.y, octoKin.z};
+                }
+                MODE_MANUAL = !MODE_MANUAL;
+            }else if(HIGHLIGHTED_OPTION->text == "Feeder")
+            {
+                if(MODE_MANUAL)
+                {
+                    POS_FEEDER = (Vector3){octoKin.x, octoKin.y, octoKin.z};
+                }
                 MODE_MANUAL = !MODE_MANUAL;
             }else if(HIGHLIGHTED_OPTION->text == "Iniciar rutina")
             {
@@ -1182,7 +1193,7 @@ int main(int argc, char** argv)
                 i++;
             }
 
-            if(MODE_MANUAL && HIGHLIGHTED_OPTION->text == "Zona PCB")
+            if(MODE_MANUAL && (HIGHLIGHTED_OPTION->text == "Zona PCB") || (HIGHLIGHTED_OPTION->text == "Feeder"))
             {
                 DrawRectangleLinesEx(dataViewRectangle,BORDER_THICKNESS,COLOR_FG);
                 sprintf(c," X %.4f",octoKin.x);
@@ -1485,6 +1496,12 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
 
     for (const auto& componente : componentes)
     {
+        Vector3 feederApproach = Vector3Subtract(POS_FEEDER,(Vector3){20.0f,20.0f,0.0f});
+        instruction = "LX"+std::to_string(feederApproach.x)+"Y"+std::to_string(feederApproach.y)+"Z"+std::to_string(feederApproach.z);
+        job.push_back(instruction);
+        instruction = "LX"+std::to_string(POS_FEEDER.x)+"Y"+std::to_string(POS_FEEDER.y)+"Z"+std::to_string(POS_FEEDER.z);
+        job.push_back(instruction);
+
         sprintf(aux_x, format.c_str(), componente.posx);
         sprintf(aux_y, format.c_str(), componente.posy);
         

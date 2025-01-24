@@ -1,0 +1,21 @@
+### Footprint positions - created on 2025-01-24T13:02:56-0300 ###
+### Printed by KiCad version 8.0.7
+## Unit = mm, Angle = deg.
+## Side : top
+# Ref     Val       Package                         PosX       PosY       Rot  Side
+C1        C_Small   C_01005_0402Metric           30.7850    14.6050    0.0000  top
+C2        C_Small   C_01005_0402Metric           30.7850    12.9550    0.0000  top
+C3        C_Small   C_01005_0402Metric           30.7850    11.3050    0.0000  top
+C4        C_Small   C_01005_0402Metric           33.0350    14.6050    0.0000  top
+C5        C_Small   C_01005_0402Metric           33.0350    12.9550    0.0000  top
+C6        C_Small   C_01005_0402Metric           33.0350    11.3050    0.0000  top
+C7        C_Small   C_01005_0402Metric           35.2850    14.6050    0.0000  top
+C8        C_Small   C_01005_0402Metric           35.2850    12.9550    0.0000  top
+C9        C_Small   C_01005_0402Metric           35.2850    11.3050    0.0000  top
+U1        74HC165   SOP-8_5.28x5.23mm_P1.27mm    19.2600    20.3200    0.0000  top
+U2        74HC165   SOP-8_5.28x5.23mm_P1.27mm     7.6200    20.3200    0.0000  top
+U3        74HC165   SOP-8_5.28x5.23mm_P1.27mm     7.6200    12.7000    0.0000  top
+U4        74HC165   SOP-8_5.28x5.23mm_P1.27mm    19.2600    12.7000    0.0000  top
+U5        74HC165   SOP-8_5.28x5.23mm_P1.27mm     7.6200     5.0800    0.0000  top
+U6        74HC165   SOP-8_5.28x5.23mm_P1.27mm    19.2600     5.0800    0.0000  top
+## End
