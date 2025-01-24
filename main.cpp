@@ -120,6 +120,7 @@ static bool EXECUTING_INSTRUCTION = false;
 std::vector<std::string> CURRENT_JOB;
 std::list<std::string> MANUAL_QUEUE;
 
+static std::string PATH_FILES = "../tests/";
 static double STEP_SIZE = 0.002;
 static Vector3 POS_PCB = Vector3Zero();
 static Vector3 POS_FEEDER = Vector3Zero();
@@ -256,11 +257,14 @@ std::vector<std::string> listarArchivos(const std::string& rutaCarpeta);
 // UTILIDADES
 //----------------------------------------------------------------------------------
 float mapear(float x, float in_min, float in_max, float out_min, float out_max) {
-  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
 char readRegister(int pin_data, int pin_pl, int pin_cp);
 int readBit(char data, int bit);
+
+int writeConfigFile(const std::string& config_file_path);
+int configFileParser(std::string config_file_path);
 
 int calculateKinematics(double &x,double &y,double &z, OctoKinematics &octoKin)
 {
@@ -342,9 +346,17 @@ int main(int argc, char** argv)
     bool last_button_state_R2 = 1;
     bool last_button_state_R3 = 1;
 
-    std::string rutaCarpeta = "../tests/";
     std::vector<std::string> archivos;
     std::string currentPosFile = "";
+
+    if(configFileParser("../config"))
+        std::cout << "Lectura de archivo de configuración exitosa" << std::endl;
+    else
+        std::cout << "Error en lectura de archivo de configuración" << std::endl;
+
+    std::cout << "[INFO] POS_FEEDER X = " << std::to_string(POS_FEEDER.x) << "" << std::endl;
+    std::cout << "[INFO] POS_FEEDER Y = " << std::to_string(POS_FEEDER.y) << "" << std::endl;
+    std::cout << "[INFO] POS_FEEDER Z = " << std::to_string(POS_FEEDER.z) << "" << std::endl;
 
     int THEMES_COUNT = 9;
     Theme themes[THEMES_COUNT] = {{MCGREEN, WHITE, (Color){92,65,93,255}},
@@ -419,6 +431,7 @@ int main(int argc, char** argv)
     auxMenu->options.push_back((Option){0,"Atrás"});
     auxMenu->options.push_back((Option){1,"Zona PCB"});
     auxMenu->options.push_back((Option){2,"Feeder"});
+    auxMenu->options.push_back((Option){3,"Guardar"});
     menus.push_back(auxMenu);
     auxMenu = new Menu();
     auxMenu->title = "Control";
@@ -924,6 +937,12 @@ int main(int argc, char** argv)
                     POS_FEEDER = (Vector3){octoKin.x, octoKin.y, octoKin.z};
                 }
                 MODE_MANUAL = !MODE_MANUAL;
+            }else if(HIGHLIGHTED_OPTION->text == "Guardar")
+            {
+                if(CURRENT_MENU->title == "Calibrar")
+                {
+                    writeConfigFile("../config");
+                }
             }else if(HIGHLIGHTED_OPTION->text == "Iniciar rutina")
             {
                 MODE_MANUAL = false;
@@ -973,7 +992,7 @@ int main(int argc, char** argv)
                 SHOW_MENU_INFO = false;
                 SHOW_FIELD_VALUES = false;
 
-                archivos = listarArchivos(rutaCarpeta);
+                archivos = listarArchivos(PATH_FILES);
                 CURRENT_MENU->options.clear();
                 CURRENT_MENU->options.push_back((Option){0,"Atrás"});
                 unsigned int fileCount = 1;
@@ -1193,7 +1212,7 @@ int main(int argc, char** argv)
                 i++;
             }
 
-            if(MODE_MANUAL && (HIGHLIGHTED_OPTION->text == "Zona PCB") || (HIGHLIGHTED_OPTION->text == "Feeder"))
+            if(CURRENT_MENU->title == "Calibrar")
             {
                 DrawRectangleLinesEx(dataViewRectangle,BORDER_THICKNESS,COLOR_FG);
                 sprintf(c," X %.4f",octoKin.x);
@@ -1567,4 +1586,93 @@ std::vector<std::string> listarArchivos(const std::string& rutaCarpeta) {
         std::cerr << "Error al abrir la carpeta." << std::endl;
     }
     return archivos;
+}
+
+int configFileParser(std::string config_file_path)
+{
+    std::ifstream configFile(config_file_path);
+    std::string line, param_name, param_content;
+
+    if (configFile.is_open()) {
+        while (std::getline(configFile, line)) {
+            // Ignorar líneas vacías y comentarios
+            if (line.empty() || line[0] == '#')
+                continue;
+
+            size_t div_pos = line.find_last_of("=");
+            if (div_pos == std::string::npos) {
+                std::cout << "Error en formato de línea: " << line << std::endl;
+                return EXIT_FAILURE;
+            }
+
+            param_name = line.substr(0, div_pos);
+            param_content = line.substr(div_pos + 1);
+
+            if (param_name == "POS_FEEDER" || param_name == "POS_PCB") {
+                size_t first_space = param_content.find(' ');
+                size_t second_space = param_content.find(' ', first_space + 1);
+
+                if (first_space == std::string::npos || second_space == std::string::npos) {
+                    std::cout << "Formato inválido para " << param_name << ". Se esperaban tres valores." << std::endl;
+                    return EXIT_FAILURE;
+                }
+
+                float x = std::stof(param_content.substr(0, first_space));
+                float y = std::stof(param_content.substr(first_space + 1, second_space - first_space - 1));
+                float z = std::stof(param_content.substr(second_space + 1));
+
+                if (param_name == "POS_FEEDER")
+                    POS_FEEDER = {x, y, z};
+                else
+                    POS_PCB = {x, y, z};
+            }
+            else if (param_name == "PATH_FILES") {
+                // PATH_FILES = param_content;
+            }
+            else if (param_name == "STEPS_NUM") {
+                // STEPS_NUM = std::stoi(param_content);
+            }
+            else if (param_name == "NUMERIC_PRECISION") {
+                // NUMERIC_PRECISION = std::stoi(param_content);
+            }
+            else {
+                std::cout << "Parámetro desconocido: " << line << std::endl;
+                return EXIT_FAILURE;
+            }
+        }
+        configFile.close();
+    } else {
+        std::cout << "Error al abrir el archivo de configuración" << std::endl;
+        return EXIT_FAILURE;
+    }
+    return EXIT_SUCCESS;
+}
+
+int writeConfigFile(const std::string& config_file_path)
+{
+    std::ofstream output_file(config_file_path);
+    
+    if (!output_file.is_open()) {
+        std::cerr << "Error al abrir archivo para escritura: " << config_file_path << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    // Escribe cada parámetro con el formato especificado
+    output_file << "PATH_FILES=" << PATH_FILES << "\n";
+    
+    output_file << "POS_FEEDER=" 
+              << std::fixed << std::setprecision(NUMERIC_PRECISION) << POS_FEEDER.x << " "
+              << POS_FEEDER.y << " "
+              << POS_FEEDER.z << "\n";
+    
+    output_file << "POS_PCB=" 
+              << std::fixed << std::setprecision(NUMERIC_PRECISION) << POS_PCB.x << " "
+              << POS_PCB.y << " "
+              << POS_PCB.z << "\n";
+    
+    output_file << "STEPS_NUM=" << STEPS_NUM << "\n";
+    output_file << "NUMERIC_PRECISION=" << NUMERIC_PRECISION << "\n";
+
+    output_file.close();
+    return EXIT_SUCCESS;
 }
