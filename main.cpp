@@ -121,6 +121,8 @@ std::vector<std::string> CURRENT_JOB;
 std::list<std::string> MANUAL_QUEUE;
 
 static double STEP_SIZE = 0.002;
+static Vector3 POS_PCB = Vector3Zero();
+static Vector3 POS_FEEDER = Vector3Zero();
 
 //----------------------------------------------------------------------------------
 // INTERFAZ
@@ -393,11 +395,12 @@ int main(int argc, char** argv)
     auxMenu = new Menu();
     auxMenu->title = "Menú principal";
     auxMenu->parent = NULL;
-    auxMenu->options.push_back((Option){0,"Debug"});
+    // auxMenu->options.push_back((Option){0,"Debug"});
     auxMenu->options.push_back((Option){1,"Trabajos"});
-    auxMenu->options.push_back((Option){2,"Control"});
-    auxMenu->options.push_back((Option){3,"Interfaz"});
-    auxMenu->options.push_back((Option){4,"Salir"});
+    auxMenu->options.push_back((Option){2,"Calibrar"});
+    auxMenu->options.push_back((Option){3,"Control"});
+    auxMenu->options.push_back((Option){4,"Interfaz"});
+    auxMenu->options.push_back((Option){5,"Salir"});
     menus.push_back(auxMenu);
     auxMenu = new Menu();
     auxMenu->title = "Trabajos";
@@ -409,6 +412,13 @@ int main(int argc, char** argv)
     auxMenu->options.push_back((Option){4,"Referencias"});
     auxMenu->options.push_back((Option){5,"Guardar rutina"});
     auxMenu->options.push_back((Option){6,"Abrir rutina"});
+    menus.push_back(auxMenu);
+    auxMenu = new Menu();
+    auxMenu->title = "Calibrar";
+    auxMenu->parent = menus.at(0);
+    auxMenu->options.push_back((Option){0,"Atrás"});
+    auxMenu->options.push_back((Option){1,"Zona PCB"});
+    auxMenu->options.push_back((Option){2,"Feeders"});
     menus.push_back(auxMenu);
     auxMenu = new Menu();
     auxMenu->title = "Control";
@@ -550,6 +560,15 @@ int main(int argc, char** argv)
     //SetCameraMode(camera, CAMERA_THIRD_PERSON);
 	//SetCameraMode(camera, CAMERA_ORBITAL);
     SetCameraMode(camera, CAMERA_CUSTOM);
+
+    Vector2 viewSize = {DISPLAY_WIDTH*SCREEN_DIVISION_RATIO, (float)renderTextureModel.texture.height/2};
+    Rectangle viewRectangle = {(float)renderTextureModel.texture.width/2-viewSize.x/2, (float)renderTextureModel.texture.height/2-viewSize.y/2, viewSize.x, -viewSize.y};
+    Vector2 viewPos = { screenWidth-viewSize.x-MARGIN, (int)(MARGIN*2+fontSize)};
+    Vector2 dataViewPos = { viewPos.x, viewPos.y+viewSize.y+MARGIN};
+    Rectangle dataViewRectangle = {dataViewPos.x, dataViewPos.y, viewSize.x, DISPLAY_HEIGHT-viewSize.y-fontSize-MARGIN*4};
+    float dataViewFontSize = (dataViewRectangle.height-MARGIN*4)/3;
+    Font dataViewFont = LoadFontEx("resources/fonts/JetBrainsMono/JetBrainsMono-Bold.ttf", dataViewFontSize, 0, 250);
+    
 
     DrawProgressBarScreen("inicializando puertos i/o...", 70, font);
     // inicio control de i/o
@@ -732,31 +751,33 @@ int main(int argc, char** argv)
             {
                 if(IsKeyDown(KEY_A) || axis_state_X == -1)
                 {
-                    sprintf(c, "LY%.4f",octoKin.y-1.0f);
+                    sprintf(c, "LX%.4f",octoKin.x-1.0f);
                     MANUAL_QUEUE.push_back(c);
                 }
                 if(IsKeyDown(KEY_D) || axis_state_X == 1)
                 {
-                    sprintf(c, "LY%.4f",octoKin.y+1.0f);
+                    sprintf(c, "LX%.4f",octoKin.x+1.0f);
                     MANUAL_QUEUE.push_back(c);
                 }
                 if(IsKeyDown(KEY_S) || axis_state_Y == -1)
                 {
-                    sprintf(c, "LX%.4f",octoKin.x-1.0f);
+                    sprintf(c, "LY%.4f",octoKin.y-1.0f);
                     MANUAL_QUEUE.push_back(c);
                 }
                 if(IsKeyDown(KEY_W) || axis_state_Y == 1)
                 {
-                    sprintf(c, "LX%.4f",octoKin.x+1.0f);
+                    sprintf(c, "LY%.4f",octoKin.y+1.0f);
                     MANUAL_QUEUE.push_back(c);
                 }
-                if(IsKeyDown(KEY_LEFT_SHIFT) || button_state_R2)
+                if(IsKeyDown(KEY_LEFT_SHIFT) || !button_state_R2)
                 {
-                    // z -= 1.0f;
+                    sprintf(c, "LZ%.4f",octoKin.z+1.0f);
+                    MANUAL_QUEUE.push_back(c);
                 }
-                if(IsKeyDown(KEY_LEFT_CONTROL) || button_state_R1)
+                if(IsKeyDown(KEY_LEFT_CONTROL) || !button_state_R1)
                 {
-                    // z += 1.0f;
+                    sprintf(c, "LZ%.4f",octoKin.z-1.0f);
+                    MANUAL_QUEUE.push_back(c);
                 }
             }
         }else
@@ -889,6 +910,9 @@ int main(int argc, char** argv)
             {
                 MODE_MANUAL = !MODE_MANUAL;
                 JOB_SHOULD_STOP = true;
+            }else if(HIGHLIGHTED_OPTION->text == "Zona PCB")
+            {
+                MODE_MANUAL = !MODE_MANUAL;
             }else if(HIGHLIGHTED_OPTION->text == "Iniciar rutina")
             {
                 MODE_MANUAL = false;
@@ -1080,15 +1104,18 @@ int main(int argc, char** argv)
             BeginMode3D(camera);        // Begin 3d mode drawing
                 DrawGrid((int)BAS_RADIUS/1.5f,BAS_RADIUS/2.0f);
                 DrawModel(*baseModel,Vector3Scale(basePos,DRAW_SCALE),DRAW_SCALE,COLOR_HL);
+                DrawLine3D(Vector3Zero(), (Vector3){0.0f,50.0f,0.0f},GREEN);
+                DrawCube((Vector3){0.0f,50.0f,0.0f},20.0f,20.0f,20.0f,GREEN);
+                DrawLine3D(Vector3Zero(), (Vector3){50.0f,0.0f,0.0f},RED);
+                DrawCube((Vector3){50.0f,0.0f,0.0f},20.0f,20.0f,20.0f,RED);
+                DrawLine3D(Vector3Zero(), (Vector3){0.0f,0.0f,50.0f},BLUE);
+                DrawCube((Vector3){0.0f,0.0f,50.0f},20.0f,20.0f,20.0f,BLUE);
             EndMode3D();
         EndTextureMode();
 
         BeginDrawing();
             ClearBackground(COLOR_BG);
             
-            Vector2 viewSize = {DISPLAY_WIDTH*SCREEN_DIVISION_RATIO, (float)renderTextureModel.texture.height/2};
-            Rectangle viewRectangle = {(float)renderTextureModel.texture.width/2-viewSize.x/2, (float)renderTextureModel.texture.height/2-viewSize.y/2, viewSize.x, -viewSize.y};
-            Vector2 viewPos = { screenWidth-viewSize.x-MARGIN, (int)(MARGIN*2+fontSize)};
             if(SHOW_3D_VIEW)
             {
                 DrawTextureRec(renderTextureBackground.texture, viewRectangle, viewPos, WHITE);
@@ -1153,6 +1180,17 @@ int main(int argc, char** argv)
                     DrawTextEx(font,c,optionPos,fontSize,1,COLOR_FG);
                 }
                 i++;
+            }
+
+            if(MODE_MANUAL && HIGHLIGHTED_OPTION->text == "Zona PCB")
+            {
+                DrawRectangleLinesEx(dataViewRectangle,BORDER_THICKNESS,COLOR_FG);
+                sprintf(c," X %.4f",octoKin.x);
+                DrawTextEx(dataViewFont,c,Vector2Add(dataViewPos,(Vector2){0,MARGIN}),dataViewFontSize,1,COLOR_FG);
+                sprintf(c," Y %.4f",octoKin.y);
+                DrawTextEx(dataViewFont,c,Vector2Add(dataViewPos,(Vector2){0,MARGIN*2+dataViewFontSize}),dataViewFontSize,1,COLOR_FG);
+                sprintf(c," Z %.4f",octoKin.z);
+                DrawTextEx(dataViewFont,c,Vector2Add(dataViewPos,(Vector2){0,MARGIN*3+dataViewFontSize*2}),dataViewFontSize,1,COLOR_FG);
             }
             
             Vector2 statusBarPos = {DISPLAY_WIDTH-DISPLAY_WIDTH*SCREEN_DIVISION_RATIO-MARGIN,MARGIN};
