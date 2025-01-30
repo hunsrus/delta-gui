@@ -782,12 +782,12 @@ int main(int argc, char** argv)
                     sprintf(c, "LY%.4f",octoKin.y+1.0f);
                     MANUAL_QUEUE.push_back(c);
                 }
-                if(IsKeyDown(KEY_LEFT_SHIFT) || !button_state_R2)
+                if(IsKeyDown(KEY_LEFT_SHIFT) || !button_state_R1)
                 {
                     sprintf(c, "LZ%.4f",octoKin.z+1.0f);
                     MANUAL_QUEUE.push_back(c);
                 }
-                if(IsKeyDown(KEY_LEFT_CONTROL) || !button_state_R1)
+                if(IsKeyDown(KEY_LEFT_CONTROL) || !button_state_R2)
                 {
                     sprintf(c, "LZ%.4f",octoKin.z-1.0f);
                     MANUAL_QUEUE.push_back(c);
@@ -1022,10 +1022,12 @@ int main(int argc, char** argv)
             // octoKin.updateKinematics();
             // #endif
 
+            // calcula la posición de la articulación entre bicep y antebrazo
             rod1Pos = (Vector3){arm1Pos.x,static_cast<float>(arm1Pos.y-ARM_LENGTH*sin(-octoKin.b*DEG2RAD)),static_cast<float>(arm1Pos.z-ARM_LENGTH*cos(-octoKin.b*DEG2RAD))};
             rod2Pos = (Vector3){static_cast<float>(arm2Pos.x+ARM_LENGTH*cos(-octoKin.c*DEG2RAD)*cos(30*DEG2RAD)),static_cast<float>(arm2Pos.y-ARM_LENGTH*sin(-octoKin.c*DEG2RAD)),static_cast<float>(arm2Pos.z+ARM_LENGTH*cos(-octoKin.c*DEG2RAD)*sin(30*DEG2RAD))};
             rod3Pos = (Vector3){static_cast<float>(arm3Pos.x-ARM_LENGTH*cos(-octoKin.a*DEG2RAD)*cos(30*DEG2RAD)),static_cast<float>(arm3Pos.y-ARM_LENGTH*sin(-octoKin.a*DEG2RAD)),static_cast<float>(arm3Pos.z+ARM_LENGTH*cos(-octoKin.a*DEG2RAD)*sin(30*DEG2RAD))};
 
+            // copia la posición del efector basada en el cálculo de cinemática
             basePos = (Vector3){static_cast<float>(octoKin.x),static_cast<float>(BAS_POSITION.y+octoKin.z),static_cast<float>(octoKin.y)};
 
             // rod 1 angles
