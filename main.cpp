@@ -349,7 +349,7 @@ int main(int argc, char** argv)
     std::vector<std::string> archivos;
     std::string currentPosFile = "";
 
-    if(configFileParser("../config"))
+    if(configFileParser("../config.conf"))
         std::cout << "Lectura de archivo de configuración exitosa" << std::endl;
     else
         std::cout << "Error en lectura de archivo de configuración" << std::endl;
@@ -941,7 +941,7 @@ int main(int argc, char** argv)
             {
                 if(CURRENT_MENU->title == "Calibrar")
                 {
-                    writeConfigFile("../config");
+                    writeConfigFile("../config.conf");
                 }
             }else if(HIGHLIGHTED_OPTION->text == "Iniciar rutina")
             {

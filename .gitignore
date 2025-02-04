@@ -46,3 +46,6 @@ deps/*
 
 # vscode
 .vscode
+
+# config files
+.conf
