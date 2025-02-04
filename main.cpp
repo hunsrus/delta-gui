@@ -112,6 +112,7 @@ Font font;
 
 static bool EXIT = false;
 static bool STATUS_MOTOR_ENABLED = true;
+static bool STATUS_VACUUM_PUMP = false;
 static bool MODE_MANUAL = false;
 static bool JOB_RUNNING = false;
 static bool JOB_SHOULD_STOP = false;
@@ -247,6 +248,15 @@ struct Componente {
     double posy;
     double rotation;
 };
+
+typedef struct Feeder
+{
+    Vector3 push;
+    Vector3 approach;
+    Vector3 pick;
+}Feeder;
+
+static unsigned int FEEDERS_AMOUNT = 0;
 
 std::vector<Componente> parsearArchivo(const std::string& nombreArchivo);
 int executeInstruction(std::string instruction, OctoKinematics &octoKin);
@@ -923,6 +933,11 @@ int main(int argc, char** argv)
             {
                 MODE_MANUAL = !MODE_MANUAL;
                 JOB_SHOULD_STOP = true;
+            }else if(HIGHLIGHTED_OPTION->text == "Succión")
+            {
+                JOB_SHOULD_STOP = true;
+                STATUS_VACUUM_PUMP = !STATUS_VACUUM_PUMP;
+                gpioWrite(PIN_BOMBA,STATUS_VACUUM_PUMP);
             }else if(HIGHLIGHTED_OPTION->text == "Zona PCB")
             {
                 if(MODE_MANUAL)
@@ -1236,6 +1251,9 @@ int main(int argc, char** argv)
             iconPos.x += fontSize;
             if(STATUS_MOTOR_ENABLED) DrawTextEx(font,"E",iconPos,fontSize,1,COLOR_HL);
             else DrawTextEx(font,"E",iconPos,fontSize,1,COLOR_FG);
+            iconPos.x += fontSize;
+            if(STATUS_VACUUM_PUMP) DrawTextEx(font,"B",iconPos,fontSize,1,COLOR_HL);
+            else DrawTextEx(font,"B",iconPos,fontSize,1,COLOR_FG);
 
             if(JOB_SHOULD_STOP && EXECUTING_INSTRUCTION)
             {   
