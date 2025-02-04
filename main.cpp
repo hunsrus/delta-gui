@@ -38,7 +38,7 @@
 #define LIM_Z -230.0f
 
 #define TRANS_MULTIPLIER 3
-#define STEPS_NUM 8
+static unsigned int STEPS_NUM = 8;
 #define NUMERIC_PRECISION 4 // cantidad de decimales
 
 // pinout definitions
@@ -123,6 +123,7 @@ std::list<std::string> MANUAL_QUEUE;
 
 static std::string PATH_FILES = "../tests/";
 static double STEP_SIZE = 0.002;
+static float MANUAL_INCREMENT = 0.5f;
 static Vector3 POS_PCB = Vector3Zero();
 static Vector3 POS_FEEDER = Vector3Zero();
 
@@ -299,7 +300,7 @@ int calculateKinematics(double &x,double &y,double &z, OctoKinematics &octoKin)
             }
         }else if(MODE_MANUAL)
         {
-            STEP_SIZE = 1.0f;
+            STEP_SIZE = 0.002f;
             JOB_SHOULD_STOP = false;
             if(!MANUAL_QUEUE.empty())
             {
@@ -447,10 +448,11 @@ int main(int argc, char** argv)
     auxMenu->title = "Control";
     auxMenu->parent = menus.at(0);
     auxMenu->options.push_back((Option){0,"Atrás"});
-    auxMenu->options.push_back((Option){1,"Mover"});
-    auxMenu->options.push_back((Option){2,"Girar"});
-    auxMenu->options.push_back((Option){3,"Succión"});
-    auxMenu->options.push_back((Option){4,"Deshabilitar"});
+    auxMenu->options.push_back((Option){1,"Girar"});
+    auxMenu->options.push_back((Option){2,"Succión"});
+    auxMenu->options.push_back((Option){3,"Mover"});
+    auxMenu->options.push_back((Option){4,"Paso", std::to_string(MANUAL_INCREMENT)});
+    auxMenu->options.push_back((Option){5,"Deshabilitar"});
     menus.push_back(auxMenu);
     auxMenu = new Menu();
     auxMenu->title = "Interfaz";
@@ -774,32 +776,32 @@ int main(int argc, char** argv)
             {
                 if(IsKeyDown(KEY_A) || axis_state_X == -1)
                 {
-                    sprintf(c, "LX%.4f",octoKin.x-1.0f);
+                    sprintf(c, "LX%.4f",octoKin.x-MANUAL_INCREMENT);
                     MANUAL_QUEUE.push_back(c);
                 }
                 if(IsKeyDown(KEY_D) || axis_state_X == 1)
                 {
-                    sprintf(c, "LX%.4f",octoKin.x+1.0f);
+                    sprintf(c, "LX%.4f",octoKin.x+MANUAL_INCREMENT);
                     MANUAL_QUEUE.push_back(c);
                 }
                 if(IsKeyDown(KEY_S) || axis_state_Y == -1)
                 {
-                    sprintf(c, "LY%.4f",octoKin.y-1.0f);
+                    sprintf(c, "LY%.4f",octoKin.y-MANUAL_INCREMENT);
                     MANUAL_QUEUE.push_back(c);
                 }
                 if(IsKeyDown(KEY_W) || axis_state_Y == 1)
                 {
-                    sprintf(c, "LY%.4f",octoKin.y+1.0f);
+                    sprintf(c, "LY%.4f",octoKin.y+MANUAL_INCREMENT);
                     MANUAL_QUEUE.push_back(c);
                 }
                 if(IsKeyDown(KEY_LEFT_SHIFT) || !button_state_R1)
                 {
-                    sprintf(c, "LZ%.4f",octoKin.z+1.0f);
+                    sprintf(c, "LZ%.4f",octoKin.z+MANUAL_INCREMENT);
                     MANUAL_QUEUE.push_back(c);
                 }
                 if(IsKeyDown(KEY_LEFT_CONTROL) || !button_state_R2)
                 {
-                    sprintf(c, "LZ%.4f",octoKin.z-1.0f);
+                    sprintf(c, "LZ%.4f",octoKin.z-MANUAL_INCREMENT);
                     MANUAL_QUEUE.push_back(c);
                 }
             }
@@ -867,6 +869,13 @@ int main(int argc, char** argv)
             {
                 SCREEN_DIVISION_RATIO -= 0.1;
                 HIGHLIGHTED_OPTION->value = std::to_string(SCREEN_DIVISION_RATIO);
+            }else if(HIGHLIGHTED_OPTION->text == "Paso")
+            {
+                if(MANUAL_INCREMENT > 0.2f)
+                {
+                    MANUAL_INCREMENT -= 0.2f;
+                    HIGHLIGHTED_OPTION->value = std::to_string(MANUAL_INCREMENT);
+                }
             }
         }
         if(IsKeyPressed(KEY_RIGHT) || (axis_state_X == 1 && axis_state_X != last_axis_state_X ))
@@ -914,6 +923,13 @@ int main(int argc, char** argv)
             {
                 SCREEN_DIVISION_RATIO += 0.1;
                 HIGHLIGHTED_OPTION->value = std::to_string(SCREEN_DIVISION_RATIO);
+            }else if(HIGHLIGHTED_OPTION->text == "Paso")
+            {
+                if(MANUAL_INCREMENT < 5.0f)
+                {
+                    MANUAL_INCREMENT += 0.2f;
+                    HIGHLIGHTED_OPTION->value = std::to_string(MANUAL_INCREMENT);
+                }
             }
         }
         
@@ -1001,6 +1017,11 @@ int main(int argc, char** argv)
                 SHOW_3D_VIEW = true;
                 SHOW_MENU_INFO = false;
                 SHOW_FIELD_VALUES = false;
+            }else if(CURRENT_MENU->title == "Control")
+            {
+                SHOW_3D_VIEW = true;
+                SHOW_MENU_INFO = false;
+                SHOW_FIELD_VALUES = true;
             }else if(CURRENT_MENU->title == "Archivos")
             {
                 SHOW_3D_VIEW = false;
