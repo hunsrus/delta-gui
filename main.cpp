@@ -1624,15 +1624,19 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
         // posición de pick manteniendo altura
         instruction = "LX"+std::to_string(tmp_feeder.pick.x)+"Y"+std::to_string(tmp_feeder.pick.y);
         job.push_back(instruction);
+
+        // prender bomba
+        job.push_back("B1");
+        
         // baja hacia posición de pick
         instruction += "Z"+std::to_string(tmp_feeder.pick.z);
         job.push_back(instruction);
 
-        // prender bomba
-        job.push_back("B1");
+        // delay para juntar
+        job.push_back("D250000");
 
-        // posición de approach nuevamente pero para salir
-        instruction = "LX"+std::to_string(tmp_feeder.approach.x)+"Y"+std::to_string(tmp_feeder.approach.y)+"Z"+std::to_string(tmp_feeder.approach.z);
+        // vuelve a altura de approach para salir
+        instruction = "LZ"+std::to_string(tmp_feeder.approach.z);
         job.push_back(instruction);
         // paso grueso
         job.push_back("S0.2");
@@ -1649,8 +1653,7 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
         job.push_back(instruction);
 
         // delay
-        instruction = "D250000";
-        job.push_back(instruction);
+        job.push_back("D250000");
 
         // paso fino
         job.push_back("S0.002");
