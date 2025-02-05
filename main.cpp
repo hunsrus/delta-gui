@@ -125,7 +125,6 @@ static std::string PATH_FILES = "../tests/";
 static double STEP_SIZE = 0.002;
 static float MANUAL_INCREMENT = 0.5f;
 static Vector3 POS_PCB = Vector3Zero();
-static Vector3 POS_FEEDER = Vector3Zero();
 
 //----------------------------------------------------------------------------------
 // INTERFAZ
@@ -134,7 +133,7 @@ static Vector3 POS_FEEDER = Vector3Zero();
 // opciones de menú
 typedef struct Option{
     unsigned int id;
-    const char* text;
+    std::string text;
     std::string value = "";
 }Option;
 
@@ -252,12 +251,13 @@ struct Componente {
 
 typedef struct Feeder
 {
+    int id;
     Vector3 push;
     Vector3 approach;
     Vector3 pick;
 }Feeder;
 
-static unsigned int FEEDERS_AMOUNT = 0;
+static std::vector<Feeder> feeders;
 
 std::vector<Componente> parsearArchivo(const std::string& nombreArchivo);
 int executeInstruction(std::string instruction, OctoKinematics &octoKin);
@@ -359,15 +359,12 @@ int main(int argc, char** argv)
 
     std::vector<std::string> archivos;
     std::string currentPosFile = "";
+    int selectedFeederID;
 
-    if(configFileParser("../config.conf"))
+    if(!configFileParser("../config.conf"))
         std::cout << "Lectura de archivo de configuración exitosa" << std::endl;
     else
         std::cout << "Error en lectura de archivo de configuración" << std::endl;
-
-    std::cout << "[INFO] POS_FEEDER X = " << std::to_string(POS_FEEDER.x) << "" << std::endl;
-    std::cout << "[INFO] POS_FEEDER Y = " << std::to_string(POS_FEEDER.y) << "" << std::endl;
-    std::cout << "[INFO] POS_FEEDER Z = " << std::to_string(POS_FEEDER.z) << "" << std::endl;
 
     int THEMES_COUNT = 9;
     Theme themes[THEMES_COUNT] = {{MCGREEN, WHITE, (Color){92,65,93,255}},
@@ -441,8 +438,17 @@ int main(int argc, char** argv)
     auxMenu->parent = menus.at(0);
     auxMenu->options.push_back((Option){0,"Atrás"});
     auxMenu->options.push_back((Option){1,"Zona PCB"});
-    auxMenu->options.push_back((Option){2,"Feeder"});
+    auxMenu->options.push_back((Option){2,"Feeders"});
     auxMenu->options.push_back((Option){3,"Guardar"});
+    menus.push_back(auxMenu);
+    auxMenu = new Menu();
+    auxMenu->title = "Feeders";
+    auxMenu->parent = menus.at(0);
+    auxMenu->options.push_back((Option){0,"Atrás"});
+    for( const auto& feeder : feeders)
+    {
+        auxMenu->options.push_back((Option){feeder.id,"Feeder "+std::to_string(feeder.id)});
+    }
     menus.push_back(auxMenu);
     auxMenu = new Menu();
     auxMenu->title = "Control";
@@ -479,6 +485,15 @@ int main(int argc, char** argv)
     auxMenu->title = "Componentes";
     auxMenu->parent = menus.at(1);
     auxMenu->options.push_back((Option){0,"Atrás"});
+    menus.push_back(auxMenu);
+
+    auxMenu = new Menu();
+    auxMenu->title = "Feeder config";
+    auxMenu->parent = menus.at(0);
+    auxMenu->options.push_back((Option){0,"Atrás"});
+    auxMenu->options.push_back((Option){1,"Push"});
+    auxMenu->options.push_back((Option){2,"Approach"});
+    auxMenu->options.push_back((Option){3,"Pick"});
     menus.push_back(auxMenu);
     
     CURRENT_MENU = menus.at(0);
@@ -961,11 +976,37 @@ int main(int argc, char** argv)
                     POS_PCB = (Vector3){octoKin.x, octoKin.y, octoKin.z};
                 }
                 MODE_MANUAL = !MODE_MANUAL;
-            }else if(HIGHLIGHTED_OPTION->text == "Feeder")
+            }else if(HIGHLIGHTED_OPTION->text == "Push")
             {
                 if(MODE_MANUAL)
                 {
-                    POS_FEEDER = (Vector3){octoKin.x, octoKin.y, octoKin.z};
+                    for(auto& feeder : feeders)
+                    {
+                        if(feeder.id == selectedFeederID)
+                            feeder.push = (Vector3){octoKin.x, octoKin.y, octoKin.z};
+                    }
+                }
+                MODE_MANUAL = !MODE_MANUAL;
+            }else if(HIGHLIGHTED_OPTION->text == "Approach")
+            {
+                if(MODE_MANUAL)
+                {
+                    for(auto& feeder : feeders)
+                    {
+                        if(feeder.id == selectedFeederID)
+                            feeder.approach = (Vector3){octoKin.x, octoKin.y, octoKin.z};
+                    }
+                }
+                MODE_MANUAL = !MODE_MANUAL;
+            }else if(HIGHLIGHTED_OPTION->text == "Pick")
+            {
+                if(MODE_MANUAL)
+                {
+                    for(auto& feeder : feeders)
+                    {
+                        if(feeder.id == selectedFeederID)
+                            feeder.pick = (Vector3){octoKin.x, octoKin.y, octoKin.z};
+                    }
                 }
                 MODE_MANUAL = !MODE_MANUAL;
             }else if(HIGHLIGHTED_OPTION->text == "Guardar")
@@ -989,6 +1030,18 @@ int main(int argc, char** argv)
                     CURRENT_JOB = generateJob(componentes);
 
                     goBackOneMenu();
+                }else if(CURRENT_MENU->title == "Feeders")
+                {
+                    selectedFeederID = HIGHLIGHTED_OPTION->id;
+
+                    for (const auto& menu : menus) 
+                    {
+                        if(menu->title == "Feeder config")
+                        {
+                            CURRENT_MENU = menu;
+                            HIGHLIGHTED_OPTION = CURRENT_MENU->options.begin();
+                        }
+                    }
                 }else
                 {
                     for (const auto& menu : menus) 
@@ -1228,7 +1281,7 @@ int main(int argc, char** argv)
                     DrawRectangleRec(optionRectangle, COLOR_FG);
                 }
                 // cargo el texto de la opción en un string
-                sprintf(c," %s",it->text);
+                sprintf(c," %s",it->text.c_str());
                 // reposiciono el texto para que quede centrado en el recuadro
                 optionPos.y += (BUTTON_SIZE-fontSize)/2;
                 // dibujo el texto
@@ -1544,6 +1597,8 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
     int componentCount = 0;
     DrawProgressBarIndicator("Convirtiendo...", progress, font);
 
+    Feeder tmp_feeder = feeders.at(0);
+
     std::vector<std::string> job;
     std::string instruction;
     
@@ -1556,48 +1611,69 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
 
     for (const auto& componente : componentes)
     {
-        Vector3 feederApproach = Vector3Scale(POS_FEEDER, 0.8);
-        feederApproach.z = POS_FEEDER.z;
-        instruction = "S0.2";
+        // paso grueso
+        job.push_back("S0.2");
+        // posición de approach
+        instruction = "LX"+std::to_string(tmp_feeder.approach.x)+"Y"+std::to_string(tmp_feeder.approach.y)+"Z"+std::to_string(tmp_feeder.approach.z);
         job.push_back(instruction);
-        instruction = "LX"+std::to_string(feederApproach.x)+"Y"+std::to_string(feederApproach.y)+"Z"+std::to_string(feederApproach.z);
+        // paso fino
+        job.push_back("S0.002");
+        // posición de push
+        instruction = "LX"+std::to_string(tmp_feeder.push.x)+"Y"+std::to_string(tmp_feeder.push.y)+"Z"+std::to_string(tmp_feeder.push.z);
         job.push_back(instruction);
-        instruction = "S0.002";
+        // posición de pick manteniendo altura
+        instruction = "LX"+std::to_string(tmp_feeder.pick.x)+"Y"+std::to_string(tmp_feeder.pick.y);
         job.push_back(instruction);
-        instruction = "LX"+std::to_string(POS_FEEDER.x)+"Y"+std::to_string(POS_FEEDER.y)+"Z"+std::to_string(POS_FEEDER.z);
+        // baja hacia posición de pick
+        instruction += "Z"+std::to_string(tmp_feeder.pick.z);
         job.push_back(instruction);
 
+        // prender bomba
+        job.push_back("B1");
+
+        // posición de approach nuevamente pero para salir
+        instruction = "LX"+std::to_string(tmp_feeder.approach.x)+"Y"+std::to_string(tmp_feeder.approach.y)+"Z"+std::to_string(tmp_feeder.approach.z);
+        job.push_back(instruction);
+        // paso grueso
+        job.push_back("S0.2");
+
+        // secuencia de poner componente -----------------------
         sprintf(aux_x, format.c_str(), componente.posx);
         sprintf(aux_y, format.c_str(), componente.posy);
         
-        instruction = "S0.2";
-        job.push_back(instruction);
+        // posición de componente manteniendo z de approach
         instruction = "LX";
         instruction.append(aux_x);
         instruction += "Y";
         instruction.append(aux_y);
         job.push_back(instruction);
 
+        // delay
         instruction = "D250000";
         job.push_back(instruction);
 
-        instruction = "S0.002";
-        job.push_back(instruction);
+        // paso fino
+        job.push_back("S0.002");
+        // bajo en posición de componente hasta placa pcb [TODO]
         sprintf(aux_z, format.c_str(), LIM_Z);
         instruction = "LZ";
         instruction.append(aux_z);
         job.push_back(instruction);
+        // delay
+        job.push_back("D100000");
+        // apagar bomba
+        job.push_back("B0");
+        // delay
+        job.push_back("1000000");
 
-        instruction = "D250000";
-        job.push_back(instruction);
-
-        sprintf(aux_z, format.c_str(), LIM_Z+30);
+        // sube a z de approach
+        sprintf(aux_z, format.c_str(), tmp_feeder.approach.z);
         instruction = "LZ";
         instruction.append(aux_z);
         job.push_back(instruction);
 
-        instruction = "D250000";
-        job.push_back(instruction);
+        // delay
+        job.push_back("D250000");
 
         componentCount++;
         progress = mapear(componentCount,0,componentes.size(),0,100);
@@ -1629,56 +1705,114 @@ std::vector<std::string> listarArchivos(const std::string& rutaCarpeta) {
     return archivos;
 }
 
-int configFileParser(std::string config_file_path)
-{
+int configFileParser(std::string config_file_path) {
     std::ifstream configFile(config_file_path);
     std::string line, param_name, param_content;
+    bool inside_feeder_block = false;
+    Feeder aux_feeder;
 
     if (configFile.is_open()) {
         while (std::getline(configFile, line)) {
-            // Ignorar líneas vacías y comentarios
-            if (line.empty() || line[0] == '#')
-                continue;
+            // Eliminar espacios en blanco al inicio y final
+            line.erase(line.find_last_not_of(" \t\n\r\f\v") + 1);
+            line.erase(0, line.find_first_not_of(" \t\n\r\f\v"));
 
-            size_t div_pos = line.find_last_of("=");
-            if (div_pos == std::string::npos) {
-                std::cout << "Error en formato de línea: " << line << std::endl;
-                return EXIT_FAILURE;
-            }
+            if (line.empty() || line[0] == '#') continue;
 
-            param_name = line.substr(0, div_pos);
-            param_content = line.substr(div_pos + 1);
+            if (inside_feeder_block)
+            {
+                if (line == "}") { // Fin del bloque FEEDER
+                    feeders.push_back(aux_feeder);
+                    inside_feeder_block = false;
+                    continue;
+                }
 
-            if (param_name == "POS_FEEDER" || param_name == "POS_PCB") {
-                size_t first_space = param_content.find(' ');
-                size_t second_space = param_content.find(' ', first_space + 1);
-
-                if (first_space == std::string::npos || second_space == std::string::npos) {
-                    std::cout << "Formato inválido para " << param_name << ". Se esperaban tres valores." << std::endl;
+                size_t div_pos = line.find('=');
+                if (div_pos == std::string::npos) {
+                    std::cout << "Error en formato dentro de FEEDER: " << line << std::endl;
                     return EXIT_FAILURE;
                 }
 
-                float x = std::stof(param_content.substr(0, first_space));
-                float y = std::stof(param_content.substr(first_space + 1, second_space - first_space - 1));
-                float z = std::stof(param_content.substr(second_space + 1));
+                std::string inner_param = line.substr(0, div_pos);
+                std::string inner_value = line.substr(div_pos + 1);
 
-                if (param_name == "POS_FEEDER")
-                    POS_FEEDER = {x, y, z};
-                else
+                // Eliminar espacios alrededor del parámetro interno
+                inner_param.erase(inner_param.find_last_not_of(" \t") + 1);
+                inner_param.erase(0, inner_param.find_first_not_of(" \t"));
+
+                if (inner_param == "ID") {
+                    aux_feeder.id = std::stoi(inner_value);
+                }
+                else if (inner_param == "PUSH" || inner_param == "APPROACH" || inner_param == "PICK") {
+                    std::istringstream iss(inner_value);
+                    std::vector<float> coords;
+                    std::string token;
+                    
+                    while (iss >> token) {
+                        coords.push_back(std::stof(token));
+                    }
+                    
+                    if (coords.size() != 3) {
+                        std::cout << "Formato inválido para " << inner_param << ". Se necesitan 3 valores" << std::endl;
+                        return EXIT_FAILURE;
+                    }
+
+                    if (inner_param == "PUSH") aux_feeder.push = {coords[0], coords[1], coords[2]};
+                    else if (inner_param == "APPROACH") aux_feeder.approach = {coords[0], coords[1], coords[2]};
+                    else aux_feeder.pick = {coords[0], coords[1], coords[2]};
+                }
+                else {
+                    std::cout << "Parámetro desconocido en FEEDER: " << inner_param << std::endl;
+                    return EXIT_FAILURE;
+                }
+            } else
+            {
+                if (line.find("FEEDER={") != std::string::npos) {
+                    inside_feeder_block = true;
+                    continue;
+                }
+
+                size_t div_pos = line.find('=');
+                if (div_pos == std::string::npos) {
+                    std::cout << "Error en formato de línea: " << line << std::endl;
+                    return EXIT_FAILURE;
+                }
+
+                param_name = line.substr(0, div_pos);
+                param_content = line.substr(div_pos + 1);
+
+                param_name.erase(param_name.find_last_not_of(" \t") + 1);
+                param_name.erase(0, param_name.find_first_not_of(" \t"));
+
+                if (param_name == "POS_PCB")
+                {
+                    size_t first_space = param_content.find(' ');
+                    size_t second_space = param_content.find(' ', first_space + 1);
+
+                    if (first_space == std::string::npos || second_space == std::string::npos) {
+                        std::cout << "Formato inválido para " << param_name << ". Se esperaban tres valores." << std::endl;
+                        return EXIT_FAILURE;
+                    }
+
+                    float x = std::stof(param_content.substr(0, first_space));
+                    float y = std::stof(param_content.substr(first_space + 1, second_space - first_space - 1));
+                    float z = std::stof(param_content.substr(second_space + 1));
+
                     POS_PCB = {x, y, z};
-            }
-            else if (param_name == "PATH_FILES") {
-                // PATH_FILES = param_content;
-            }
-            else if (param_name == "STEPS_NUM") {
-                // STEPS_NUM = std::stoi(param_content);
-            }
-            else if (param_name == "NUMERIC_PRECISION") {
-                // NUMERIC_PRECISION = std::stoi(param_content);
-            }
-            else {
-                std::cout << "Parámetro desconocido: " << line << std::endl;
-                return EXIT_FAILURE;
+                } else if (param_name == "PATH_FILES")
+                {
+                    // PATH_FILES = param_content;
+                } else if (param_name == "STEPS_NUM")
+                {
+                    // STEPS_NUM = std::stoi(param_content);
+                } else if (param_name == "NUMERIC_PRECISION")
+                {
+                    // NUMERIC_PRECISION = std::stoi(param_content);
+                } else
+                {
+                    std::cout << "Parámetro desconocido: " << line << std::endl;
+                    return EXIT_FAILURE;
+                }
             }
         }
         configFile.close();
@@ -1688,6 +1822,67 @@ int configFileParser(std::string config_file_path)
     }
     return EXIT_SUCCESS;
 }
+
+// int configFileParser(std::string config_file_path)
+// {
+//     std::ifstream configFile(config_file_path);
+//     std::string line, param_name, param_content;
+
+//     if (configFile.is_open()) {
+//         while (std::getline(configFile, line)) {
+//             // Ignorar líneas vacías y comentarios
+//             if (line.empty() || line[0] == '#')
+//                 continue;
+
+//             size_t div_pos = line.find_last_of("=");
+//             if (div_pos == std::string::npos) {
+//                 std::cout << "Error en formato de línea: " << line << std::endl;
+//                 return EXIT_FAILURE;
+//             }
+
+//             param_name = line.substr(0, div_pos);
+//             param_content = line.substr(div_pos + 1);
+
+//             if (param_name == "POS_FEEDER" || param_name == "POS_PCB")
+//             {
+//                 size_t first_space = param_content.find(' ');
+//                 size_t second_space = param_content.find(' ', first_space + 1);
+
+//                 if (first_space == std::string::npos || second_space == std::string::npos) {
+//                     std::cout << "Formato inválido para " << param_name << ". Se esperaban tres valores." << std::endl;
+//                     return EXIT_FAILURE;
+//                 }
+
+//                 float x = std::stof(param_content.substr(0, first_space));
+//                 float y = std::stof(param_content.substr(first_space + 1, second_space - first_space - 1));
+//                 float z = std::stof(param_content.substr(second_space + 1));
+
+//                 if (param_name == "POS_FEEDER")
+//                     POS_FEEDER = {x, y, z};
+//                 else
+//                     POS_PCB = {x, y, z};
+//             }
+//             else if (param_name == "PATH_FILES") {
+//                 // PATH_FILES = param_content;
+//             }
+//             else if (param_name == "STEPS_NUM") {
+//                 // STEPS_NUM = std::stoi(param_content);
+//             }
+//             else if (param_name == "NUMERIC_PRECISION") {
+//                 // NUMERIC_PRECISION = std::stoi(param_content);
+//             }
+//             else {
+//                 std::cout << "Parámetro desconocido: " << line << std::endl;
+//                 return EXIT_FAILURE;
+//             }
+//         }
+//         configFile.close();
+//     } else {
+//         std::cout << "Error al abrir el archivo de configuración" << std::endl;
+//         return EXIT_FAILURE;
+//     }
+//     return EXIT_SUCCESS;
+// }
 
 int writeConfigFile(const std::string& config_file_path)
 {
@@ -1701,11 +1896,6 @@ int writeConfigFile(const std::string& config_file_path)
     // Escribe cada parámetro con el formato especificado
     output_file << "PATH_FILES=" << PATH_FILES << "\n";
     
-    output_file << "POS_FEEDER=" 
-              << std::fixed << std::setprecision(NUMERIC_PRECISION) << POS_FEEDER.x << " "
-              << POS_FEEDER.y << " "
-              << POS_FEEDER.z << "\n";
-    
     output_file << "POS_PCB=" 
               << std::fixed << std::setprecision(NUMERIC_PRECISION) << POS_PCB.x << " "
               << POS_PCB.y << " "
@@ -1713,6 +1903,16 @@ int writeConfigFile(const std::string& config_file_path)
     
     output_file << "STEPS_NUM=" << STEPS_NUM << "\n";
     output_file << "NUMERIC_PRECISION=" << NUMERIC_PRECISION << "\n";
+
+    for (const auto& feeder : feeders)
+    {
+        output_file << "POS_FEEDER={\n" 
+            << "ID=" << feeder.id << "\n"
+            << "PUSH="  << std::fixed << std::setprecision(NUMERIC_PRECISION) << feeder.push.x << " " << feeder.push.y << " " << feeder.push.z << "\n"
+            << "APPROACH="  << std::fixed << std::setprecision(NUMERIC_PRECISION) << feeder.approach.x << " " << feeder.approach.y << " " << feeder.approach.z << "\n"
+            << "PICK="  << std::fixed << std::setprecision(NUMERIC_PRECISION) << feeder.pick.x << " " << feeder.pick.y << " " << feeder.pick.z << "\n"
+            << "}\n";
+    }
 
     output_file.close();
     return EXIT_SUCCESS;
