@@ -300,7 +300,7 @@ int calculateKinematics(double &x,double &y,double &z, OctoKinematics &octoKin)
             }
         }else if(MODE_MANUAL)
         {
-            STEP_SIZE = 0.002f;
+            STEP_SIZE = 0.001f;
             JOB_SHOULD_STOP = false;
             if(!MANUAL_QUEUE.empty())
             {
@@ -651,7 +651,7 @@ int main(int argc, char** argv)
         octoKin.set_axis_direction(1);
         octoKin.set_step_precision(STEPS_NUM);
         octoKin.set_transmission_ratio(TRANS_MULTIPLIER);
-        octoKin.set_pulse_width(100);
+        octoKin.set_pulse_width(1);
         
         // turn suction off
         gpioWrite(PIN_BOMBA,0);
@@ -695,8 +695,9 @@ int main(int argc, char** argv)
     x = 0;
     y = 0;
     z = -220;
-    octoKin.inverse_kinematics(x, y, z);
-    octoKin.updateKinematics();
+    // octoKin.inverse_kinematics(x, y, z);
+    // octoKin.updateKinematics();
+    octoKin.linear_move(x, y, z, 0.1f, 100);
 
     std::cout << "a: " << octoKin.a << std::endl;
     std::cout << "b: " << octoKin.b << std::endl;
@@ -789,25 +790,31 @@ int main(int argc, char** argv)
         {
             if(!EXECUTING_INSTRUCTION)
             {
-                if(IsKeyDown(KEY_A) || axis_state_X == -1)
+                if(!axis_state_X || !axis_state_Y)
                 {
-                    sprintf(c, "LX%.4f",octoKin.x-MANUAL_INCREMENT);
-                    MANUAL_QUEUE.push_back(c);
-                }
-                if(IsKeyDown(KEY_D) || axis_state_X == 1)
-                {
-                    sprintf(c, "LX%.4f",octoKin.x+MANUAL_INCREMENT);
-                    MANUAL_QUEUE.push_back(c);
-                }
-                if(IsKeyDown(KEY_S) || axis_state_Y == -1)
-                {
-                    sprintf(c, "LY%.4f",octoKin.y-MANUAL_INCREMENT);
-                    MANUAL_QUEUE.push_back(c);
-                }
-                if(IsKeyDown(KEY_W) || axis_state_Y == 1)
-                {
-                    sprintf(c, "LY%.4f",octoKin.y+MANUAL_INCREMENT);
-                    MANUAL_QUEUE.push_back(c);
+                    std::string instruction = "L";
+                    
+                    if(IsKeyDown(KEY_A) || axis_state_X == -1)
+                    {
+                        sprintf(c, "X%.4f",octoKin.x-MANUAL_INCREMENT);
+                        instruction += c;
+                    }
+                    if(IsKeyDown(KEY_D) || axis_state_X == 1)
+                    {
+                        sprintf(c, "X%.4f",octoKin.x+MANUAL_INCREMENT);
+                        instruction += c;
+                    }
+                    if(IsKeyDown(KEY_S) || axis_state_Y == -1)
+                    {
+                        sprintf(c, "Y%.4f",octoKin.y-MANUAL_INCREMENT);
+                        instruction += c;
+                    }
+                    if(IsKeyDown(KEY_W) || axis_state_Y == 1)
+                    {
+                        sprintf(c, "Y%.4f",octoKin.y+MANUAL_INCREMENT);
+                        instruction += c;
+                    }
+                    MANUAL_QUEUE.push_back(instruction);
                 }
                 if(IsKeyDown(KEY_LEFT_SHIFT) || !button_state_R1)
                 {
