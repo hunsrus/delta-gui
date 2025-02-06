@@ -38,7 +38,7 @@
 #define LIM_Z -230.0f
 
 #define TRANS_MULTIPLIER 3
-static unsigned int STEPS_NUM = 8;
+static unsigned int STEPS_NUM = 16;
 #define NUMERIC_PRECISION 4 // cantidad de decimales
 
 // pinout definitions
@@ -651,7 +651,7 @@ int main(int argc, char** argv)
         octoKin.set_axis_direction(1);
         octoKin.set_step_precision(STEPS_NUM);
         octoKin.set_transmission_ratio(TRANS_MULTIPLIER);
-        octoKin.set_pulse_width(1500);
+        octoKin.set_pulse_width(100);
         
         // turn suction off
         gpioWrite(PIN_BOMBA,0);
@@ -1807,7 +1807,7 @@ int configFileParser(std::string config_file_path) {
                     // PATH_FILES = param_content;
                 } else if (param_name == "STEPS_NUM")
                 {
-                    // STEPS_NUM = std::stoi(param_content);
+                    STEPS_NUM = std::stoi(param_content);
                 } else if (param_name == "NUMERIC_PRECISION")
                 {
                     // NUMERIC_PRECISION = std::stoi(param_content);

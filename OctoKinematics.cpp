@@ -330,10 +330,14 @@ int OctoKinematics::home(float x, float y, float z)
     bool m2_ready = false;
     bool m3_ready = false;
 
+    int aux_step_precision = this->steps_num;
+    useconds_t aux_pulse_width = this->pulse_width;
+
     fprintf(stdout, "Homing...");
     fflush(stdout);
     
     this->set_step_precision(8);
+    this->set_pulse_width(1500);
 
     #if ARCH_ARM
     while(!m1_ready || !m2_ready || !m3_ready)
@@ -382,7 +386,8 @@ int OctoKinematics::home(float x, float y, float z)
     this->lastC = this->c;
 
     // volver a poner el paso configurado por el usuario
-    this->set_step_precision(this->steps_num);
+    this->set_step_precision(aux_step_precision);
+    this->set_pulse_width(aux_pulse_width);
 
     fprintf(stdout, "Homing complete\n");
 
