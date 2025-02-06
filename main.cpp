@@ -300,7 +300,7 @@ int calculateKinematics(double &x,double &y,double &z, OctoKinematics &octoKin)
             }
         }else if(MODE_MANUAL)
         {
-            STEP_SIZE = 0.001f;
+            STEP_SIZE = 0.01f;
             JOB_SHOULD_STOP = false;
             if(!MANUAL_QUEUE.empty())
             {
@@ -697,7 +697,7 @@ int main(int argc, char** argv)
     z = -220;
     // octoKin.inverse_kinematics(x, y, z);
     // octoKin.updateKinematics();
-    octoKin.linear_move(x, y, z, 0.1f, 100);
+    octoKin.linear_move(x, y, z, 0.1f, 1000);
 
     std::cout << "a: " << octoKin.a << std::endl;
     std::cout << "b: " << octoKin.b << std::endl;
@@ -790,7 +790,7 @@ int main(int argc, char** argv)
         {
             if(!EXECUTING_INSTRUCTION)
             {
-                if(!axis_state_X || !axis_state_Y)
+                if(axis_state_X != 0 || axis_state_Y != 0)
                 {
                     std::string instruction = "L";
                     
