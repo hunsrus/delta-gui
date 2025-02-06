@@ -1619,7 +1619,7 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
     for (const auto& componente : componentes)
     {
         // paso grueso
-        job.push_back("S0.2");
+        job.push_back("S0.02");
         // posición de approach
         instruction = "LX"+std::to_string(tmp_feeder.approach.x)+"Y"+std::to_string(tmp_feeder.approach.y)+"Z"+std::to_string(tmp_feeder.approach.z);
         job.push_back(instruction);
@@ -1646,7 +1646,7 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
         instruction = "LZ"+std::to_string(tmp_feeder.approach.z);
         job.push_back(instruction);
         // paso grueso
-        job.push_back("S0.2");
+        job.push_back("S0.02");
 
         // secuencia de poner componente -----------------------
         sprintf(aux_x, format.c_str(), componente.posx);

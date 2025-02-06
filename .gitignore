@@ -48,4 +48,4 @@ deps/*
 .vscode
 
 # config files
-.conf
+*.conf
