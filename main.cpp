@@ -44,20 +44,20 @@ static unsigned int STEPS_NUM = 16;
 // pinout definitions
 #define PIN_DIR1 12
 #define PIN_STEP1 16
-#define PIN_DIR2 21
-#define PIN_STEP2 20
-#define PIN_DIR3 18
-#define PIN_STEP3 23
-#define PIN_DIR4 22
-#define PIN_STEP4 27
+#define PIN_DIR2 7
+#define PIN_STEP2 1
+#define PIN_DIR3 21
+#define PIN_STEP3 20
+#define PIN_DIR4 0
+#define PIN_STEP4 22
 
-#define PIN_MS1 17
-#define PIN_MS2 4
-#define PIN_MS3 3
+#define PIN_MS1 27
+#define PIN_MS2 17
+#define PIN_MS3 4
 
-#define PIN_REG_PL 7
-#define PIN_REG_CP 0
-#define PIN_REG_OUT 1
+#define PIN_REG_PL 3
+#define PIN_REG_CP 18
+#define PIN_REG_OUT 23
 
 #define REG_BIT_Y0 0
 #define REG_BIT_Y1 1
@@ -71,7 +71,7 @@ static unsigned int STEPS_NUM = 16;
 #define PIN_FC_M2 6
 #define PIN_FC_M3 13
 
-#define PIN_BOMBA 26
+#define PIN_BOMBA 19
 
 // graphics config
 #define GLSL_VERSION 100
