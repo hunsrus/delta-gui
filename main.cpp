@@ -659,7 +659,7 @@ int main(int argc, char** argv)
         gpioWrite(PIN_BOMBA,0);
         // enable motors
         gpioWrite(PIN_ENABLE,1);
-        STATUS_MOTOR_ENABLED = 1;
+        STATUS_MOTOR_ENABLED = 0;
 
         // effector orientation correction
         int effector_steps = 0;
@@ -1336,7 +1336,7 @@ int main(int argc, char** argv)
             if(MODE_MANUAL) DrawTextEx(font,"M",iconPos,fontSize,1,COLOR_HL);
             else DrawTextEx(font,"M",iconPos,fontSize,1,COLOR_FG);
             iconPos.x += fontSize;
-            if(STATUS_MOTOR_ENABLED) DrawTextEx(font,"E",iconPos,fontSize,1,COLOR_HL);
+            if(!STATUS_MOTOR_ENABLED) DrawTextEx(font,"E",iconPos,fontSize,1,COLOR_HL);
             else DrawTextEx(font,"E",iconPos,fontSize,1,COLOR_FG);
             iconPos.x += fontSize;
             if(STATUS_VACUUM_PUMP) DrawTextEx(font,"B",iconPos,fontSize,1,COLOR_HL);
