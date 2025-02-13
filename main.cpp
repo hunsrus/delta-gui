@@ -44,10 +44,10 @@ static unsigned int STEPS_NUM = 16;
 // pinout definitions
 #define PIN_DIR1 12
 #define PIN_STEP1 16
-#define PIN_DIR2 7
-#define PIN_STEP2 1
-#define PIN_DIR3 21
-#define PIN_STEP3 20
+#define PIN_DIR2 21
+#define PIN_STEP2 20
+#define PIN_DIR3 7
+#define PIN_STEP3 1
 #define PIN_DIR4 0
 #define PIN_STEP4 22
 
@@ -651,7 +651,7 @@ int main(int argc, char** argv)
         octoKin.set_axis_direction(1);
         octoKin.set_step_precision(STEPS_NUM);
         octoKin.set_transmission_ratio(TRANS_MULTIPLIER);
-        octoKin.set_pulse_width(10);
+        octoKin.set_pulse_width(1);
         
         // turn suction off
         gpioWrite(PIN_BOMBA,0);
@@ -1557,7 +1557,7 @@ int executeInstruction(std::string instruction, OctoKinematics &octoKin)
         // if (has_z) printf("Coordenada Z: %.4f\n", z);
         
         
-        octoKin.linear_move(x, y, z, STEP_SIZE, 100);
+        octoKin.linear_move(x, y, z, STEP_SIZE, 0);
     }else if(instruction[0] == 'D') // delay
     {
         char *d_pos = strchr((char*)instruction.c_str(), 'D');
