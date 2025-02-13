@@ -72,6 +72,7 @@ static unsigned int STEPS_NUM = 16;
 #define PIN_FC_M3 13
 
 #define PIN_BOMBA 19
+#define PIN_ENABLE 26
 
 // graphics config
 #define GLSL_VERSION 100
@@ -641,6 +642,7 @@ int main(int argc, char** argv)
         gpioSetMode(PIN_FC_M3,PI_INPUT);
 
         gpioSetMode(PIN_BOMBA,PI_OUTPUT);
+        gpioSetMode(PIN_ENABLE,PI_OUTPUT);
 
         // config robot pins
         octoKin.set_pin_step_ctrl(PIN_MS1,PIN_MS2,PIN_MS3);
@@ -655,6 +657,9 @@ int main(int argc, char** argv)
         
         // turn suction off
         gpioWrite(PIN_BOMBA,0);
+        // enable motors
+        gpioWrite(PIN_ENABLE,1);
+        STATUS_MOTOR_ENABLED = 1;
 
         // effector orientation correction
         int effector_steps = 0;
@@ -967,6 +972,7 @@ int main(int argc, char** argv)
             }else if(HIGHLIGHTED_OPTION->text == "Deshabilitar")
             {
                 STATUS_MOTOR_ENABLED = !STATUS_MOTOR_ENABLED;
+                gpioWrite(PIN_ENABLE,STATUS_MOTOR_ENABLED);
             }else if(HIGHLIGHTED_OPTION->text == "Mover")
             {
                 MODE_MANUAL = !MODE_MANUAL;
