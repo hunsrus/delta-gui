@@ -658,8 +658,8 @@ int main(int argc, char** argv)
         // turn suction off
         gpioWrite(PIN_BOMBA,0);
         // enable motors
-        gpioWrite(PIN_ENABLE,1);
         STATUS_MOTOR_ENABLED = 0;
+        gpioWrite(PIN_ENABLE,STATUS_MOTOR_ENABLED);
 
         // effector orientation correction
         int effector_steps = 0;
