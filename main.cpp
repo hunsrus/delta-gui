@@ -258,9 +258,11 @@ typedef struct Feeder
     Vector3 push;
     Vector3 approach;
     Vector3 pick;
+    std::string component;
 }Feeder;
 
 static std::vector<Feeder> feeders;
+static std::vector<std::string> CURRENT_COMPONENTS;
 
 std::vector<Componente> parsearArchivo(const std::string& nombreArchivo);
 int executeInstruction(std::string instruction, OctoKinematics &octoKin);
@@ -430,11 +432,19 @@ int main(int argc, char** argv)
     auxMenu->parent = menus.at(0);
     auxMenu->options.push_back((Option){0,"Atrás"});
     auxMenu->options.push_back((Option){1,"Iniciar rutina"});
-    auxMenu->options.push_back((Option){2,"Archivos"});
-    auxMenu->options.push_back((Option){3,"Componentes"});
-    auxMenu->options.push_back((Option){4,"Referencias"});
-    auxMenu->options.push_back((Option){5,"Guardar rutina"});
-    auxMenu->options.push_back((Option){6,"Abrir rutina"});
+    auxMenu->options.push_back((Option){2,"Cargar archivo"});
+    auxMenu->options.push_back((Option){3,"Asignar feeders"});
+    auxMenu->options.push_back((Option){4,"Guardar rutina"});
+    auxMenu->options.push_back((Option){5,"Abrir rutina"});
+    menus.push_back(auxMenu);
+    auxMenu = new Menu();
+    auxMenu->title = "Asignar feeders";
+    auxMenu->parent = menus.at(0);
+    auxMenu->options.push_back((Option){0,"Atrás"});
+    for( const auto& feeder : feeders)
+    {
+        auxMenu->options.push_back((Option){feeder.id,"Feeder "+std::to_string(feeder.id), feeder.component});
+    }
     menus.push_back(auxMenu);
     auxMenu = new Menu();
     auxMenu->title = "Calibrar";
@@ -487,12 +497,12 @@ int main(int argc, char** argv)
     auxMenu->options.push_back((Option){2,"Reiniciar"});
     menus.push_back(auxMenu);
     auxMenu = new Menu();
-    auxMenu->title = "Archivos";
+    auxMenu->title = "Cargar archivo";
     auxMenu->parent = menus.at(1);
     auxMenu->options.push_back((Option){0,"Atrás"});
     menus.push_back(auxMenu);
     auxMenu = new Menu();
-    auxMenu->title = "Componentes";
+    auxMenu->title = "Asignar feeders";
     auxMenu->parent = menus.at(1);
     auxMenu->options.push_back((Option){0,"Atrás"});
     menus.push_back(auxMenu);
@@ -933,6 +943,30 @@ int main(int argc, char** argv)
                     MANUAL_INCREMENT -= 0.2f;
                     HIGHLIGHTED_OPTION->value = std::to_string(MANUAL_INCREMENT);
                 }
+            }else if(CURRENT_MENU->title == "Asignar feeders")
+            {
+                if(HIGHLIGHTED_OPTION->value.empty())
+                {
+                    HIGHLIGHTED_OPTION->value = CURRENT_COMPONENTS.back();
+                }else
+                {
+                    for (std::vector<std::string>::iterator it = CURRENT_COMPONENTS.begin(); it <= CURRENT_COMPONENTS.end(); it++)
+                    {
+                        if(HIGHLIGHTED_OPTION->value == (*it))
+                        {
+                            if(it > CURRENT_COMPONENTS.begin())
+                                HIGHLIGHTED_OPTION->value = *(std::prev(it));
+                            else
+                                HIGHLIGHTED_OPTION->value = CURRENT_COMPONENTS.back();
+                            break;
+                        }
+                    }
+                }
+                for(auto& feeder : feeders)
+                {
+                    if(feeder.id == HIGHLIGHTED_OPTION->id)
+                        feeder.component = HIGHLIGHTED_OPTION->value;
+                }
             }
         }
         if(IsKeyPressed(KEY_RIGHT) || (axis_state_X == 1 && axis_state_X != last_axis_state_X ))
@@ -986,6 +1020,30 @@ int main(int argc, char** argv)
                 {
                     MANUAL_INCREMENT += 0.2f;
                     HIGHLIGHTED_OPTION->value = std::to_string(MANUAL_INCREMENT);
+                }
+            }else if(CURRENT_MENU->title == "Asignar feeders")
+            {
+                if(HIGHLIGHTED_OPTION->value.empty())
+                {
+                    HIGHLIGHTED_OPTION->value = CURRENT_COMPONENTS.front();
+                }else
+                {
+                    for (std::vector<std::string>::iterator it = CURRENT_COMPONENTS.begin(); it <= CURRENT_COMPONENTS.end(); it++)
+                    {
+                        if(HIGHLIGHTED_OPTION->value == (*it))
+                        {
+                            if(it < std::prev(CURRENT_COMPONENTS.end()))
+                                HIGHLIGHTED_OPTION->value = *(std::next(it));
+                            else
+                                HIGHLIGHTED_OPTION->value = CURRENT_COMPONENTS.front();
+                            break;
+                        }
+                    }
+                }
+                for(auto& feeder : feeders)
+                {
+                    if(feeder.id == HIGHLIGHTED_OPTION->id)
+                        feeder.component = HIGHLIGHTED_OPTION->value;
                 }
             }
         }
@@ -1072,12 +1130,12 @@ int main(int argc, char** argv)
                 JOB_RUNNING = true;
             }else
             {
-                if(CURRENT_MENU->title == "Archivos")
+                if(CURRENT_MENU->title == "Cargar archivo")
                 {
                     currentPosFile = HIGHLIGHTED_OPTION->text;
 
-                    std::vector<Componente> componentes = parsearArchivo("../tests/"+currentPosFile);
-                    CURRENT_JOB = generateJob(componentes);
+                    static std::vector<Componente> components = parsearArchivo("../tests/"+currentPosFile);
+                    CURRENT_JOB = generateJob(components);
 
                     goBackOneMenu();
                 }else if(CURRENT_MENU->title == "Feeders")
@@ -1125,7 +1183,7 @@ int main(int argc, char** argv)
                 SHOW_3D_VIEW = true;
                 SHOW_MENU_INFO = false;
                 SHOW_FIELD_VALUES = true;
-            }else if(CURRENT_MENU->title == "Archivos")
+            }else if(CURRENT_MENU->title == "Cargar archivo")
             {
                 SHOW_3D_VIEW = false;
                 SHOW_MENU_INFO = false;
@@ -1140,6 +1198,11 @@ int main(int argc, char** argv)
                     fileCount++;
                 }
                 HIGHLIGHTED_OPTION = CURRENT_MENU->options.begin();
+            }else if(CURRENT_MENU->title == "Asignar feeders")
+            {
+                SHOW_3D_VIEW = false;
+                SHOW_MENU_INFO = false;
+                SHOW_FIELD_VALUES = true;
             }
         }
 
@@ -1693,7 +1756,7 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
     int componentCount = 0;
     DrawProgressBarIndicator("Convirtiendo...", progress, font);
 
-    Feeder tmp_feeder = feeders.at(0);
+    Feeder aux_feeder = feeders.at(0);
 
     float anglePCB = Vector3Angle(Vector3Subtract(POS_PCB_REF2,POS_PCB_REF1),(Vector3){1.0f,0.0f,0.0f});
     Matrix transformPCB = MatrixIdentity();
@@ -1712,32 +1775,58 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
 
     for (const auto& componente : componentes)
     {
+        // guardar tipo de componente único
+        bool componentAlreadyLoaded = false;
+        for (const auto& unique_component : CURRENT_COMPONENTS)
+        {
+            if(componente.value == unique_component) componentAlreadyLoaded = true;
+        }
+        if(!componentAlreadyLoaded) CURRENT_COMPONENTS.push_back(componente.value);
+
+        // cargar feeder correspondiente
+        bool feederAssigned = false;
+        for(auto& feeder : feeders)
+        {
+            if(feeder.component == componente.value)
+            {
+                aux_feeder = feeder;
+                feederAssigned = true;
+            }
+        }
+
+        if(!feederAssigned)
+        {
+            job.clear();
+            fprintf(stderr, "[ERROR] component '%s' not assigned to feeder\n", componente.value.c_str());
+            return job;
+        }
+
         // paso grueso
         job.push_back("S0.02");
         // posición de approach
-        instruction = "LX"+std::to_string(tmp_feeder.approach.x)+"Y"+std::to_string(tmp_feeder.approach.y)+"Z"+std::to_string(tmp_feeder.approach.z);
+        instruction = "LX"+std::to_string(aux_feeder.approach.x)+"Y"+std::to_string(aux_feeder.approach.y)+"Z"+std::to_string(aux_feeder.approach.z);
         job.push_back(instruction);
         // paso fino
         job.push_back("S0.002");
         // posición de push
-        instruction = "LX"+std::to_string(tmp_feeder.push.x)+"Y"+std::to_string(tmp_feeder.push.y)+"Z"+std::to_string(tmp_feeder.push.z);
+        instruction = "LX"+std::to_string(aux_feeder.push.x)+"Y"+std::to_string(aux_feeder.push.y)+"Z"+std::to_string(aux_feeder.push.z);
         job.push_back(instruction);
         // posición de pick manteniendo altura
-        instruction = "LX"+std::to_string(tmp_feeder.pick.x)+"Y"+std::to_string(tmp_feeder.pick.y);
+        instruction = "LX"+std::to_string(aux_feeder.pick.x)+"Y"+std::to_string(aux_feeder.pick.y);
         job.push_back(instruction);
 
         // prender bomba
         job.push_back("B1");
         
         // baja hacia posición de pick
-        instruction += "Z"+std::to_string(tmp_feeder.pick.z);
+        instruction += "Z"+std::to_string(aux_feeder.pick.z);
         job.push_back(instruction);
 
         // delay para juntar
         job.push_back("D250000");
 
         // vuelve a altura de approach para salir
-        instruction = "LZ"+std::to_string(tmp_feeder.approach.z);
+        instruction = "LZ"+std::to_string(aux_feeder.approach.z);
         job.push_back(instruction);
         // paso grueso
         job.push_back("S0.02");
@@ -1775,7 +1864,7 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
         job.push_back("1000000");
 
         // sube a z de approach
-        sprintf(aux_z, format.c_str(), tmp_feeder.approach.z);
+        sprintf(aux_z, format.c_str(), aux_feeder.approach.z);
         instruction = "LZ";
         instruction.append(aux_z);
         job.push_back(instruction);
