@@ -98,7 +98,7 @@ static float SCREEN_DIVISION_RATIO = 1.0f/3.0f;
 #define DRAW_SCALE 0.5
 
 static bool SHOW_DEBUG_DATA = false;
-static bool STARTING_ANIMATION = true;
+static bool STARTING_ANIMATION = false;
 static bool SHOW_3D_VIEW = true;
 static bool SHOW_MENU_INFO = false;
 static bool SHOW_FIELD_VALUES = false;
@@ -573,6 +573,22 @@ int main(int argc, char** argv)
     rod3InitialMatrix = MatrixMultiply(rod3InitialMatrix,MatrixRotate((Vector3){0,1,0}, M_PI_2));
     rod3InitialMatrix = MatrixMultiply(rod3InitialMatrix,MatrixRotate((Vector3){0.0f,1.0f,0.0f},120.0f*DEG2RAD));
 
+    Vector3 motor1Pos = Vector3Scale(arm1Pos,0.8f);
+    Vector3 motor2Pos = Vector3Scale(arm2Pos,0.8f);
+    Vector3 motor3Pos = Vector3Scale(arm3Pos,0.8f);
+    motor1Pos.y = arm1Pos.y+16.0f;
+    motor2Pos.y = arm2Pos.y+16.0f;
+    motor3Pos.y = arm3Pos.y+16.0f;
+    Model* motorModel1 = new Model(LoadModelFromMesh(GenMeshCube(32.0f,32.0f,32.0f)));
+    Model* motorModel2 = new Model(LoadModelFromMesh(GenMeshCube(32.0f,32.0f,32.0f)));
+    Model* motorModel3 = new Model(LoadModelFromMesh(GenMeshCube(32.0f,32.0f,32.0f)));
+    motorModel1->transform = arm1InitialMatrix;
+    motorModel1->transform = MatrixMultiply(motorModel1->transform,MatrixTranslate(motor1Pos.x,motor1Pos.y,motor1Pos.z));
+    motorModel2->transform = arm2InitialMatrix;
+    motorModel2->transform = MatrixMultiply(motorModel2->transform,MatrixTranslate(motor2Pos.x,motor2Pos.y,motor2Pos.z));
+    motorModel3->transform = arm3InitialMatrix;
+    motorModel3->transform = MatrixMultiply(motorModel3->transform,MatrixTranslate(motor3Pos.x,motor3Pos.y,motor3Pos.z));
+
     DrawProgressBarScreen("definiendo vista 3D...", 50, font);
     // Define the camera to look into our 3d world
     //Camera camera = { {-20.0f, 12.0f, 0.0f}, { 0.0f, 4.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, 45.0f, 0 };
@@ -584,6 +600,7 @@ int main(int argc, char** argv)
     // Create a RenderTexture2D to be used for render to texture
     RenderTexture2D renderTextureModel = LoadRenderTexture(screenWidth, screenHeight);
     RenderTexture2D renderTextureBackground = LoadRenderTexture(screenWidth, screenHeight);
+    RenderTexture2D renderTextureForeground = LoadRenderTexture(screenWidth, screenHeight);
     // cargar shader para outline 
     Shader shader = LoadShader(TextFormat("resources/shaders/glsl%i/base.vs", GLSL_VERSION), TextFormat("resources/shaders/glsl%i/sobel_colors.fs", GLSL_VERSION));
     // // Get shader locations
@@ -1249,12 +1266,51 @@ int main(int argc, char** argv)
             BeginMode3D(camera);        // Begin 3d mode drawing
                 DrawGrid((int)BAS_RADIUS/1.5f,BAS_RADIUS/2.0f);
                 DrawModel(*baseModel,Vector3Scale(basePos,DRAW_SCALE),DRAW_SCALE,COLOR_HL);
-                DrawLine3D(Vector3Zero(), (Vector3){0.0f,50.0f,0.0f},GREEN);
-                DrawCube((Vector3){0.0f,50.0f,0.0f},20.0f,20.0f,20.0f,GREEN);
-                DrawLine3D(Vector3Zero(), (Vector3){50.0f,0.0f,0.0f},RED);
-                DrawCube((Vector3){50.0f,0.0f,0.0f},20.0f,20.0f,20.0f,RED);
-                DrawLine3D(Vector3Zero(), (Vector3){0.0f,0.0f,50.0f},BLUE);
-                DrawCube((Vector3){0.0f,0.0f,50.0f},20.0f,20.0f,20.0f,BLUE);
+                float refArrowsLength = 40.0f;
+                float refArrowsRadius = 10.0f;
+                Vector3 refArrowsPos = (Vector3){-BAS_RADIUS,0.0f,0.0f};
+                DrawCylinderEx((Vector3){refArrowsPos.x,refArrowsPos.y+refArrowsLength,refArrowsPos.z},
+                    (Vector3){refArrowsPos.x,refArrowsPos.y+refArrowsLength*2,refArrowsPos.z},
+                    refArrowsRadius,
+                    0.0f,
+                    10,
+                    BLUE
+                );
+                DrawLine3D(refArrowsPos, (Vector3){refArrowsPos.x,refArrowsPos.y+refArrowsLength,refArrowsPos.z},BLUE);
+
+                DrawCylinderEx((Vector3){refArrowsPos.x+refArrowsLength,refArrowsPos.y,refArrowsPos.z},
+                    (Vector3){refArrowsPos.x+refArrowsLength*2,refArrowsPos.y,refArrowsPos.z},
+                    refArrowsRadius,
+                    0.0f,
+                    10,
+                    RED
+                );
+                DrawLine3D(refArrowsPos, (Vector3){refArrowsPos.x+refArrowsLength,refArrowsPos.y,refArrowsPos.z},RED);
+
+                DrawCylinderEx((Vector3){refArrowsPos.x,refArrowsPos.y,refArrowsPos.z+refArrowsLength},
+                    (Vector3){refArrowsPos.x,refArrowsPos.y,refArrowsPos.z+refArrowsLength*2},
+                    refArrowsRadius,
+                    0.0f,
+                    10,
+                    GREEN
+                );
+                DrawLine3D(refArrowsPos, (Vector3){refArrowsPos.x,refArrowsPos.y,refArrowsPos.z+refArrowsLength},GREEN);
+            EndMode3D();
+        EndTextureMode();
+        BeginTextureMode(renderTextureForeground);
+        ClearBackground((Color){0,0,0,0});  // Clear texture background
+            BeginMode3D(camera);        // Begin 3d mode drawing
+                if(STATUS_MOTOR_ENABLED)
+                {
+                    DrawModel(*motorModel1, Vector3Zero(), DRAW_SCALE, COLOR_HL);
+                    DrawModel(*motorModel2, Vector3Zero(), DRAW_SCALE, COLOR_HL);
+                    DrawModel(*motorModel3, Vector3Zero(), DRAW_SCALE, COLOR_HL);
+                }else
+                {
+                    DrawModel(*motorModel1, Vector3Zero(), DRAW_SCALE, COLOR_FG);
+                    DrawModel(*motorModel2, Vector3Zero(), DRAW_SCALE, COLOR_FG);
+                    DrawModel(*motorModel3, Vector3Zero(), DRAW_SCALE, COLOR_FG);
+                }
             EndMode3D();
         EndTextureMode();
 
@@ -1268,6 +1324,7 @@ int main(int argc, char** argv)
                     // NOTE: Render texture must be y-flipped due to default OpenGL coordinates (left-bottom)
                     DrawTextureRec(renderTextureModel.texture, viewRectangle, viewPos, WHITE);
                 EndShaderMode();
+                DrawTextureRec(renderTextureForeground.texture, viewRectangle, viewPos, WHITE);
                 Rectangle viewBorderRectangle = {viewPos.x, viewPos.y, viewSize.x, viewSize.y};
                 DrawRectangleLinesEx(viewBorderRectangle,BORDER_THICKNESS,COLOR_FG);
             }
