@@ -1379,7 +1379,7 @@ int main(int argc, char** argv)
         BeginTextureMode(renderTextureForeground);
         ClearBackground((Color){0,0,0,0});  // Clear texture background
             BeginMode3D(camera);        // Begin 3d mode drawing
-                if(STATUS_MOTOR_ENABLED)
+                if(!STATUS_MOTOR_ENABLED)
                 {
                     DrawModel(*motorModel1, Vector3Zero(), DRAW_SCALE, COLOR_HL);
                     DrawModel(*motorModel2, Vector3Zero(), DRAW_SCALE, COLOR_HL);
@@ -1734,6 +1734,7 @@ int executeInstruction(std::string instruction, OctoKinematics &octoKin)
         
     }else if(instruction[0] == 'B') // controlar bomba
     {
+        #if ARCH_ARM
         if(instruction[1] == '1') gpioWrite(PIN_BOMBA,1);
         else if(instruction[1] == '0') gpioWrite(PIN_BOMBA,0);
         else
@@ -1741,6 +1742,7 @@ int executeInstruction(std::string instruction, OctoKinematics &octoKin)
             fprintf(stderr, "invalid instruction: %s\n",instruction);
             return EXIT_FAILURE;
         }
+        #endif
     }else if(instruction[0] == 'E') // girar efector
     {
         bool dir = -1;
@@ -1814,7 +1816,8 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
         {
             job.clear();
             fprintf(stderr, "[ERROR] component '%s' not assigned to feeder\n", componente.value.c_str());
-            DrawMessageWindow("[ERROR] component not assigned to feeder");
+            DrawMessageWindow("[ERROR] check logs");
+            // [TODO] logs
             usleep(2000000);
             return job;
         }
