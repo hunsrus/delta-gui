@@ -9,9 +9,9 @@
 #include "OctoKinematics.h"
 
 // deteccion de imagenes
-#include <opencv2/imgcodecs.hpp>
-#include <opencv2/highgui.hpp>
-#include <opencv2/imgproc.hpp>
+// #include <opencv2/imgcodecs.hpp>
+// #include <opencv2/highgui.hpp>
+// #include <opencv2/imgproc.hpp>
 
 #include <iostream>
 #include <fstream>
@@ -23,6 +23,7 @@
 #include <vector>
 #include <list>
 #include <dirent.h>
+#include <cstring>
 
 #if ARCH_ARM
     #include <pigpio.h>
@@ -325,7 +326,7 @@ int main(int argc, char** argv)
 
     //SetConfigFlags(FLAG_FULLSCREEN_MODE);
     //SetConfigFlags(FLAG_MSAA_4X_HINT);
-    SetConfigFlags(FLAG_WINDOW_UNDECORATED);
+    //SetConfigFlags(FLAG_WINDOW_UNDECORATED);
     InitWindow(screenWidth, screenHeight, "delta gui test");
 
     font = LoadFontEx("resources/fonts/JetBrainsMono/JetBrainsMono-Bold.ttf", FONT_PIXELS, 0, 250);
@@ -795,7 +796,11 @@ int main(int argc, char** argv)
         {
             if(!EXECUTING_INSTRUCTION)
             {
-                if(axis_state_X != 0 || axis_state_Y != 0)
+                #if ARCH_ARM
+                    if(axis_state_X != 0 || axis_state_Y != 0)
+                #else
+                    if(IsKeyDown(KEY_A) || IsKeyDown(KEY_D) || IsKeyDown(KEY_S) || IsKeyDown(KEY_W))
+                #endif
                 {
                     std::string instruction = "L";
                     
@@ -1125,12 +1130,18 @@ int main(int argc, char** argv)
             // #endif
 
             // calcula la posición de la articulación entre bicep y antebrazo
-            rod1Pos = (Vector3){arm1Pos.x,static_cast<float>(arm1Pos.y-ARM_LENGTH*sin(-octoKin.b*DEG2RAD)),static_cast<float>(arm1Pos.z-ARM_LENGTH*cos(-octoKin.b*DEG2RAD))};
-            rod2Pos = (Vector3){static_cast<float>(arm2Pos.x+ARM_LENGTH*cos(-octoKin.c*DEG2RAD)*cos(30*DEG2RAD)),static_cast<float>(arm2Pos.y-ARM_LENGTH*sin(-octoKin.c*DEG2RAD)),static_cast<float>(arm2Pos.z+ARM_LENGTH*cos(-octoKin.c*DEG2RAD)*sin(30*DEG2RAD))};
-            rod3Pos = (Vector3){static_cast<float>(arm3Pos.x-ARM_LENGTH*cos(-octoKin.a*DEG2RAD)*cos(30*DEG2RAD)),static_cast<float>(arm3Pos.y-ARM_LENGTH*sin(-octoKin.a*DEG2RAD)),static_cast<float>(arm3Pos.z+ARM_LENGTH*cos(-octoKin.a*DEG2RAD)*sin(30*DEG2RAD))};
-
+            rod1Pos = (Vector3){arm1Pos.x,
+                static_cast<float>(arm1Pos.y-ARM_LENGTH*sin(-octoKin.c*DEG2RAD)),
+                static_cast<float>(arm1Pos.z-ARM_LENGTH*cos(-octoKin.c*DEG2RAD))};
+            rod2Pos = (Vector3){static_cast<float>(arm2Pos.x+ARM_LENGTH*cos(-octoKin.b*DEG2RAD)*cos(30*DEG2RAD)),
+                static_cast<float>(arm2Pos.y-ARM_LENGTH*sin(-octoKin.b*DEG2RAD)),
+                static_cast<float>(arm2Pos.z+ARM_LENGTH*cos(-octoKin.b*DEG2RAD)*sin(30*DEG2RAD))};
+            rod3Pos = (Vector3){static_cast<float>(arm3Pos.x-ARM_LENGTH*cos(-octoKin.a*DEG2RAD)*cos(30*DEG2RAD)),
+                static_cast<float>(arm3Pos.y-ARM_LENGTH*sin(-octoKin.a*DEG2RAD)),
+                static_cast<float>(arm3Pos.z+ARM_LENGTH*cos(-octoKin.a*DEG2RAD)*sin(30*DEG2RAD))};
+            
             // copia la posición del efector basada en el cálculo de cinemática
-            basePos = (Vector3){static_cast<float>(octoKin.x),static_cast<float>(BAS_POSITION.y+octoKin.z),static_cast<float>(octoKin.y)};
+            basePos = (Vector3){static_cast<float>(octoKin.x),static_cast<float>(BAS_POSITION.y+octoKin.z),static_cast<float>(-octoKin.y)};
 
             // rod 1 angles
             arm1Projection = rod1Pos;
@@ -1175,11 +1186,11 @@ int main(int argc, char** argv)
             //// arms
 
             armModel1->transform = arm1InitialMatrix;
-            armModel1->transform = MatrixMultiply(armModel1->transform,MatrixRotate(arm1Axis,-octoKin.b*DEG2RAD));
+            armModel1->transform = MatrixMultiply(armModel1->transform,MatrixRotate(arm1Axis,-octoKin.c*DEG2RAD));
             armModel1->transform = MatrixMultiply(armModel1->transform,MatrixTranslate(arm1Pos.x,arm1Pos.y,arm1Pos.z));
 
             armModel2->transform = arm2InitialMatrix;
-            armModel2->transform = MatrixMultiply(armModel2->transform,MatrixRotate(arm2Axis,-octoKin.c*DEG2RAD));
+            armModel2->transform = MatrixMultiply(armModel2->transform,MatrixRotate(arm2Axis,-octoKin.b*DEG2RAD));
             armModel2->transform = MatrixMultiply(armModel2->transform,MatrixTranslate(arm2Pos.x,arm2Pos.y,arm2Pos.z));
 
             armModel3->transform = arm3InitialMatrix;
@@ -1253,10 +1264,10 @@ int main(int argc, char** argv)
             if(SHOW_3D_VIEW)
             {
                 DrawTextureRec(renderTextureBackground.texture, viewRectangle, viewPos, WHITE);
-                BeginShaderMode(shader);
+                // BeginShaderMode(shader);
                     // NOTE: Render texture must be y-flipped due to default OpenGL coordinates (left-bottom)
                     DrawTextureRec(renderTextureModel.texture, viewRectangle, viewPos, WHITE);
-                EndShaderMode();
+                // EndShaderMode();
                 Rectangle viewBorderRectangle = {viewPos.x, viewPos.y, viewSize.x, viewSize.y};
                 DrawRectangleLinesEx(viewBorderRectangle,BORDER_THICKNESS,COLOR_FG);
             }
