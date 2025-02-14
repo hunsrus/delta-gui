@@ -159,8 +159,9 @@ Menu* CURRENT_MENU;
 std::vector<Option>::iterator HIGHLIGHTED_OPTION;
 
 void goBackOneMenu(void);
-void DrawProgressBarScreen(const char* text, int progress, Font font);
-void DrawProgressBarIndicator(const char* text, int progress, Font font);
+void DrawProgressBarScreen(const char* text, int progress);
+void DrawProgressBarIndicator(const char* text, int progress);
+void DrawMessageWindow(const char* text);
 
 //----------------------------------------------------------------------------------
 // DETECCIÓN DE IMÁGENES
@@ -338,7 +339,7 @@ int main(int argc, char** argv)
     HideCursor();
     SetTargetFPS(TARGET_FPS);
 
-    DrawProgressBarScreen("inicializando variables...", 10, font);
+    DrawProgressBarScreen("inicializando variables...", 10);
     int i;
     char c[255];
     float auxValue = 0;
@@ -389,7 +390,7 @@ int main(int argc, char** argv)
     COLOR_FG = themes[CURRENT_THEME].foreground;
     COLOR_HL = themes[CURRENT_THEME].accent;
 
-    DrawProgressBarScreen("inicializando cinemática...", 20, font);
+    DrawProgressBarScreen("inicializando cinemática...", 20);
     OctoKinematics octoKin = OctoKinematics(ARM_LENGTH, ROD_LENGTH, EFF_RADIUS, BAS_RADIUS);
     double x = 0, y = 0, z = HOME_Z;
     double lastX = -1, lastY = -1, lastZ = -1;
@@ -412,7 +413,7 @@ int main(int argc, char** argv)
     Vector3 basePos = (Vector3){static_cast<float>(x),static_cast<float>(z),static_cast<float>(y)};
     Vector3 arm1Projection, arm2Projection, arm3Projection;
 
-    DrawProgressBarScreen("cargando menú...", 30, font);
+    DrawProgressBarScreen("cargando menú...", 30);
 
     std::vector<Menu*> menus;
 
@@ -525,7 +526,7 @@ int main(int argc, char** argv)
         std::cout << "ARCHITECTURE: x86_64" << std::endl;
     #endif
 
-    DrawProgressBarScreen("generando modelos 3D...", 40, font);
+    DrawProgressBarScreen("generando modelos 3D...", 40);
     // CARGAR LOS MODELOS DESPUÉS DE INICIAR LA VENTANA
     Model* platformModel = new Model(LoadModelFromMesh(GenMeshPoly(20,BAS_RADIUS)));
     //Model* platformModel = new Model(LoadModel(std::string("resources/models/platform/platform.obj").c_str()));
@@ -607,14 +608,14 @@ int main(int argc, char** argv)
     motorModel3->transform = arm3InitialMatrix;
     motorModel3->transform = MatrixMultiply(motorModel3->transform,MatrixTranslate(motor3Pos.x,motor3Pos.y,motor3Pos.z));
 
-    DrawProgressBarScreen("definiendo vista 3D...", 50, font);
+    DrawProgressBarScreen("definiendo vista 3D...", 50);
     // Define the camera to look into our 3d world
     //Camera camera = { {-20.0f, 12.0f, 0.0f}, { 0.0f, 4.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, 45.0f, 0 };
     Camera camera = { {0.0f, (ARM_LENGTH+ROD_LENGTH)*1.0f, BAS_RADIUS*3.0f}, {BAS_POSITION.x, BAS_POSITION.y/3.0f, BAS_POSITION.z}, { 0.0f, 1.0f, 0.0f }, 45.0f, 0 };
     camera.fovy = 179.0f;
     camera.projection = CAMERA_PERSPECTIVE;
 
-    DrawProgressBarScreen("cargando shaders...", 60, font);
+    DrawProgressBarScreen("cargando shaders...", 60);
     // Create a RenderTexture2D to be used for render to texture
     RenderTexture2D renderTextureModel = LoadRenderTexture(screenWidth, screenHeight);
     RenderTexture2D renderTextureBackground = LoadRenderTexture(screenWidth, screenHeight);
@@ -647,7 +648,7 @@ int main(int argc, char** argv)
     Font dataViewFont = LoadFontEx("resources/fonts/JetBrainsMono/JetBrainsMono-Bold.ttf", dataViewFontSize, 0, 250);
     
 
-    DrawProgressBarScreen("inicializando puertos i/o...", 70, font);
+    DrawProgressBarScreen("inicializando puertos i/o...", 70);
     // inicio control de i/o
     #if ARCH_ARM
         if (gpioInitialise() < 0)
@@ -729,7 +730,7 @@ int main(int argc, char** argv)
 
     #endif
 
-    DrawProgressBarScreen("secuencia de home...", 80, font);
+    DrawProgressBarScreen("secuencia de home...", 80);
     // homing sequence
     octoKin.home(0,0,HOME_Z); 
     // move to starting position
@@ -747,7 +748,7 @@ int main(int argc, char** argv)
     std::cout << "y: " << y << std::endl;
     std::cout << "z: " << z << std::endl;
 
-    // DrawProgressBarScreen("iniciando video...", 90, font);
+    // DrawProgressBarScreen("iniciando video...", 90);
     // // inicio captura de video
     // Texture2D captureTexture;
 
@@ -757,10 +758,10 @@ int main(int argc, char** argv)
     // if(CAMERA_AVAILABLE)
     //     captureTexture = LoadTextureFromImage(MatToImage(image));
 
-    DrawProgressBarScreen("iniciando hilo de cinemática...", 90, font);
+    DrawProgressBarScreen("iniciando hilo de cinemática...", 90);
     std::thread t1(calculateKinematics,std::ref(x),std::ref(y),std::ref(z),std::ref(octoKin));
 
-    DrawProgressBarScreen("listo", 100, font);
+    DrawProgressBarScreen("listo", 100);
 
     //--------------------------------------------------------------------------------------
     //--------------------------------------------------------------------------------------
@@ -1571,7 +1572,7 @@ void goBackOneMenu(void)
     HIGHLIGHTED_OPTION = CURRENT_MENU->options.begin();
 }
 
-void DrawProgressBarScreen(const char* text, int progress, Font font)
+void DrawProgressBarScreen(const char* text, int progress)
 {
     HideCursor();
     float fontSize = font.baseSize/2.0f;
@@ -1588,7 +1589,7 @@ void DrawProgressBarScreen(const char* text, int progress, Font font)
     EndDrawing();
 }
 
-void DrawProgressBarIndicator(const char* text, int progress, Font font)
+void DrawProgressBarIndicator(const char* text, int progress)
 {
     float fontSize = font.baseSize/2.0f;
     Vector2 barSize = {DISPLAY_WIDTH*SCREEN_DIVISION_RATIO, fontSize};
@@ -1601,6 +1602,21 @@ void DrawProgressBarIndicator(const char* text, int progress, Font font)
         DrawRectangleLinesEx(barRec, BORDER_THICKNESS, COLOR_FG);
         barRec.width *= progress/100.0f;
         DrawRectangleRec(barRec,COLOR_FG);
+        DrawTextEx(font, text, textPos, fontSize, 1, COLOR_FG);
+    EndDrawing();
+}
+
+void DrawMessageWindow(const char* text)
+{
+    float fontSize = font.baseSize/2.0f;
+    Vector2 windowSize = {DISPLAY_WIDTH/2.0f, DISPLAY_HEIGHT/2.0f};
+    Vector2 windowPos = {DISPLAY_WIDTH/2.0f-windowSize.x/2.0f, DISPLAY_HEIGHT/2.0f-windowSize.y/2.0f};
+    Rectangle windowRec = {windowPos.x, windowPos.y, windowSize.x, windowSize.y};
+    Vector2 textPos = {DISPLAY_WIDTH/2.0f-(sizeof(text)*fontSize)/2.0f, DISPLAY_HEIGHT/2.0f-fontSize/2.0f};
+    BeginDrawing();
+        // ClearBackground(COLOR_BG);
+        DrawRectangleRec(windowRec,COLOR_BG);
+        DrawRectangleLinesEx(windowRec, BORDER_THICKNESS, COLOR_HL);
         DrawTextEx(font, text, textPos, fontSize, 1, COLOR_FG);
     EndDrawing();
 }
@@ -1657,7 +1673,7 @@ std::vector<Componente> parsearArchivo(const std::string& nombreArchivo) {
             iss >> componente.reference >> componente.value >> componente.package
             >> componente.posx >> componente.posy >> componente.rotation;
             componentes.push_back(componente);
-            DrawProgressBarIndicator("Parseando...", progress, font);
+            DrawProgressBarIndicator("Parseando...", progress);
             if(progress < 90) progress += 10;
         }
         archivo.close();
@@ -1754,7 +1770,7 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
     std::string format = "%."+std::to_string(NUMERIC_PRECISION)+"f";
     int progress = 0;
     int componentCount = 0;
-    DrawProgressBarIndicator("Convirtiendo...", progress, font);
+    DrawProgressBarIndicator("Convirtiendo...", progress);
 
     Feeder aux_feeder = feeders.at(0);
 
@@ -1798,6 +1814,8 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
         {
             job.clear();
             fprintf(stderr, "[ERROR] component '%s' not assigned to feeder\n", componente.value.c_str());
+            DrawMessageWindow("[ERROR] component not assigned to feeder");
+            usleep(2000000);
             return job;
         }
 
@@ -1874,7 +1892,7 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
 
         componentCount++;
         progress = mapear(componentCount,0,componentes.size(),0,100);
-        DrawProgressBarIndicator("Convirtiendo...", progress, font);
+        DrawProgressBarIndicator("Convirtiendo...", progress);
     }
 
     return job;
