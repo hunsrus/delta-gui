@@ -126,7 +126,8 @@ std::list<std::string> MANUAL_QUEUE;
 static std::string PATH_FILES = "../tests/";
 static double STEP_SIZE = 0.002;
 static float MANUAL_INCREMENT = 0.5f;
-static Vector3 POS_PCB = Vector3Zero();
+static Vector3 POS_PCB_REF1 = Vector3Zero();
+static Vector3 POS_PCB_REF2 = Vector3Zero();
 
 //----------------------------------------------------------------------------------
 // INTERFAZ
@@ -442,6 +443,13 @@ int main(int argc, char** argv)
     auxMenu->options.push_back((Option){1,"Zona PCB"});
     auxMenu->options.push_back((Option){2,"Feeders"});
     auxMenu->options.push_back((Option){3,"Guardar"});
+    menus.push_back(auxMenu);
+    auxMenu = new Menu();
+    auxMenu->title = "Zona PCB";
+    auxMenu->parent = menus.at(0);
+    auxMenu->options.push_back((Option){0,"Atrás"});
+    auxMenu->options.push_back((Option){1,"PCB Ref1"});
+    auxMenu->options.push_back((Option){2,"PCB Ref2"});
     menus.push_back(auxMenu);
     auxMenu = new Menu();
     auxMenu->title = "Feeders";
@@ -1004,11 +1012,18 @@ int main(int argc, char** argv)
                 JOB_SHOULD_STOP = true;
                 STATUS_VACUUM_PUMP = !STATUS_VACUUM_PUMP;
                 gpioWrite(PIN_BOMBA,STATUS_VACUUM_PUMP);
-            }else if(HIGHLIGHTED_OPTION->text == "Zona PCB")
+            }else if(HIGHLIGHTED_OPTION->text == "PCB Ref1")
             {
                 if(MODE_MANUAL)
                 {
-                    POS_PCB = (Vector3){octoKin.x, octoKin.y, octoKin.z};
+                    POS_PCB_REF1 = (Vector3){octoKin.x, octoKin.y, octoKin.z};
+                }
+                MODE_MANUAL = !MODE_MANUAL;
+            }else if(HIGHLIGHTED_OPTION->text == "PCB Ref2")
+            {
+                if(MODE_MANUAL)
+                {
+                    POS_PCB_REF2 = (Vector3){octoKin.x, octoKin.y, octoKin.z};
                 }
                 MODE_MANUAL = !MODE_MANUAL;
             }else if(HIGHLIGHTED_OPTION->text == "Push")
@@ -1680,6 +1695,11 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
 
     Feeder tmp_feeder = feeders.at(0);
 
+    float anglePCB = Vector3Angle(Vector3Subtract(POS_PCB_REF2,POS_PCB_REF1),(Vector3){1.0f,0.0f,0.0f});
+    Matrix transformPCB = MatrixIdentity();
+    transformPCB = MatrixMultiply(transformPCB,MatrixRotate((Vector3){0.0f,1.0f,0.0f}, anglePCB));
+    transformPCB = MatrixMultiply(transformPCB,MatrixTranslate(POS_PCB_REF1.x, POS_PCB_REF1.y, POS_PCB_REF1.z));
+
     std::vector<std::string> job;
     std::string instruction;
     
@@ -1722,9 +1742,14 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
         // paso grueso
         job.push_back("S0.02");
 
-        // secuencia de poner componente -----------------------
-        sprintf(aux_x, format.c_str(), componente.posx);
-        sprintf(aux_y, format.c_str(), componente.posy);
+        // secuencia de poner componente ---------------------------------------------------------------------------------------------
+        // transformar marco de referencia robot->pcb
+        Vector3 posComponentePCB = {componente.posx, componente.posy, 0.0f};
+        Vector3 posComponenteRobot = Vector3Transform(posComponentePCB, transformPCB);
+
+        sprintf(aux_x, format.c_str(), posComponenteRobot.x);
+        sprintf(aux_y, format.c_str(), posComponenteRobot.y);
+        sprintf(aux_z, format.c_str(), posComponenteRobot.z);
         
         // posición de componente manteniendo z de approach
         instruction = "LX";
@@ -1738,8 +1763,7 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
 
         // paso fino
         job.push_back("S0.002");
-        // bajo en posición de componente hasta placa pcb [TODO]
-        sprintf(aux_z, format.c_str(), LIM_Z);
+        // bajo en posición de componente hasta placa pcb
         instruction = "LZ";
         instruction.append(aux_z);
         job.push_back(instruction);
@@ -1868,7 +1892,7 @@ int configFileParser(std::string config_file_path) {
                 param_name.erase(param_name.find_last_not_of(" \t") + 1);
                 param_name.erase(0, param_name.find_first_not_of(" \t"));
 
-                if (param_name == "POS_PCB")
+                if (param_name == "POS_PCB_REF1")
                 {
                     size_t first_space = param_content.find(' ');
                     size_t second_space = param_content.find(' ', first_space + 1);
@@ -1882,8 +1906,23 @@ int configFileParser(std::string config_file_path) {
                     float y = std::stof(param_content.substr(first_space + 1, second_space - first_space - 1));
                     float z = std::stof(param_content.substr(second_space + 1));
 
-                    POS_PCB = {x, y, z};
-                } else if (param_name == "PATH_FILES")
+                    POS_PCB_REF1 = {x, y, z};
+                }else if(param_name == "POS_PCB_REF2")
+                {
+                    size_t first_space = param_content.find(' ');
+                    size_t second_space = param_content.find(' ', first_space + 1);
+
+                    if (first_space == std::string::npos || second_space == std::string::npos) {
+                        std::cout << "Formato inválido para " << param_name << ". Se esperaban tres valores." << std::endl;
+                        return EXIT_FAILURE;
+                    }
+
+                    float x = std::stof(param_content.substr(0, first_space));
+                    float y = std::stof(param_content.substr(first_space + 1, second_space - first_space - 1));
+                    float z = std::stof(param_content.substr(second_space + 1));
+
+                    POS_PCB_REF2 = {x, y, z};
+                }else if (param_name == "PATH_FILES")
                 {
                     // PATH_FILES = param_content;
                 } else if (param_name == "STEPS_NUM")
@@ -1980,10 +2019,14 @@ int writeConfigFile(const std::string& config_file_path)
     // Escribe cada parámetro con el formato especificado
     output_file << "PATH_FILES=" << PATH_FILES << "\n";
     
-    output_file << "POS_PCB=" 
-              << std::fixed << std::setprecision(NUMERIC_PRECISION) << POS_PCB.x << " "
-              << POS_PCB.y << " "
-              << POS_PCB.z << "\n";
+    output_file << "POS_PCB_REF1=" 
+              << std::fixed << std::setprecision(NUMERIC_PRECISION) << POS_PCB_REF1.x << " "
+              << POS_PCB_REF1.y << " "
+              << POS_PCB_REF1.z << "\n";
+    output_file << "POS_PCB_REF2=" 
+              << std::fixed << std::setprecision(NUMERIC_PRECISION) << POS_PCB_REF2.x << " "
+              << POS_PCB_REF2.y << " "
+              << POS_PCB_REF2.z << "\n";
     
     output_file << "STEPS_NUM=" << STEPS_NUM << "\n";
     output_file << "NUMERIC_PRECISION=" << NUMERIC_PRECISION << "\n";
