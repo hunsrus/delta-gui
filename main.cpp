@@ -576,7 +576,7 @@ int main(int argc, char** argv)
     DrawProgressBarScreen("definiendo vista 3D...", 50, font);
     // Define the camera to look into our 3d world
     //Camera camera = { {-20.0f, 12.0f, 0.0f}, { 0.0f, 4.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, 45.0f, 0 };
-    Camera camera = { {-BAS_RADIUS*3.0f, (ARM_LENGTH+ROD_LENGTH)*1.0f, 0.0f}, {BAS_POSITION.x, BAS_POSITION.y/3.0f, BAS_POSITION.z}, { 0.0f, 1.0f, 0.0f }, 45.0f, 0 };
+    Camera camera = { {0.0f, (ARM_LENGTH+ROD_LENGTH)*1.0f, BAS_RADIUS*3.0f}, {BAS_POSITION.x, BAS_POSITION.y/3.0f, BAS_POSITION.z}, { 0.0f, 1.0f, 0.0f }, 45.0f, 0 };
     camera.fovy = 179.0f;
     camera.projection = CAMERA_PERSPECTIVE;
 
@@ -1264,10 +1264,10 @@ int main(int argc, char** argv)
             if(SHOW_3D_VIEW)
             {
                 DrawTextureRec(renderTextureBackground.texture, viewRectangle, viewPos, WHITE);
-                // BeginShaderMode(shader);
+                BeginShaderMode(shader);
                     // NOTE: Render texture must be y-flipped due to default OpenGL coordinates (left-bottom)
                     DrawTextureRec(renderTextureModel.texture, viewRectangle, viewPos, WHITE);
-                // EndShaderMode();
+                EndShaderMode();
                 Rectangle viewBorderRectangle = {viewPos.x, viewPos.y, viewSize.x, viewSize.y};
                 DrawRectangleLinesEx(viewBorderRectangle,BORDER_THICKNESS,COLOR_FG);
             }
