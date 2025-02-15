@@ -22,11 +22,11 @@ class OctoKinematics
 {
     public:
         OctoKinematics(double armLength,double rodLength,double effRadius,double basRadius);
-        void step(int step_pin, int dir_pin, bool dir);
+        int step(int step_pin, int dir_pin, bool dir);
         int home(float x, float y, float z);
         bool inverse_kinematics(float x, float y, float z);
-        void updateKinematics(void);
-        void linear_move(float x, float y, float z, float stepDist, int stepDelay);
+        int updateKinematics(void);
+        int linear_move(float x, float y, float z, float stepDist, int stepDelay);
         void set_axis_direction(bool dir);
         void set_step_precision(int stepsNum);
         void set_transmission_ratio(double transRatio);
@@ -44,6 +44,8 @@ class OctoKinematics
         double a = 0;
         double b = 0;
         double c = 0;
+
+        bool ls_hit = false;
 
     private:
         double armLength;

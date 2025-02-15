@@ -19,14 +19,14 @@ bool OctoKinematics::inverse_kinematics_1(float xt, float yt, float zt)
     
     float rod_length_p_angle = asin(yt / this->rodLength); //Gives the angle between link2 and the ball joints. (Not actually necessary to calculate the inverse kinematics. Just used to prevent the arms ripping themselves apart.)
     if(!(abs(rod_length_p_angle) < 0.59341194567807205615405486128613f)){ //Prevents the angle between the ball joints and link 2 (this->rodLength) going out of range. (Angle was determined by emprical testing.)
-        printf("ERROR: Ball joint 1 out of range: rod_length_p_angle = %.2f", rod_length_p_angle*(180.0/M_PI));
+        printf("ERROR: Ball joint 1 out of range: rod_length_p_angle = %.2f\n", rod_length_p_angle*(180.0/M_PI));
         return false;
     }
 
     float ext = sqrt(pow (zt, 2) + pow(this->motorOffsetX - arm_end_x, 2)); //Extension of the arm from the centre of the servo rotation to the end ball joint of link2
 
     if(ext <= rod_length_p - this->armLength || ext >= this->armLength + rod_length_p){ //Checks the extension in the reachable range (This limit assumes that this->rodLength is greater than this->armLength)
-        printf("ERROR: Extension 1 out of range: ext = %.2f", ext);
+        printf("ERROR: Extension 1 out of range: ext = %.2f\n", ext);
         return false;
     }
        
@@ -36,7 +36,7 @@ bool OctoKinematics::inverse_kinematics_1(float xt, float yt, float zt)
     float beta = theta-M_PI;
 
     if(!(beta >= MOTOR_ANGLE_MIN && beta <= MOTOR_ANGLE_MAX)){ //Checks the angle is in the reachable range
-        printf("ERROR: Servo angle 1 out of range: Angle = ", theta*(180.0/M_PI));
+        printf("ERROR: Servo angle 1 out of range: Angle = %.2f\n", theta*(180.0/M_PI));
         return false;
     }
     
@@ -57,14 +57,14 @@ bool OctoKinematics::inverse_kinematics_2(float xt, float yt, float zt)
     
     float rod_length_p_angle = asin(yt / this->rodLength);
     if(!(abs(rod_length_p_angle) < 0.59341194567807205615405486128613f)){ //Prevents the angle between the ball joints and link 2 (this->rodLength) going out of range.
-        printf("ERROR: Ball joint 2 out of range: rod_length_p_angle = %.2f", rod_length_p_angle*(180.0/M_PI));        
+        printf("ERROR: Ball joint 2 out of range: rod_length_p_angle = %.2f\n", rod_length_p_angle*(180.0/M_PI));        
         return false;
     }
     
     float ext = sqrt(pow (zt, 2) + pow(this->motorOffsetX - arm_end_x, 2));
 
     if(ext <= rod_length_p - this->armLength || ext >= this->armLength + rod_length_p){ //This limit assumes that this->rodLength is greater than this->armLength
-        printf("ERROR: Extension 2 out of range: ext = %.2f", ext);
+        printf("ERROR: Extension 2 out of range: ext = %.2f\n", ext);
         return false;
     }
        
@@ -74,7 +74,7 @@ bool OctoKinematics::inverse_kinematics_2(float xt, float yt, float zt)
     float beta = theta-M_PI;
 
     if(!(beta >= MOTOR_ANGLE_MIN && beta <= MOTOR_ANGLE_MAX)){
-        printf("ERROR: Servo angle 2 out of range: Angle = %.2f", theta*(180.0/M_PI));
+        printf("ERROR: Servo angle 2 out of range: Angle = %.2f\n", theta*(180.0/M_PI));
         return false;
     }
     
@@ -96,14 +96,14 @@ bool OctoKinematics::inverse_kinematics_3(float xt, float yt, float zt)
     
     float rod_length_p_angle = asin(yt / this->rodLength);
     if(!(abs(rod_length_p_angle) < 0.59341194567807205615405486128613f)){ //Prevents the angle between the ball joints and link 2 (this->rodLength) going out of range.
-        printf("ERROR: Ball joint 1 out of range: rod_length_p_angle = %.2f", rod_length_p_angle*(180.0/M_PI));
+        printf("ERROR: Ball joint 1 out of range: rod_length_p_angle = %.2f\n", rod_length_p_angle*(180.0/M_PI));
         return false;
     }
     
     float ext = sqrt(pow (zt, 2) + pow(this->motorOffsetX - arm_end_x, 2));
 
     if(ext <= rod_length_p - this->armLength || ext >= this->armLength + rod_length_p){ //This limit assumes that this->rodLength is greater than this->armLength
-        printf("ERROR: Extension 3 out of range: ext = %.2f", ext);
+        printf("ERROR: Extension 3 out of range: ext = %.2f\n", ext);
         return false;
     }
        
@@ -113,7 +113,7 @@ bool OctoKinematics::inverse_kinematics_3(float xt, float yt, float zt)
     float beta = theta-M_PI;
 
     if(!(beta >= MOTOR_ANGLE_MIN && beta <= MOTOR_ANGLE_MAX)){
-        printf("ERROR: Servo angle 3 out of range: Angle = %.2f", theta*(180.0/M_PI));
+        printf("ERROR: Servo angle 3 out of range: Angle = %.2f\n", theta*(180.0/M_PI));
         return false;
     }
     
@@ -223,17 +223,28 @@ void OctoKinematics::set_pulse_width(useconds_t us)
     this->pulse_width = us;
 }
 
-void OctoKinematics::step(int step_pin, int dir_pin, bool dir)
+int OctoKinematics::step(int step_pin, int dir_pin, bool dir)
 {
     #if ARCH_ARM
+    if(!ls_hit)
+    {
         gpioWrite(dir_pin, dir);
         gpioWrite(step_pin, 1);
         usleep(this->pulse_width);
         gpioWrite(step_pin, 0);
+    }else return EXIT_FAILURE;
+
+    if(gpioRead(this->pin_ls1) || gpioRead(this->pin_ls2) || gpioRead(this->pin_ls3))
+    {
+        ls_hit = true;
+        return EXIT_FAILURE;
+    }
     #endif
+
+    return EXIT_SUCCESS;
 }
 
-void OctoKinematics::updateKinematics(void)
+int OctoKinematics::updateKinematics(void)
 {
     double diffA, diffB, diffC;
 
@@ -249,41 +260,43 @@ void OctoKinematics::updateKinematics(void)
         if(diffA > this->step_angle)
         {
             this->lastA += this->step_angle;
-            step(this->pin_step1, this->pin_dir1, 1);
+            if(step(this->pin_step1, this->pin_dir1, 1)) return EXIT_FAILURE;
             reached = false;
         }else if(diffA < -this->step_angle)
         {
             this->lastA -= this->step_angle;
-            step(this->pin_step1, this->pin_dir1, 0);
+            if(step(this->pin_step1, this->pin_dir1, 0)) return EXIT_FAILURE;
             reached = false;
         }
         if(diffB > this->step_angle)
         {
             this->lastB += this->step_angle;
-            step(this->pin_step2, this->pin_dir2, 1);
+            if(step(this->pin_step2, this->pin_dir2, 1)) return EXIT_FAILURE;
             reached = false;
         }else if(diffB < -this->step_angle)
         {
             this->lastB -= this->step_angle;
-            step(this->pin_step2, this->pin_dir2, 0);
+            if(step(this->pin_step2, this->pin_dir2, 0)) return EXIT_FAILURE;
             reached = false;
         }
         if(diffC > this->step_angle)
         {
             this->lastC += this->step_angle;
-            step(this->pin_step3, this->pin_dir3, 1);
+            if(step(this->pin_step3, this->pin_dir3, 1)) return EXIT_FAILURE;
             reached = false;
         }else if(diffC < -this->step_angle)
         {
             this->lastC -= this->step_angle;
-            step(this->pin_step3, this->pin_dir3, 0);
+            if(step(this->pin_step3, this->pin_dir3, 0)) return EXIT_FAILURE;
             reached = false;
         }
     }
+
+    return EXIT_SUCCESS;
 }
 
 //interpolates between two points to move in a stright line (beware of physical and kinematic limits)
-void OctoKinematics::linear_move(float x1, float y1, float z1, float stepDist, int stepDelay)
+int OctoKinematics::linear_move(float x1, float y1, float z1, float stepDist, int stepDelay)
 {
     //Sets the initial position variables
     float x0 = this->x;
@@ -300,8 +313,8 @@ void OctoKinematics::linear_move(float x1, float y1, float z1, float stepDist, i
 
     //Step size of each axis
     if(numberOfSteps == 0){
-        printf("ERROR: No change in position: numberOfSteps = %i", numberOfSteps);
-        return;
+        printf("ERROR: No change in position: numberOfSteps = %i\n", numberOfSteps);
+        return EXIT_FAILURE;
     }
     
     float xStep = xDist / (float)numberOfSteps;
@@ -319,9 +332,10 @@ void OctoKinematics::linear_move(float x1, float y1, float z1, float stepDist, i
         zInterpolation = z0 + i * zStep;
 
         this->inverse_kinematics(xInterpolation, yInterpolation, zInterpolation);//calculates the inverse kinematics for the interpolated values
-        this->updateKinematics();
+        if(this->updateKinematics()) return EXIT_FAILURE;
         usleep(stepDelay);
     }
+    return EXIT_SUCCESS;
 }
 
 int OctoKinematics::home(float x, float y, float z)

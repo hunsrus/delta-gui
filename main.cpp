@@ -113,7 +113,7 @@ static Color COLOR_HL = ORANGE;
 Font font;
 
 static bool EXIT = false;
-static bool STATUS_MOTOR_ENABLED = true;
+static bool STATUS_MOTOR_DISABLED = true;
 static bool STATUS_VACUUM_PUMP = false;
 static bool MODE_MANUAL = false;
 static bool JOB_RUNNING = false;
@@ -288,6 +288,8 @@ int calculateKinematics(double &x,double &y,double &z, OctoKinematics &octoKin)
     float low_z = LIM_Z;//-294
     float high_z = LIM_Z+10;
 
+    bool execution_error = false;
+
     while(!EXIT)
     {
         if(JOB_RUNNING)
@@ -295,7 +297,12 @@ int calculateKinematics(double &x,double &y,double &z, OctoKinematics &octoKin)
             for (const auto& instruction : CURRENT_JOB) 
             {
                 EXECUTING_INSTRUCTION = true;
-                executeInstruction(instruction,octoKin);
+                execution_error = executeInstruction(instruction,octoKin);
+                if(execution_error == true)
+                {
+                    JOB_SHOULD_STOP == true;
+                    if(octoKin.ls_hit) fprintf(stderr, "[ERROR] limit switch hit\n");
+                }
                 EXECUTING_INSTRUCTION = false;
                 if(JOB_SHOULD_STOP || EXIT)
                 {
@@ -311,8 +318,14 @@ int calculateKinematics(double &x,double &y,double &z, OctoKinematics &octoKin)
             if(!MANUAL_QUEUE.empty())
             {
                 EXECUTING_INSTRUCTION = true;
-                executeInstruction(MANUAL_QUEUE.front(),octoKin);
+                execution_error = executeInstruction(MANUAL_QUEUE.front(),octoKin);
                 MANUAL_QUEUE.pop_front();
+                if(execution_error == true)
+                {
+                    MODE_MANUAL = false;
+                    MANUAL_QUEUE.clear();
+                    if(octoKin.ls_hit) fprintf(stderr, "[ERROR] limit switch hit\n");
+                }
                 EXECUTING_INSTRUCTION = false;
             }
         }
@@ -480,6 +493,7 @@ int main(int argc, char** argv)
     auxMenu->options.push_back((Option){3,"Mover"});
     auxMenu->options.push_back((Option){4,"Paso", std::to_string(MANUAL_INCREMENT)});
     auxMenu->options.push_back((Option){5,"Deshabilitar"});
+    auxMenu->options.push_back((Option){6,"Home"});
     menus.push_back(auxMenu);
     auxMenu = new Menu();
     auxMenu->title = "Interfaz";
@@ -695,8 +709,8 @@ int main(int argc, char** argv)
         // turn suction off
         gpioWrite(PIN_BOMBA,0);
         // enable motors
-        STATUS_MOTOR_ENABLED = 0;
-        gpioWrite(PIN_ENABLE,STATUS_MOTOR_ENABLED);
+        STATUS_MOTOR_DISABLED = 0;
+        gpioWrite(PIN_ENABLE,STATUS_MOTOR_DISABLED);
 
         // effector orientation correction
         int effector_steps = 0;
@@ -1060,8 +1074,25 @@ int main(int argc, char** argv)
                 SHOW_DEBUG_DATA = !SHOW_DEBUG_DATA;   
             }else if(HIGHLIGHTED_OPTION->text == "Deshabilitar")
             {
-                STATUS_MOTOR_ENABLED = !STATUS_MOTOR_ENABLED;
-                gpioWrite(PIN_ENABLE,STATUS_MOTOR_ENABLED);
+                STATUS_MOTOR_DISABLED = !STATUS_MOTOR_DISABLED;
+                gpioWrite(PIN_ENABLE,STATUS_MOTOR_DISABLED);
+            }else if(HIGHLIGHTED_OPTION->text == "Home")
+            {
+                if(JOB_RUNNING)
+                {
+                    fprintf(stderr, "[ERROR] job running, home sequence canceled");
+                }else
+                {
+                    STATUS_MOTOR_DISABLED = 0;
+                    gpioWrite(PIN_ENABLE,STATUS_MOTOR_DISABLED);
+                    // homing sequence
+                    octoKin.home(0,0,HOME_Z); 
+                    // move to starting position
+                    x = 0;
+                    y = 0;
+                    z = -220;
+                    octoKin.linear_move(x, y, z, 0.1f, 1000);
+                }
             }else if(HIGHLIGHTED_OPTION->text == "Mover")
             {
                 MODE_MANUAL = !MODE_MANUAL;
@@ -1379,7 +1410,7 @@ int main(int argc, char** argv)
         BeginTextureMode(renderTextureForeground);
         ClearBackground((Color){0,0,0,0});  // Clear texture background
             BeginMode3D(camera);        // Begin 3d mode drawing
-                if(!STATUS_MOTOR_ENABLED)
+                if(!STATUS_MOTOR_DISABLED)
                 {
                     DrawModel(*motorModel1, Vector3Zero(), DRAW_SCALE, COLOR_HL);
                     DrawModel(*motorModel2, Vector3Zero(), DRAW_SCALE, COLOR_HL);
@@ -1483,7 +1514,7 @@ int main(int argc, char** argv)
             if(MODE_MANUAL) DrawTextEx(font,"M",iconPos,fontSize,1,COLOR_HL);
             else DrawTextEx(font,"M",iconPos,fontSize,1,COLOR_FG);
             iconPos.x += fontSize;
-            if(!STATUS_MOTOR_ENABLED) DrawTextEx(font,"E",iconPos,fontSize,1,COLOR_HL);
+            if(!STATUS_MOTOR_DISABLED) DrawTextEx(font,"E",iconPos,fontSize,1,COLOR_HL);
             else DrawTextEx(font,"E",iconPos,fontSize,1,COLOR_FG);
             iconPos.x += fontSize;
             if(STATUS_VACUUM_PUMP) DrawTextEx(font,"B",iconPos,fontSize,1,COLOR_HL);
@@ -1725,7 +1756,7 @@ int executeInstruction(std::string instruction, OctoKinematics &octoKin)
         // if (has_z) printf("Coordenada Z: %.4f\n", z);
         
         
-        octoKin.linear_move(x, y, z, STEP_SIZE, 0);
+        if(octoKin.linear_move(x, y, z, STEP_SIZE, 0)) return EXIT_FAILURE;
     }else if(instruction[0] == 'D') // delay
     {
         char *d_pos = strchr((char*)instruction.c_str(), 'D');
@@ -1751,7 +1782,7 @@ int executeInstruction(std::string instruction, OctoKinematics &octoKin)
         else if(instruction[1] == 'A') dir = 0;
         else
         {
-            fprintf(stderr, "invalid instruction: %s\n",instruction);
+            fprintf(stderr, "[ERROR] invalid instruction: %s\n",instruction);
             return EXIT_FAILURE;
         }
 
