@@ -32,6 +32,7 @@ class OctoKinematics
         void set_axis_direction(bool dir);
         void set_step_precision(int stepsNum);
         void set_transmission_ratio(double transRatio);
+        void set_starting_z(double z);
         void set_pulse_width(useconds_t us);
 
         void set_pin_step_ctrl(unsigned int ms1, unsigned int ms2, unsigned int ms3);
@@ -63,6 +64,8 @@ class OctoKinematics
         bool axis_direction = 1;
 
         double motorOffsetX;
+
+        double starting_z = 0;
 
         double lastA = 0;
         double lastB = 0;

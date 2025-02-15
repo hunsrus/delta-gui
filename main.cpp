@@ -619,10 +619,6 @@ int main(int argc, char** argv)
         octoKin.set_pin_motor_2(PIN_STEP2, PIN_DIR2);
         octoKin.set_pin_motor_3(PIN_STEP3, PIN_DIR3);
         octoKin.set_pin_limit_sw(PIN_FC_M1, PIN_FC_M2, PIN_FC_M3);
-        octoKin.set_axis_direction(1);
-        octoKin.set_step_precision(STEPS_NUM);
-        octoKin.set_transmission_ratio(TRANS_MULTIPLIER);
-        octoKin.set_pulse_width(1);
         
         // turn suction off
         gpioWrite(PIN_BOMBA,0);
@@ -661,17 +657,16 @@ int main(int argc, char** argv)
         std::ofstream archivoSalida(nombreArchivo); // Crear y abrir archivo en modo escritura
 
     #endif
+    
+    octoKin.set_axis_direction(1);
+    octoKin.set_step_precision(STEPS_NUM);
+    octoKin.set_transmission_ratio(TRANS_MULTIPLIER);
+    octoKin.set_starting_z(-220);
+    octoKin.set_pulse_width(1);
 
     DrawProgressBarScreen("secuencia de home...", 80);
     // homing sequence
     octoKin.home(0,0,HOME_Z); 
-    // move to starting position
-    x = 0;
-    y = 0;
-    z = -220;
-    // octoKin.inverse_kinematics(x, y, z);
-    // octoKin.updateKinematics();
-    octoKin.linear_move(x, y, z, 0.1f, 1000);
 
     std::cout << "a: " << octoKin.a << std::endl;
     std::cout << "b: " << octoKin.b << std::endl;
@@ -988,12 +983,7 @@ int main(int argc, char** argv)
                     STATUS_MOTOR_DISABLED = 0;
                     gpioWrite(PIN_ENABLE,STATUS_MOTOR_DISABLED);
                     // homing sequence
-                    octoKin.home(0,0,HOME_Z); 
-                    // move to starting position
-                    x = 0;
-                    y = 0;
-                    z = -220;
-                    octoKin.linear_move(x, y, z, 0.1f, 1000);
+                    octoKin.home(0,0,HOME_Z);
                 }
             }else if(HIGHLIGHTED_OPTION->text == "Mover")
             {

@@ -186,6 +186,11 @@ void OctoKinematics::set_transmission_ratio(double transRatio)
     this->step_angle = 1.8/(this->steps_num*this->trans_ratio);
 }
 
+void OctoKinematics::set_starting_z(double z)
+{
+    this->starting_z = z;
+}
+
 void OctoKinematics::set_pin_step_ctrl(unsigned int ms1, unsigned int ms2, unsigned int ms3)
 {
     this->pin_ms1 = ms1;
@@ -403,6 +408,9 @@ int OctoKinematics::home(float x, float y, float z)
     // volver a poner el paso configurado por el usuario
     this->set_step_precision(aux_step_precision);
     this->set_pulse_width(aux_pulse_width);
+
+    if(this->starting_z != 0)
+        this->linear_move(x, y, this->starting_z, 0.1f, 1000);
 
     IGNORE_LIMIT_SWITCHES = false;
 
