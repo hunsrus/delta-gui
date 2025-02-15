@@ -412,6 +412,7 @@ int OctoKinematics::home(float x, float y, float z)
     if(this->starting_z != 0)
         this->linear_move(x, y, this->starting_z, 0.1f, 1000);
 
+    this->ls_hit = false;
     IGNORE_LIMIT_SWITCHES = false;
 
     fprintf(stdout, "Homing complete\n");
