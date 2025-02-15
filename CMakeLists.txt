@@ -22,11 +22,6 @@ if (NOT raylib_FOUND) # If there's none, fetch and build raylib
   endif()
 endif()
 
-# opencv
-
-find_package( OpenCV REQUIRED )
-include_directories( ${OpenCV_INCLUDE_DIRS} )
-
 # Our Project
 
 file(GLOB SOURCES
@@ -40,18 +35,18 @@ ${SOURCES}
 
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
     message(STATUS "Detected architecture: x86_64")
-    target_link_libraries(${PROJECT_NAME} raylib ${OpenCV_LIBS} pigpio)
+    target_link_libraries(${PROJECT_NAME} raylib pigpio)
 elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")  # raspberry pi zero 2 w
     message(STATUS "Detected architecture: aarch46")
-    target_link_libraries(${PROJECT_NAME} raylib ${OpenCV_LIBS} pigpio rt pthread)
+    target_link_libraries(${PROJECT_NAME} raylib pigpio rt pthread)
 elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
     message(STATUS "Detected architecture: ARM")
-    target_link_libraries(${PROJECT_NAME} raylib ${OpenCV_LIBS} pigpio rt pthread)
+    target_link_libraries(${PROJECT_NAME} raylib pigpio rt pthread)
     # Aquí puedes agregar bibliotecas específicas para ARM si es necesario
     # target_link_libraries(pulse biblioteca_especifica_arm)
 else()
     message(WARNING "Unknown architecture: ${CMAKE_SYSTEM_PROCESSOR}")
-    target_link_libraries(${PROJECT_NAME} raylib ${OpenCV_LIBS} pigpio rt pthread)
+    target_link_libraries(${PROJECT_NAME} raylib pigpio rt pthread)
 endif()
 
 add_custom_command(

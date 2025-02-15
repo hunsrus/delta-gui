@@ -5,13 +5,7 @@
 #include "raymath.h"
 #include "rlights.h"
 #include "rlgl.h"
-// #include "DeltaKinematics.h"
 #include "OctoKinematics.h"
-
-// deteccion de imagenes
-// #include <opencv2/imgcodecs.hpp>
-// #include <opencv2/highgui.hpp>
-// #include <opencv2/imgproc.hpp>
 
 #include <iostream>
 #include <fstream>
@@ -162,82 +156,6 @@ void goBackOneMenu(void);
 void DrawProgressBarScreen(const char* text, int progress);
 void DrawProgressBarIndicator(const char* text, int progress);
 void DrawMessageWindow(const char* text);
-
-//----------------------------------------------------------------------------------
-// DETECCIÓN DE IMÁGENES
-//----------------------------------------------------------------------------------
-/*
-static cv::Mat image;
-static bool CAMERA_AVAILABLE = true;
-static bool CAPTURE_READY = false;
-
-Image MatToImage(const cv::Mat &mat) {
-    // Asegúrate de que la imagen está en formato RGB
-    cv::Mat matRGB;
-    cv::cvtColor(mat, matRGB, cv::COLOR_BGR2RGB);
-
-    // Crea un Image de Raylib
-    Image image = {
-        .data = malloc(matRGB.total() * matRGB.elemSize()),
-        .width = matRGB.cols,
-        .height = matRGB.rows,
-        .mipmaps = 1,
-        .format = PIXELFORMAT_UNCOMPRESSED_R8G8B8 // O PIXELFORMAT_UNCOMPRESSED_R8G8B8A8 si necesitas alfa
-    };
-
-    // Copia los datos de la matriz de OpenCV al array de Raylib
-    memcpy(image.data, matRGB.data, matRGB.total() * matRGB.elemSize());
-
-    return image;
-}
-
-int captureVideo(void)
-{
-    //read video
-    cv::VideoCapture capture;
-    capture.open("/dev/video0");
-    capture.set(cv::CAP_PROP_FRAME_WIDTH, 128);
-    capture.set(cv::CAP_PROP_FRAME_HEIGHT, 128);
-
-    double dWidth = capture.get(cv::CAP_PROP_FRAME_WIDTH); //get the width of frames of the video
-    double dHeight = capture.get(cv::CAP_PROP_FRAME_HEIGHT); //get the height of frames of the video
-
-    std::cout << "camera width = " << dWidth << ", height = " << dHeight << std::endl;
-
-    if (!capture.isOpened()) { //check if video device has been initialised
-        std::cout << "cannot open camera";
-    }
-
-    bool bSuccess = capture.read(image); // read a new frame from video
-
-    if (bSuccess == false)
-    {
-        std::cout << "Video camera is disconnected" << std::endl;
-        CAMERA_AVAILABLE = false;
-        return EXIT_FAILURE;
-    }
-
-    CAPTURE_READY = true;
-
-    while (!EXIT)
-    {
-        if(!CAPTURE_READY && CAMERA_AVAILABLE)
-        {
-            bool bSuccess = capture.read(image); // read a new frame from video
-
-            if (bSuccess == false)
-            {
-                std::cout << "Video camera is disconnected" << std::endl;
-                CAMERA_AVAILABLE = false;
-                return EXIT_FAILURE;
-            }
-            CAPTURE_READY = true;
-        }
-    }
-
-    return EXIT_SUCCESS;
-}
-*/
 
 //----------------------------------------------------------------------------------
 // MANEJO DE ARCHIVOS
@@ -762,16 +680,6 @@ int main(int argc, char** argv)
     std::cout << "y: " << y << std::endl;
     std::cout << "z: " << z << std::endl;
 
-    // DrawProgressBarScreen("iniciando video...", 90);
-    // // inicio captura de video
-    // Texture2D captureTexture;
-
-    // std::thread t1(captureVideo);
-
-    // while(!CAPTURE_READY && CAMERA_AVAILABLE){};
-    // if(CAMERA_AVAILABLE)
-    //     captureTexture = LoadTextureFromImage(MatToImage(image));
-
     DrawProgressBarScreen("iniciando hilo de cinemática...", 90);
     std::thread t1(calculateKinematics,std::ref(x),std::ref(y),std::ref(z),std::ref(octoKin));
 
@@ -793,12 +701,6 @@ int main(int argc, char** argv)
         // if (outlineSize < 1.0f) outlineSize = 1.0f;
 
         SetShaderValue(shader, resolutionLoc, shaderResolution, SHADER_UNIFORM_VEC2);
-
-        // if(CAPTURE_READY)
-        // {
-        //     UpdateTexture(captureTexture,MatToImage(image).data);
-        //     CAPTURE_READY = false;
-        // }
 
         if(STARTING_ANIMATION)
         {
@@ -1438,11 +1340,6 @@ int main(int argc, char** argv)
                 Rectangle viewBorderRectangle = {viewPos.x, viewPos.y, viewSize.x, viewSize.y};
                 DrawRectangleLinesEx(viewBorderRectangle,BORDER_THICKNESS,COLOR_FG);
             }
-
-            // Vector2 captureViewPos = { viewPos.x, viewPos.y+viewSize.y+MARGIN};
-            // DrawTextureEx(captureTexture, captureViewPos, 0, viewSize.x/captureTexture.width,WHITE);
-            // Rectangle captureViewRectangle = {captureViewPos.x, captureViewPos.y, captureTexture.width*(viewSize.x/captureTexture.width), captureTexture.height*(viewSize.x/captureTexture.width)};
-            // DrawRectangleLinesEx(captureViewRectangle,BORDER_THICKNESS,COLOR_FG);
 
             i = 2;
             DrawTextEx(font,CURRENT_MENU->title,(Vector2){MARGIN,MARGIN},fontSize,1,COLOR_FG);
