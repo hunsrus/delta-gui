@@ -18,6 +18,8 @@
 #define MOTOR_ANGLE_MIN -M_PI/2
 #define MOTOR_ANGLE_MAX M_PI/2
 
+static bool IGNORE_LIMIT_SWITCHES = false;
+
 class OctoKinematics
 {
     public:

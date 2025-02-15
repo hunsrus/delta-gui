@@ -226,7 +226,7 @@ void OctoKinematics::set_pulse_width(useconds_t us)
 int OctoKinematics::step(int step_pin, int dir_pin, bool dir)
 {
     #if ARCH_ARM
-    if(!ls_hit)
+    if(!ls_hit || IGNORE_LIMIT_SWITCHES)
     {
         gpioWrite(dir_pin, dir);
         gpioWrite(step_pin, 1);
@@ -237,7 +237,6 @@ int OctoKinematics::step(int step_pin, int dir_pin, bool dir)
     if(gpioRead(this->pin_ls1) || gpioRead(this->pin_ls2) || gpioRead(this->pin_ls3))
     {
         ls_hit = true;
-        return EXIT_FAILURE;
     }
     #endif
 
@@ -353,6 +352,8 @@ int OctoKinematics::home(float x, float y, float z)
     this->set_step_precision(8);
     this->set_pulse_width(1500);
 
+    IGNORE_LIMIT_SWITCHES = true;
+
     #if ARCH_ARM
     while(!m1_ready || !m2_ready || !m3_ready)
     {
@@ -402,6 +403,8 @@ int OctoKinematics::home(float x, float y, float z)
     // volver a poner el paso configurado por el usuario
     this->set_step_precision(aux_step_precision);
     this->set_pulse_width(aux_pulse_width);
+
+    IGNORE_LIMIT_SWITCHES = false;
 
     fprintf(stdout, "Homing complete\n");
 
