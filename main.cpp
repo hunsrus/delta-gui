@@ -1844,7 +1844,7 @@ std::vector<std::string> loadTestJob(void)
     std::vector<std::string> job;
     std::string instruction;
     
-    instruction = "S0.02";
+    job.push_back("S0.002");
     job.push_back(instruction);
     instruction = "LX0Y0Z"+std::to_string(LIM_Z+30);
     job.push_back(instruction);
@@ -1856,16 +1856,16 @@ std::vector<std::string> loadTestJob(void)
     
     for(int i = 0; i < 4; i++)
     {
-        job.push_back("LX-30.0000Y-30.000");
+        job.push_back("LX-30.0000Y0.0000");
         job.push_back("LZ"+std::to_string(LIM_Z));
         job.push_back("LZ"+std::to_string(LIM_Z+30));
-        job.push_back("LX30.0000Y-30.000");
+        job.push_back("LX30.0000Y0.0000");
         job.push_back("LZ"+std::to_string(LIM_Z));
         job.push_back("LZ"+std::to_string(LIM_Z+30));
-        job.push_back("LX30.0000Y30.000");
+        job.push_back("LX0.0000Y-30.000");
         job.push_back("LZ"+std::to_string(LIM_Z));
         job.push_back("LZ"+std::to_string(LIM_Z+30));
-        job.push_back("LX-30.0000Y30.000");
+        job.push_back("LX0.0000Y30.000");
         job.push_back("LZ"+std::to_string(LIM_Z));
         job.push_back("LZ"+std::to_string(LIM_Z+30));
     }
