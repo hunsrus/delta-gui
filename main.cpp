@@ -186,6 +186,7 @@ static std::vector<std::string> CURRENT_COMPONENTS;
 std::vector<Componente> parsearArchivo(const std::string& nombreArchivo);
 int executeInstruction(std::string instruction, OctoKinematics &octoKin);
 std::vector<std::string> generateJob(std::vector<Componente> componentes);
+std::vector<std::string> loadTestJob(void);
 std::vector<std::string> listarArchivos(const std::string& rutaCarpeta);
 
 //----------------------------------------------------------------------------------
@@ -384,7 +385,8 @@ int main(int argc, char** argv)
     auxMenu->options.push_back((Option){0,"Atrás"});
     auxMenu->options.push_back((Option){1,"Zona PCB"});
     auxMenu->options.push_back((Option){2,"Feeders"});
-    auxMenu->options.push_back((Option){3,"Guardar"});
+    auxMenu->options.push_back((Option){3,"Prueba"});
+    auxMenu->options.push_back((Option){4,"Guardar"});
     menus.push_back(auxMenu);
     auxMenu = new Menu();
     auxMenu->title = "Zona PCB";
@@ -1041,6 +1043,18 @@ int main(int argc, char** argv)
                     }
                 }
                 MODE_MANUAL = !MODE_MANUAL;
+            }else if(HIGHLIGHTED_OPTION->text == "Prueba")
+            {
+                if(!JOB_RUNNING)
+                {
+                    CURRENT_JOB = loadTestJob();
+                    MODE_MANUAL = false;
+                    JOB_SHOULD_STOP = false;
+                    JOB_RUNNING = true;
+                }else
+                {
+                    fprintf(stderr,"[ERROR] job already running");
+                }
             }else if(HIGHLIGHTED_OPTION->text == "Guardar")
             {
                 if(CURRENT_MENU->title == "Calibrar")
@@ -1814,6 +1828,46 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
         componentCount++;
         progress = mapear(componentCount,0,componentes.size(),0,100);
         DrawProgressBarIndicator("Convirtiendo...", progress);
+    }
+
+    return job;
+}
+
+std::vector<std::string> loadTestJob(void)
+{
+    char aux_x[20], aux_y[20], aux_z[20];
+    std::string format = "%."+std::to_string(NUMERIC_PRECISION)+"f";
+    int progress = 0;
+    int componentCount = 0;
+    DrawProgressBarIndicator("Convirtiendo...", progress);
+
+    std::vector<std::string> job;
+    std::string instruction;
+    
+    instruction = "S0.02";
+    job.push_back(instruction);
+    instruction = "LX0Y0Z"+std::to_string(LIM_Z+30);
+    job.push_back(instruction);
+    instruction = "D250000";
+    job.push_back(instruction);
+
+    // paso grueso
+    job.push_back("S0.02");
+    
+    for(int i = 0; i < 4; i++)
+    {
+        job.push_back("LX-30.0000Y-30.000");
+        job.push_back("LZ"+std::to_string(LIM_Z));
+        job.push_back("LZ"+std::to_string(LIM_Z+30));
+        job.push_back("LX30.0000Y-30.000");
+        job.push_back("LZ"+std::to_string(LIM_Z));
+        job.push_back("LZ"+std::to_string(LIM_Z+30));
+        job.push_back("LX30.0000Y30.000");
+        job.push_back("LZ"+std::to_string(LIM_Z));
+        job.push_back("LZ"+std::to_string(LIM_Z+30));
+        job.push_back("LX-30.0000Y30.000");
+        job.push_back("LZ"+std::to_string(LIM_Z));
+        job.push_back("LZ"+std::to_string(LIM_Z+30));
     }
 
     return job;
