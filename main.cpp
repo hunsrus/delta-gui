@@ -35,6 +35,7 @@
 #define TRANS_MULTIPLIER 3
 static unsigned int STEPS_NUM = 16;
 #define NUMERIC_PRECISION 4 // cantidad de decimales
+#define EFF_STEPS_NUM 1
 
 // pinout definitions
 #define PIN_DIR1 12
@@ -43,8 +44,8 @@ static unsigned int STEPS_NUM = 16;
 #define PIN_STEP2 20
 #define PIN_DIR3 7
 #define PIN_STEP3 1
-#define PIN_DIR4 0
-#define PIN_STEP4 22
+#define PIN_DIR_EFFECTOR 0
+#define PIN_STEP_EFFECTOR 22
 
 #define PIN_MS1 27
 #define PIN_MS2 17
@@ -621,6 +622,10 @@ int main(int argc, char** argv)
         octoKin.set_pin_motor_2(PIN_STEP2, PIN_DIR2);
         octoKin.set_pin_motor_3(PIN_STEP3, PIN_DIR3);
         octoKin.set_pin_limit_sw(PIN_FC_M1, PIN_FC_M2, PIN_FC_M3);
+        octoKin.set_pin_motor_eff(PIN_STEP_EFFECTOR, PIN_DIR_EFFECTOR);
+        octoKin.set_pulse_width_effector(5500);
+
+        octoKin.set_effector_precision(EFF_STEPS_NUM);
         
         // turn suction off
         gpioWrite(PIN_BOMBA,0);
@@ -636,25 +641,13 @@ int main(int argc, char** argv)
         if (archivoEntrada.is_open()) {
             archivoEntrada >> effector_steps; // Leer el valor del archivo
             archivoEntrada.close();            // Cerrar el archivo
-            std::cout << "Correción de efector: " << effector_steps << '\n';
+            std::cout << "[INFO] Correción de efector: " << effector_steps << '\n';
         } else {
-            std::cerr << "No se pudo abrir el archivo para leer.\n";
+            std::cerr << "[ERROR] No se pudo abrir el archivo para leer.\n";
             //return 1; // Error
         }
 
-        while(effector_steps)
-        {
-            if(effector_steps > 0)
-            {
-                octoKin.step(PIN_STEP4, PIN_DIR4, 0);
-                effector_steps--;
-            }
-            if(effector_steps < 0)
-            {
-                octoKin.step(PIN_STEP4, PIN_DIR4, 1);
-                effector_steps++;
-            }
-        }
+        octoKin.correct_effector_init(effector_steps);
 
         std::ofstream archivoSalida(nombreArchivo); // Crear y abrir archivo en modo escritura
 
@@ -1693,6 +1686,11 @@ int executeInstruction(std::string instruction, OctoKinematics &octoKin)
     {
         char *s_pos = strchr((char*)instruction.c_str(), 'S');
         STEP_SIZE = atof(s_pos + 1);
+    }else if(instruction[0] == 'R') // girar efector
+    {
+        char *r_pos = strchr((char*)instruction.c_str(), 'R');
+        float angle = atof(r_pos + 1);
+        octoKin.rotate_effector(angle);
     }
 
     return EXIT_SUCCESS;
@@ -1801,7 +1799,10 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
         job.push_back(instruction);
 
         // delay
-        job.push_back("D250000");
+        // job.push_back("D250000");
+
+        // girar efector
+        job.push_back("R"+std::to_string(componente.rotation));
 
         // paso fino
         job.push_back("S0.002");
@@ -1823,7 +1824,10 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
         job.push_back(instruction);
 
         // delay
-        job.push_back("D250000");
+        // job.push_back("D250000");
+
+        // girar efector
+        job.push_back("R"+std::to_string(-componente.rotation));
 
         componentCount++;
         progress = mapear(componentCount,0,componentes.size(),0,100);

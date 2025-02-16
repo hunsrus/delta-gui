@@ -216,6 +216,12 @@ void OctoKinematics::set_pin_motor_3(unsigned int step_pin, unsigned int dir_pin
     this->pin_dir3 = dir_pin;
 }
 
+void OctoKinematics::set_pin_motor_effector(unsigned int step_pin, unsigned int dir_pin)
+{
+    this->pin_step_eff = step_pin;
+    this->pin_dir_eff = dir_pin;
+}
+
 void OctoKinematics::set_pin_limit_sw(unsigned int ls1, unsigned int ls2, unsigned int ls3)
 {
     this->pin_ls1 = ls1;
@@ -418,4 +424,54 @@ int OctoKinematics::home(float x, float y, float z)
     fprintf(stdout, "Homing complete\n");
 
     return EXIT_SUCCESS;
+}
+
+void OctoKinematics::set_pulse_width_effector(useconds_t us)
+{
+    this->pulse_width_eff = us;
+}
+
+void OctoKinematics::set_effector_precision(int stepsNum)
+{
+    this->steps_num_eff = stepsNum;
+    this->step_angle_eff = 5.625/(this->steps_num_eff);
+}
+
+void OctoKinematics::correct_effector_init(int steps)
+{
+    while(steps)
+    {
+        if(steps > 0)
+        {
+            gpioWrite(this->pin_dir_eff, 0);
+            gpioWrite(this->pin_step_eff, 1);
+            usleep(this->pulse_width_eff);
+            gpioWrite(this->pin_step_eff, 0);
+            steps--;
+        }
+        if(steps < 0)
+        {
+            gpioWrite(this->pin_dir_eff, 1);
+            gpioWrite(this->pin_step_eff, 1);
+            usleep(this->pulse_width_eff);
+            gpioWrite(this->pin_step_eff, 0);
+            steps++;
+        }
+    }
+}
+
+void OctoKinematics::rotate_effector(float angle)
+{
+    bool direction = (angle > 0) ? 1 : 0;
+    int steps = (int)round(angle/this->step_angle_eff);
+
+    gpioWrite(this->pin_dir_eff, direction);
+
+    while(steps)
+    {
+        gpioWrite(this->pin_step_eff, 1);
+        usleep(this->pulse_width_eff);
+        gpioWrite(this->pin_step_eff, 0);
+        steps--;
+    }
 }
