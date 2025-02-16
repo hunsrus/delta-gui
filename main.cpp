@@ -622,7 +622,7 @@ int main(int argc, char** argv)
         octoKin.set_pin_motor_2(PIN_STEP2, PIN_DIR2);
         octoKin.set_pin_motor_3(PIN_STEP3, PIN_DIR3);
         octoKin.set_pin_limit_sw(PIN_FC_M1, PIN_FC_M2, PIN_FC_M3);
-        octoKin.set_pin_motor_eff(PIN_STEP_EFFECTOR, PIN_DIR_EFFECTOR);
+        octoKin.set_pin_motor_effector(PIN_STEP_EFFECTOR, PIN_DIR_EFFECTOR);
         octoKin.set_pulse_width_effector(5500);
 
         octoKin.set_effector_precision(EFF_STEPS_NUM);
@@ -1704,6 +1704,17 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
     int componentCount = 0;
     DrawProgressBarIndicator("Convirtiendo...", progress);
 
+    for (const auto& componente : componentes)
+    {
+        // guardar tipo de componente único
+        bool componentAlreadyLoaded = false;
+        for (const auto& unique_component : CURRENT_COMPONENTS)
+        {
+            if(componente.package == unique_component) componentAlreadyLoaded = true;
+        }
+        if(!componentAlreadyLoaded) CURRENT_COMPONENTS.push_back(componente.package);
+    }
+
     Feeder aux_feeder = feeders.at(0);
 
     float anglePCB = Vector3Angle(Vector3Subtract(POS_PCB_REF2,POS_PCB_REF1),(Vector3){1.0f,0.0f,0.0f});
@@ -1723,19 +1734,11 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
 
     for (const auto& componente : componentes)
     {
-        // guardar tipo de componente único
-        bool componentAlreadyLoaded = false;
-        for (const auto& unique_component : CURRENT_COMPONENTS)
-        {
-            if(componente.value == unique_component) componentAlreadyLoaded = true;
-        }
-        if(!componentAlreadyLoaded) CURRENT_COMPONENTS.push_back(componente.value);
-
         // cargar feeder correspondiente
         bool feederAssigned = false;
         for(auto& feeder : feeders)
         {
-            if(feeder.component == componente.value)
+            if(feeder.component == componente.package)
             {
                 aux_feeder = feeder;
                 feederAssigned = true;
@@ -1744,12 +1747,13 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
 
         if(!feederAssigned)
         {
-            job.clear();
-            fprintf(stderr, "[ERROR] component '%s' not assigned to feeder\n", componente.value.c_str());
-            DrawMessageWindow("[ERROR] check logs");
+            // job.clear();
+            aux_feeder = feeders.at(0);
+            fprintf(stderr, "[ERROR] component '%s' not assigned to feeder\n", componente.package.c_str());
+            // DrawMessageWindow("[ERROR] check logs");
             // [TODO] logs
-            usleep(2000000);
-            return job;
+            // usleep(1000000);
+            // return job;
         }
 
         // paso grueso

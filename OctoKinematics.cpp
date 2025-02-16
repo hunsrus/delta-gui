@@ -437,24 +437,29 @@ void OctoKinematics::set_effector_precision(int stepsNum)
     this->step_angle_eff = 5.625/(this->steps_num_eff);
 }
 
+void OctoKinematics::step_eff(bool dir)
+{
+    #if ARCH_ARM
+    gpioWrite(this->pin_dir_eff, dir);
+    gpioWrite(this->pin_step_eff, 1);
+    usleep(this->pulse_width_eff);
+    gpioWrite(this->pin_step_eff, 0);
+    #endif
+}
+
+
 void OctoKinematics::correct_effector_init(int steps)
 {
     while(steps)
     {
         if(steps > 0)
         {
-            gpioWrite(this->pin_dir_eff, 0);
-            gpioWrite(this->pin_step_eff, 1);
-            usleep(this->pulse_width_eff);
-            gpioWrite(this->pin_step_eff, 0);
+            step_eff(0);
             steps--;
         }
         if(steps < 0)
         {
-            gpioWrite(this->pin_dir_eff, 1);
-            gpioWrite(this->pin_step_eff, 1);
-            usleep(this->pulse_width_eff);
-            gpioWrite(this->pin_step_eff, 0);
+            step_eff(1);
             steps++;
         }
     }
@@ -465,13 +470,9 @@ void OctoKinematics::rotate_effector(float angle)
     bool direction = (angle > 0) ? 1 : 0;
     int steps = (int)round(angle/this->step_angle_eff);
 
-    gpioWrite(this->pin_dir_eff, direction);
-
     while(steps)
     {
-        gpioWrite(this->pin_step_eff, 1);
-        usleep(this->pulse_width_eff);
-        gpioWrite(this->pin_step_eff, 0);
+        step_eff(direction);
         steps--;
     }
 }

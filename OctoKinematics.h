@@ -25,6 +25,7 @@ class OctoKinematics
     public:
         OctoKinematics(double armLength,double rodLength,double effRadius,double basRadius);
         int step(int step_pin, int dir_pin, bool dir);
+        void step_eff(bool dir);
         int home(float x, float y, float z);
         bool inverse_kinematics(float x, float y, float z);
         int updateKinematics(void);
