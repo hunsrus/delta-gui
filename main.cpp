@@ -219,7 +219,7 @@ int calculateKinematics(double &x,double &y,double &z, OctoKinematics &octoKin)
                 execution_error = executeInstruction(instruction,octoKin);
                 if(execution_error == true)
                 {
-                    JOB_SHOULD_STOP == true;
+                    JOB_SHOULD_STOP = true;
                     if(octoKin.ls_hit) fprintf(stderr, "[ERROR] limit switch hit\n");
                 }
                 EXECUTING_INSTRUCTION = false;
