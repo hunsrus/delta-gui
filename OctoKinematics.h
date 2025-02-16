@@ -80,7 +80,7 @@ class OctoKinematics
         double trans_ratio;
         double steps_num;
         double step_angle = 0;
-        double steps_num_eff;
+        double steps_num_eff = 2;
         double step_angle_eff = 0;
 
         useconds_t pulse_width;

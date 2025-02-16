@@ -658,6 +658,7 @@ int main(int argc, char** argv)
     octoKin.set_transmission_ratio(TRANS_MULTIPLIER);
     octoKin.set_starting_z(-220);
     octoKin.set_pulse_width(1);
+    octoKin.set_effector_precision(EFF_STEPS_NUM);
 
     DrawProgressBarScreen("secuencia de home...", 80);
     // homing sequence

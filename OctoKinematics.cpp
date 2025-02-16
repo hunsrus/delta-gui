@@ -434,7 +434,7 @@ void OctoKinematics::set_pulse_width_effector(useconds_t us)
 void OctoKinematics::set_effector_precision(int stepsNum)
 {
     this->steps_num_eff = stepsNum;
-    this->step_angle_eff = 5.625/(this->steps_num_eff);
+    this->step_angle_eff = 5.625/(this->steps_num_eff*1.0);
 }
 
 void OctoKinematics::step_eff(bool dir)
@@ -468,7 +468,7 @@ void OctoKinematics::correct_effector_init(int steps)
 void OctoKinematics::rotate_effector(float angle)
 {
     bool direction = (angle > 0) ? 1 : 0;
-    int steps = (int)round(angle/this->step_angle_eff);
+    int steps = abs(round(angle/this->step_angle_eff));
 
     while(steps)
     {
