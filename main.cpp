@@ -623,7 +623,7 @@ int main(int argc, char** argv)
         octoKin.set_pin_motor_3(PIN_STEP3, PIN_DIR3);
         octoKin.set_pin_limit_sw(PIN_FC_M1, PIN_FC_M2, PIN_FC_M3);
         octoKin.set_pin_motor_effector(PIN_STEP_EFFECTOR, PIN_DIR_EFFECTOR);
-        octoKin.set_pulse_width_effector(5500);
+        octoKin.set_pulse_width_effector(1500);
 
         octoKin.set_effector_precision(EFF_STEPS_NUM);
         

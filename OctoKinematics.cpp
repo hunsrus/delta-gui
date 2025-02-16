@@ -434,7 +434,7 @@ void OctoKinematics::set_pulse_width_effector(useconds_t us)
 void OctoKinematics::set_effector_precision(int stepsNum)
 {
     this->steps_num_eff = stepsNum;
-    this->step_angle_eff = 5.625/(this->steps_num_eff*1.0);
+    this->step_angle_eff = 5.625/(64.0*this->steps_num_eff);
 }
 
 void OctoKinematics::step_eff(bool dir)
