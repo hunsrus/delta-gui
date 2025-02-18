@@ -466,6 +466,32 @@ int main(int argc, char** argv)
         std::cout << "ARCHITECTURE: x86_64" << std::endl;
     #endif
 
+    // cargar iconos
+    DrawProgressBarScreen("cargando iconos...", 35);
+    
+    Image iconImage;
+    float iconMargin = fontSize/8.0f;
+    float iconSize = fontSize-iconMargin*2.0f;
+    
+    iconImage = LoadImage("resources/icons/delete.png");
+    ImageResize(&iconImage,iconSize,iconSize);
+    Texture iconDelete = LoadTextureFromImage(iconImage);
+    iconImage = LoadImage("resources/icons/run.png");
+    ImageResize(&iconImage,iconSize,iconSize);
+    Texture iconRun = LoadTextureFromImage(iconImage);
+    iconImage = LoadImage("resources/icons/manual.png");
+    ImageResize(&iconImage,iconSize,iconSize);
+    Texture iconManual = LoadTextureFromImage(iconImage);
+    iconImage = LoadImage("resources/icons/power.png");
+    ImageResize(&iconImage,iconSize,iconSize);
+    Texture iconPower = LoadTextureFromImage(iconImage);
+    iconImage = LoadImage("resources/icons/vacuum.png");
+    ImageResize(&iconImage,iconSize,iconSize);
+    Texture iconVacuum = LoadTextureFromImage(iconImage);
+    
+    UnloadImage(iconImage);
+
+
     DrawProgressBarScreen("generando modelos 3D...", 40);
     // CARGAR LOS MODELOS DESPUÉS DE INICIAR LA VENTANA
     Model* platformModel = new Model(LoadModelFromMesh(GenMeshPoly(20,BAS_RADIUS)));
@@ -1394,6 +1420,12 @@ int main(int argc, char** argv)
             }
             for (std::vector<Option>::iterator it = startingOption; it != CURRENT_MENU->options.end(); it++)
             {
+                // el color por defecto del texto es el color principal de foreground
+                Color optionTextColor = COLOR_FG;
+                Color optionBorderColor = COLOR_FG;
+
+                if(it->text == "Eliminar")  optionBorderColor = RED;
+
                 Vector2 optionPos = {MARGIN, MARGIN*i+BUTTON_SIZE*(i-1)-(BUTTON_SIZE-fontSize)};
                 if(i == 2)  // la primera opción arranca debajo del título del menú
                     optionPos = {MARGIN, MARGIN*i+fontSize*(i-1)};
@@ -1402,9 +1434,8 @@ int main(int argc, char** argv)
                     optionSize.x = screenWidth-MARGIN*2;
                 Rectangle optionRectangle = {optionPos.x, optionPos.y, optionSize.x, optionSize.y};
                 // dibujo el recuadro de la opción
-                DrawRectangleLinesEx(optionRectangle,BORDER_THICKNESS,COLOR_FG);
-                // el color por defecto del texto es el color principal de foreground
-                Color optionTextColor = COLOR_FG;
+                DrawRectangleLinesEx(optionRectangle,BORDER_THICKNESS,optionBorderColor);
+                
                 if(it == HIGHLIGHTED_OPTION)
                 {
                     // la opción seleccionada se grafica con los colores invertidos
@@ -1420,10 +1451,18 @@ int main(int argc, char** argv)
                 // defino la posición del ícono de acción
                 optionPos.x += optionSize.x-MARGIN-fontSize/2;
                 // dibujo el ícono de acción
-                if(it->text != "Atrás")
-                    DrawTextEx(font,">",optionPos,fontSize,1,optionTextColor);
-                else
+                if(it->text == "Atrás")
+                {
                     DrawTextEx(font,"<",optionPos,fontSize,1,optionTextColor);
+                }
+                else if(it->text == "Eliminar")
+                {
+                    DrawTextureEx(iconDelete, Vector2Add(optionPos,(Vector2){-iconSize/2.0f+iconMargin,iconMargin}), 0.0f, 1.0f, RED);
+                    // DrawTextureEx(iconDelete, optionPos, 0.0f, 0.5f, optionTextColor);
+                }
+                else
+                    DrawTextEx(font,">",optionPos,fontSize,1,optionTextColor);
+                    
                 
                 if(SHOW_FIELD_VALUES)
                 {
@@ -1448,17 +1487,18 @@ int main(int argc, char** argv)
             Vector2 statusBarPos = {DISPLAY_WIDTH-DISPLAY_WIDTH*SCREEN_DIVISION_RATIO-MARGIN,MARGIN};
             Vector2 statusBarSize = {DISPLAY_WIDTH*SCREEN_DIVISION_RATIO, MARGIN+fontSize};
             Vector2 iconPos = statusBarPos;
-            if(JOB_RUNNING) DrawTextEx(font,"R",iconPos,fontSize,1,COLOR_HL);
-            else DrawTextEx(font,"R",iconPos,fontSize,1,COLOR_FG);
+            iconPos.x += fontSize/2.0f;
+            if(JOB_RUNNING) DrawTextureEx(iconRun, Vector2Add(iconPos,(Vector2){-iconSize/2.0f+iconMargin,iconMargin}), 0.0f, 1.0f, COLOR_HL);
+            else DrawTextureEx(iconRun, Vector2Add(iconPos,(Vector2){-iconSize/2.0f+iconMargin,iconMargin}), 0.0f, 1.0f, COLOR_FG);
             iconPos.x += fontSize;
-            if(MODE_MANUAL) DrawTextEx(font,"M",iconPos,fontSize,1,COLOR_HL);
-            else DrawTextEx(font,"M",iconPos,fontSize,1,COLOR_FG);
+            if(MODE_MANUAL) DrawTextureEx(iconManual, Vector2Add(iconPos,(Vector2){-iconSize/2.0f+iconMargin,iconMargin}), 0.0f, 1.0f, COLOR_HL);
+            else DrawTextureEx(iconManual, Vector2Add(iconPos,(Vector2){-iconSize/2.0f+iconMargin,iconMargin}), 0.0f, 1.0f, COLOR_FG);
             iconPos.x += fontSize;
-            if(!STATUS_MOTOR_DISABLED) DrawTextEx(font,"E",iconPos,fontSize,1,COLOR_HL);
-            else DrawTextEx(font,"E",iconPos,fontSize,1,COLOR_FG);
+            if(!STATUS_MOTOR_DISABLED) DrawTextureEx(iconPower, Vector2Add(iconPos,(Vector2){-iconSize/2.0f+iconMargin,iconMargin}), 0.0f, 1.0f, COLOR_HL);
+            else DrawTextureEx(iconPower, Vector2Add(iconPos,(Vector2){-iconSize/2.0f+iconMargin,iconMargin}), 0.0f, 1.0f, COLOR_FG);
             iconPos.x += fontSize;
-            if(STATUS_VACUUM_PUMP) DrawTextEx(font,"B",iconPos,fontSize,1,COLOR_HL);
-            else DrawTextEx(font,"B",iconPos,fontSize,1,COLOR_FG);
+            if(STATUS_VACUUM_PUMP) DrawTextureEx(iconVacuum, Vector2Add(iconPos,(Vector2){-iconSize/2.0f+iconMargin,iconMargin}), 0.0f, 1.0f, COLOR_HL);
+            else DrawTextureEx(iconVacuum, Vector2Add(iconPos,(Vector2){-iconSize/2.0f+iconMargin,iconMargin}), 0.0f, 1.0f, COLOR_FG);
 
             if(JOB_SHOULD_STOP && EXECUTING_INSTRUCTION)
             {   
