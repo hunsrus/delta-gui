@@ -157,6 +157,7 @@ Menu* CURRENT_MENU;
 std::vector<Option>::iterator HIGHLIGHTED_OPTION;
 
 void goBackOneMenu(void);
+void DrawReferenceArrows(void);
 void DrawProgressBarScreen(const char* text, int progress);
 void DrawProgressBarIndicator(const char* text, int progress);
 void DrawMessageWindow(const char* text);
@@ -494,15 +495,21 @@ int main(int argc, char** argv)
 
     DrawProgressBarScreen("generando modelos 3D...", 40);
     // CARGAR LOS MODELOS DESPUÉS DE INICIAR LA VENTANA
+    Model* baseModel = new Model(LoadModelFromMesh(GenMeshPoly(3,670.0f/2.0f)));
+    baseModel->transform = MatrixRotate((Vector3){0,1,0},180*DEG2RAD);
+    baseModel->transform = MatrixMultiply(baseModel->transform, MatrixTranslate(0,BAS_POSITION.y+LIM_Z,0));
+    // Model* baseModel = new Model(LoadModel(std::string("resources/models/base/base.obj").c_str()));
+    // baseModel->transform = MatrixScale(1000,1000,1000);
+    // baseModel->transform = MatrixMultiply(baseModel->transform, MatrixRotate((Vector3){1,0,0},90*DEG2RAD));
     Model* platformModel = new Model(LoadModelFromMesh(GenMeshPoly(20,BAS_RADIUS)));
     //Model* platformModel = new Model(LoadModel(std::string("resources/models/platform/platform.obj").c_str()));
     //platformModel->transform = MatrixScale(1000,1000,1000);
     //platformModel->transform = MatrixMultiply(platformModel->transform, MatrixRotate((Vector3){0,1,0},45*DEG2RAD));
     //platformModel->transform = MatrixMultiply(platformModel->transform, MatrixTranslate(0,-24,0));
-    Model* baseModel = new Model(LoadModelFromMesh(GenMeshPoly(10,EFF_RADIUS)));
-    //Model* baseModel = new Model(LoadModel(std::string("resources/models/effector/effector.obj").c_str()));
-    //baseModel->transform = MatrixScale(1000,1000,1000);
-    //baseModel->transform = MatrixMultiply(baseModel->transform, MatrixRotate((Vector3){0,1,0},45*DEG2RAD));
+    Model* effectorModel = new Model(LoadModelFromMesh(GenMeshPoly(10,EFF_RADIUS)));
+    //Model* effectorModel = new Model(LoadModel(std::string("resources/models/effector/effector.obj").c_str()));
+    //effectorModel->transform = MatrixScale(1000,1000,1000);
+    //effectorModel->transform = MatrixMultiply(effectorModel->transform, MatrixRotate((Vector3){0,1,0},45*DEG2RAD));
     
     float modelRadius = 16.0f;
     Model* armModel1 = new Model(LoadModelFromMesh(GenMeshCylinder(modelRadius,ARM_LENGTH,10)));
@@ -534,6 +541,7 @@ int main(int argc, char** argv)
     Model* rodModel3 = new Model(LoadModel(std::string("resources/models/rod/simplify_rod.obj").c_str()));
     */
 
+    baseModel->materials[0].maps[MATERIAL_MAP_DIFFUSE].color = PINK;
     armModel1->materials[0].maps[MATERIAL_MAP_DIFFUSE].color = YELLOW;
     armModel2->materials[0].maps[MATERIAL_MAP_DIFFUSE].color = ORANGE;
     armModel3->materials[0].maps[MATERIAL_MAP_DIFFUSE].color = BROWN;
@@ -1331,8 +1339,9 @@ int main(int argc, char** argv)
         BeginTextureMode(renderTextureModel);       // Enable drawing to texture
             ClearBackground((Color){0,0,0,0});  // Clear texture background
             BeginMode3D(camera);        // Begin 3d mode drawing
-                DrawModel(*platformModel,Vector3Scale(BAS_POSITION,DRAW_SCALE),DRAW_SCALE,WHITE);
-                // DrawModel(*baseModel,Vector3Scale(basePos,DRAW_SCALE),DRAW_SCALE,WHITE);
+                DrawModel(*baseModel, Vector3Zero(), DRAW_SCALE, WHITE);
+                DrawModel(*platformModel, Vector3Scale(BAS_POSITION,DRAW_SCALE), DRAW_SCALE, WHITE);
+                // DrawModel(*effectorModel,Vector3Scale(basePos,DRAW_SCALE),DRAW_SCALE,WHITE);
                 DrawModel(*armModel1, Vector3Zero(), DRAW_SCALE, WHITE);
                 DrawModel(*armModel2, Vector3Zero(), DRAW_SCALE, WHITE);
                 DrawModel(*armModel3, Vector3Zero(), DRAW_SCALE, WHITE);
@@ -1346,41 +1355,14 @@ int main(int argc, char** argv)
         ClearBackground(COLOR_BG);  // Clear texture background
             BeginMode3D(camera);        // Begin 3d mode drawing
                 DrawGrid((int)BAS_RADIUS/1.5f,BAS_RADIUS/2.0f);
-                DrawModel(*baseModel,Vector3Scale(basePos,DRAW_SCALE),DRAW_SCALE,COLOR_HL);
-                float refArrowsLength = 40.0f;
-                float refArrowsRadius = 10.0f;
-                Vector3 refArrowsPos = (Vector3){-BAS_RADIUS,0.0f,0.0f};
-                DrawCylinderEx((Vector3){refArrowsPos.x,refArrowsPos.y+refArrowsLength,refArrowsPos.z},
-                    (Vector3){refArrowsPos.x,refArrowsPos.y+refArrowsLength*2,refArrowsPos.z},
-                    refArrowsRadius,
-                    0.0f,
-                    10,
-                    BLUE
-                );
-                DrawLine3D(refArrowsPos, (Vector3){refArrowsPos.x,refArrowsPos.y+refArrowsLength,refArrowsPos.z},BLUE);
-
-                DrawCylinderEx((Vector3){refArrowsPos.x+refArrowsLength,refArrowsPos.y,refArrowsPos.z},
-                    (Vector3){refArrowsPos.x+refArrowsLength*2,refArrowsPos.y,refArrowsPos.z},
-                    refArrowsRadius,
-                    0.0f,
-                    10,
-                    RED
-                );
-                DrawLine3D(refArrowsPos, (Vector3){refArrowsPos.x+refArrowsLength,refArrowsPos.y,refArrowsPos.z},RED);
-
-                DrawCylinderEx((Vector3){refArrowsPos.x,refArrowsPos.y,refArrowsPos.z+refArrowsLength},
-                    (Vector3){refArrowsPos.x,refArrowsPos.y,refArrowsPos.z+refArrowsLength*2},
-                    refArrowsRadius,
-                    0.0f,
-                    10,
-                    GREEN
-                );
-                DrawLine3D(refArrowsPos, (Vector3){refArrowsPos.x,refArrowsPos.y,refArrowsPos.z+refArrowsLength},GREEN);
+                // DrawModel(*effectorModel,Vector3Scale(basePos,DRAW_SCALE),DRAW_SCALE,COLOR_HL);
             EndMode3D();
         EndTextureMode();
         BeginTextureMode(renderTextureForeground);
         ClearBackground((Color){0,0,0,0});  // Clear texture background
             BeginMode3D(camera);        // Begin 3d mode drawing
+                DrawModel(*effectorModel,Vector3Scale(basePos,DRAW_SCALE),DRAW_SCALE,COLOR_HL);
+
                 if(!STATUS_MOTOR_DISABLED)
                 {
                     DrawModel(*motorModel1, Vector3Zero(), DRAW_SCALE, COLOR_HL);
@@ -1392,6 +1374,8 @@ int main(int argc, char** argv)
                     DrawModel(*motorModel2, Vector3Zero(), DRAW_SCALE, COLOR_FG);
                     DrawModel(*motorModel3, Vector3Zero(), DRAW_SCALE, COLOR_FG);
                 }
+                
+                DrawReferenceArrows();
             EndMode3D();
         EndTextureMode();
 
@@ -1557,8 +1541,9 @@ int main(int argc, char** argv)
 	///-----cleanup_start-----
     UnloadFont(font);
 
-    UnloadModel(*platformModel);
     UnloadModel(*baseModel);
+    UnloadModel(*platformModel);
+    UnloadModel(*effectorModel);
     UnloadModel(*armModel1);
     UnloadModel(*rodModel1);
 
@@ -1581,6 +1566,39 @@ void goBackOneMenu(void)
 {
     CURRENT_MENU = CURRENT_MENU->parent;
     HIGHLIGHTED_OPTION = CURRENT_MENU->options.begin();
+}
+
+void DrawReferenceArrows(void)
+{
+    float refArrowsLength = 40.0f;
+    float refArrowsRadius = 10.0f;
+    Vector3 refArrowsPos = (Vector3){-BAS_RADIUS,0.0f,0.0f};
+    DrawCylinderEx((Vector3){refArrowsPos.x,refArrowsPos.y+refArrowsLength,refArrowsPos.z},
+        (Vector3){refArrowsPos.x,refArrowsPos.y+refArrowsLength*2,refArrowsPos.z},
+        refArrowsRadius,
+        0.0f,
+        10,
+        BLUE
+    );
+    DrawLine3D(refArrowsPos, (Vector3){refArrowsPos.x,refArrowsPos.y+refArrowsLength,refArrowsPos.z},BLUE);
+
+    DrawCylinderEx((Vector3){refArrowsPos.x+refArrowsLength,refArrowsPos.y,refArrowsPos.z},
+        (Vector3){refArrowsPos.x+refArrowsLength*2,refArrowsPos.y,refArrowsPos.z},
+        refArrowsRadius,
+        0.0f,
+        10,
+        RED
+    );
+    DrawLine3D(refArrowsPos, (Vector3){refArrowsPos.x+refArrowsLength,refArrowsPos.y,refArrowsPos.z},RED);
+
+    DrawCylinderEx((Vector3){refArrowsPos.x,refArrowsPos.y,refArrowsPos.z+refArrowsLength},
+        (Vector3){refArrowsPos.x,refArrowsPos.y,refArrowsPos.z+refArrowsLength*2},
+        refArrowsRadius,
+        0.0f,
+        10,
+        GREEN
+    );
+    DrawLine3D(refArrowsPos, (Vector3){refArrowsPos.x,refArrowsPos.y,refArrowsPos.z+refArrowsLength},GREEN);
 }
 
 void DrawProgressBarScreen(const char* text, int progress)
