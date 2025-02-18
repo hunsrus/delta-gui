@@ -123,6 +123,9 @@ static double STEP_SIZE = 0.002;
 static float MANUAL_INCREMENT = 0.5f;
 static Vector3 POS_PCB_REF1 = Vector3Zero();
 static Vector3 POS_PCB_REF2 = Vector3Zero();
+// offset desde el origen de la referencia PCB hasta el origen real del PCB
+#define POS_PCB_OFFSET_X 10.0f
+#define POS_PCB_OFFSET_Y 10.0f
 
 //----------------------------------------------------------------------------------
 // INTERFAZ
@@ -1721,7 +1724,7 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
     float anglePCB = Vector3Angle(Vector3Subtract(POS_PCB_REF2,POS_PCB_REF1),(Vector3){1.0f,0.0f,0.0f});
     Matrix transformPCB = MatrixIdentity();
     transformPCB = MatrixMultiply(transformPCB,MatrixRotate((Vector3){0.0f,1.0f,0.0f}, anglePCB));
-    transformPCB = MatrixMultiply(transformPCB,MatrixTranslate(POS_PCB_REF1.x, POS_PCB_REF1.y, POS_PCB_REF1.z));
+    transformPCB = MatrixMultiply(transformPCB,MatrixTranslate(POS_PCB_REF1.x+POS_PCB_OFFSET_X, POS_PCB_REF1.y+POS_PCB_OFFSET_Y, POS_PCB_REF1.z));
 
     std::vector<std::string> job;
     std::string instruction;
