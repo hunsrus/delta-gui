@@ -441,11 +441,11 @@ int main(int argc, char** argv)
     auxMenu->parent = menus.at(1);      // Trabajos
     auxMenu->options.push_back((Option){0,"Atrás"});
     menus.push_back(auxMenu);
-    auxMenu = new Menu();
-    auxMenu->title = "Asignar feeders"; // 10
-    auxMenu->parent = menus.at(1);      // Trabajos
-    auxMenu->options.push_back((Option){0,"Atrás"});
-    menus.push_back(auxMenu);
+    // auxMenu = new Menu();
+    // auxMenu->title = "Asignar feeders"; // 10
+    // auxMenu->parent = menus.at(1);      // Trabajos
+    // auxMenu->options.push_back((Option){0,"Atrás"});
+    // menus.push_back(auxMenu);
 
     auxMenu = new Menu();
     auxMenu->title = "Feeder config";   // 11
@@ -1173,6 +1173,13 @@ int main(int argc, char** argv)
                 SHOW_3D_VIEW = false;
                 SHOW_MENU_INFO = false;
                 SHOW_FIELD_VALUES = true;
+
+                CURRENT_MENU->options.clear();
+                CURRENT_MENU->options.push_back((Option){0,"Atrás"});
+                for( const auto& feeder : feeders)
+                {
+                    CURRENT_MENU->options.push_back((Option){feeder.id,"Feeder "+std::to_string(feeder.id), feeder.component});
+                }
             }
         }
 
