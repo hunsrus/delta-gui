@@ -7,7 +7,7 @@
 Install dependencies
 
 ```
-apt install git build-essential cmake xorg libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libglu1-mesa-dev libopencv-dev
+apt install git build-essential cmake xorg libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libglu1-mesa-dev
 ```
 
 Clone this repository
