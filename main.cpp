@@ -355,7 +355,7 @@ int main(int argc, char** argv)
 
     Menu *auxMenu;
     auxMenu = new Menu();
-    auxMenu->title = "Menú principal";
+    auxMenu->title = "Menú principal";  // 0
     auxMenu->parent = NULL;
     // auxMenu->options.push_back((Option){0,"Debug"});
     auxMenu->options.push_back((Option){1,"Trabajos"});
@@ -365,7 +365,7 @@ int main(int argc, char** argv)
     auxMenu->options.push_back((Option){5,"Salir"});
     menus.push_back(auxMenu);
     auxMenu = new Menu();
-    auxMenu->title = "Trabajos";
+    auxMenu->title = "Trabajos";    // 1
     auxMenu->parent = menus.at(0);
     auxMenu->options.push_back((Option){0,"Atrás"});
     auxMenu->options.push_back((Option){1,"Iniciar rutina"});
@@ -375,8 +375,8 @@ int main(int argc, char** argv)
     auxMenu->options.push_back((Option){5,"Abrir rutina"});
     menus.push_back(auxMenu);
     auxMenu = new Menu();
-    auxMenu->title = "Asignar feeders";
-    auxMenu->parent = menus.at(0);
+    auxMenu->title = "Asignar feeders"; // 2
+    auxMenu->parent = menus.at(1);      // Trabajos
     auxMenu->options.push_back((Option){0,"Atrás"});
     for( const auto& feeder : feeders)
     {
@@ -384,8 +384,8 @@ int main(int argc, char** argv)
     }
     menus.push_back(auxMenu);
     auxMenu = new Menu();
-    auxMenu->title = "Calibrar";
-    auxMenu->parent = menus.at(0);
+    auxMenu->title = "Calibrar";    // 3
+    auxMenu->parent = menus.at(0);  // Menú principal
     auxMenu->options.push_back((Option){0,"Atrás"});
     auxMenu->options.push_back((Option){1,"Zona PCB"});
     auxMenu->options.push_back((Option){2,"Feeders"});
@@ -393,24 +393,25 @@ int main(int argc, char** argv)
     auxMenu->options.push_back((Option){4,"Guardar"});
     menus.push_back(auxMenu);
     auxMenu = new Menu();
-    auxMenu->title = "Zona PCB";
-    auxMenu->parent = menus.at(0);
+    auxMenu->title = "Zona PCB";    // 4
+    auxMenu->parent = menus.at(3);  // Calibrar
     auxMenu->options.push_back((Option){0,"Atrás"});
     auxMenu->options.push_back((Option){1,"PCB Ref1"});
     auxMenu->options.push_back((Option){2,"PCB Ref2"});
     menus.push_back(auxMenu);
     auxMenu = new Menu();
-    auxMenu->title = "Feeders";
-    auxMenu->parent = menus.at(0);
+    auxMenu->title = "Feeders";     // 5
+    auxMenu->parent = menus.at(3);  // Calibrar
     auxMenu->options.push_back((Option){0,"Atrás"});
     for( const auto& feeder : feeders)
     {
         auxMenu->options.push_back((Option){feeder.id,"Feeder "+std::to_string(feeder.id)});
     }
+    auxMenu->options.push_back((Option){feeders.size()+1,"Nuevo feeder"});
     menus.push_back(auxMenu);
     auxMenu = new Menu();
-    auxMenu->title = "Control";
-    auxMenu->parent = menus.at(0);
+    auxMenu->title = "Control";     // 6
+    auxMenu->parent = menus.at(0);  // Menú principal
     auxMenu->options.push_back((Option){0,"Atrás"});
     auxMenu->options.push_back((Option){1,"Girar"});
     auxMenu->options.push_back((Option){2,"Succión"});
@@ -420,8 +421,8 @@ int main(int argc, char** argv)
     auxMenu->options.push_back((Option){6,"Home"});
     menus.push_back(auxMenu);
     auxMenu = new Menu();
-    auxMenu->title = "Interfaz";
-    auxMenu->parent = menus.at(0);
+    auxMenu->title = "Interfaz";    // 7
+    auxMenu->parent = menus.at(0);  // Menú principal
     auxMenu->options.push_back((Option){0,"Atrás"});
     auxMenu->options.push_back((Option){1,"Letra",std::to_string((int)fontSize)});
     auxMenu->options.push_back((Option){3,"Botones",std::to_string(OPTIONS_PER_WINDOW)});
@@ -429,30 +430,31 @@ int main(int argc, char** argv)
     auxMenu->options.push_back((Option){5,"División",std::to_string(SCREEN_DIVISION_RATIO)});
     menus.push_back(auxMenu);
     auxMenu = new Menu();
-    auxMenu->title = "Salir";
-    auxMenu->parent = menus.at(0);
+    auxMenu->title = "Salir";       // 8
+    auxMenu->parent = menus.at(0);  // Menú principal
     auxMenu->options.push_back((Option){0,"Atrás"});
     auxMenu->options.push_back((Option){1,"Apagar"});
     auxMenu->options.push_back((Option){2,"Reiniciar"});
     menus.push_back(auxMenu);
     auxMenu = new Menu();
-    auxMenu->title = "Cargar archivo";
-    auxMenu->parent = menus.at(1);
+    auxMenu->title = "Cargar archivo";  // 9
+    auxMenu->parent = menus.at(1);      // Trabajos
     auxMenu->options.push_back((Option){0,"Atrás"});
     menus.push_back(auxMenu);
     auxMenu = new Menu();
-    auxMenu->title = "Asignar feeders";
-    auxMenu->parent = menus.at(1);
+    auxMenu->title = "Asignar feeders"; // 10
+    auxMenu->parent = menus.at(1);      // Trabajos
     auxMenu->options.push_back((Option){0,"Atrás"});
     menus.push_back(auxMenu);
 
     auxMenu = new Menu();
-    auxMenu->title = "Feeder config";
-    auxMenu->parent = menus.at(0);
+    auxMenu->title = "Feeder config";   // 11
+    auxMenu->parent = menus.at(5);      // Feeders
     auxMenu->options.push_back((Option){0,"Atrás"});
     auxMenu->options.push_back((Option){1,"Push"});
     auxMenu->options.push_back((Option){2,"Approach"});
     auxMenu->options.push_back((Option){3,"Pick"});
+    auxMenu->options.push_back((Option){4,"Eliminar"});
     menus.push_back(auxMenu);
     
     CURRENT_MENU = menus.at(0);
@@ -1040,6 +1042,19 @@ int main(int argc, char** argv)
                     }
                 }
                 MODE_MANUAL = !MODE_MANUAL;
+            }else if(HIGHLIGHTED_OPTION->text == "Eliminar")
+            {
+                feeders.erase(feeders.begin()+selectedFeederID);
+
+                goBackOneMenu();
+                
+                CURRENT_MENU->options.clear();
+                CURRENT_MENU->options.push_back((Option){0,"Atrás"});
+                for( const auto& feeder : feeders)
+                {
+                    CURRENT_MENU->options.push_back((Option){feeder.id,"Feeder "+std::to_string(feeder.id)});
+                }
+                CURRENT_MENU->options.push_back((Option){feeders.size()+1,"Nuevo feeder"});
             }else if(HIGHLIGHTED_OPTION->text == "Prueba")
             {
                 if(!JOB_RUNNING)
@@ -1075,6 +1090,26 @@ int main(int argc, char** argv)
                     goBackOneMenu();
                 }else if(CURRENT_MENU->title == "Feeders")
                 {
+                    if(HIGHLIGHTED_OPTION->text == "Nuevo feeder")
+                    {
+                        Feeder aux_feeder = {
+                            feeders.size()+1, // id
+                            Vector3Zero(),  // push
+                            Vector3Zero(),  // approach
+                            Vector3Zero(),  // pick
+                            ""              // component
+                        };
+                        feeders.push_back(aux_feeder);
+
+                        CURRENT_MENU->options.clear();
+                        CURRENT_MENU->options.push_back((Option){0,"Atrás"});
+                        for( const auto& feeder : feeders)
+                        {
+                            CURRENT_MENU->options.push_back((Option){feeder.id,"Feeder "+std::to_string(feeder.id)});
+                        }
+                        CURRENT_MENU->options.push_back((Option){feeders.size()+1,"Nuevo feeder"});
+                    }
+
                     selectedFeederID = HIGHLIGHTED_OPTION->id;
 
                     for (const auto& menu : menus) 
