@@ -124,8 +124,8 @@ static float MANUAL_INCREMENT = 0.5f;
 static Vector3 POS_PCB_REF1 = Vector3Zero();
 static Vector3 POS_PCB_REF2 = Vector3Zero();
 // offset desde el origen de la referencia PCB hasta el origen real del PCB
-#define POS_PCB_OFFSET_X 10.0f
-#define POS_PCB_OFFSET_Y 10.0f
+#define POS_PCB_OFFSET_X 6.5f
+#define POS_PCB_OFFSET_Y 6.5f
 
 //----------------------------------------------------------------------------------
 // INTERFAZ
