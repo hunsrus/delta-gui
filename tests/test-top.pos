@@ -1,4 +1,4 @@
-### Footprint positions - created on 2025-02-16T11:27:15-0300 ###
+### Footprint positions - created on 2025-02-22T11:31:15-0300 ###
 ### Printed by KiCad version 8.0.5
 ## Unit = mm, Angle = deg.
 ## Side : top
@@ -21,10 +21,13 @@ R15       R0.0      R_0603_1608Metric_Pad0.98x0.95mm_HandSolder    45.0000     5
 R16       0.0       R_0805_2012Metric_Pad1.20x1.40mm_HandSolder    33.9125    19.0000   45.0000  top
 R17       0.0       R_0805_2012Metric_Pad1.20x1.40mm_HandSolder    38.9125    19.0000    0.0000  top
 R18       0.0       R_0805_2012Metric_Pad1.20x1.40mm_HandSolder    43.9125    19.0000  -45.0000  top
-U1        LTV-357T  SO-4_4.4x3.6mm_P2.54mm                         21.5000    26.0000   45.0000  top
-U2        LTV-357T  SO-4_4.4x3.6mm_P2.54mm                          9.0000    17.0000    0.0000  top
-U3        LTV-357T  SO-4_4.4x3.6mm_P2.54mm                         21.5000    17.0000    0.0000  top
-U4        LTV-357T  SO-4_4.4x3.6mm_P2.54mm                          9.0000     8.0000   45.0000  top
-U5        LTV-357T  SO-4_4.4x3.6mm_P2.54mm                         21.5000     8.0000  -45.0000  top
-U6        LTV-357T  SO-4_4.4x3.6mm_P2.54mm                          9.0000    26.0000  -45.0000  top
+R19       R0.0      R_0603_1608Metric_Pad0.98x0.95mm_HandSolder     9.0875    26.0000  -45.0000  top
+R20       R0.0      R_0603_1608Metric_Pad0.98x0.95mm_HandSolder    15.5000    26.0000    0.0000  top
+R21       R0.0      R_0603_1608Metric_Pad0.98x0.95mm_HandSolder    21.5000    26.0000   45.0000  top
+R22       R0.0      R_0603_1608Metric_Pad0.98x0.95mm_HandSolder     9.0000    17.0000   90.0000  top
+R23       R0.0      R_0603_1608Metric_Pad0.98x0.95mm_HandSolder    15.5000    17.0000    0.0000  top
+R24       R0.0      R_0603_1608Metric_Pad0.98x0.95mm_HandSolder    21.5000    17.0000  -90.0000  top
+R25       R0.0      R_0603_1608Metric_Pad0.98x0.95mm_HandSolder     9.0000     7.5000   45.0000  top
+R26       R0.0      R_0603_1608Metric_Pad0.98x0.95mm_HandSolder    15.5000     7.5000    0.0000  top
+R27       R0.0      R_0603_1608Metric_Pad0.98x0.95mm_HandSolder    21.5000     7.5000  -45.0000  top
 ## End
