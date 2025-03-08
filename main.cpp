@@ -1832,7 +1832,7 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
     float anglePCB = Vector3Angle(Vector3Subtract(POS_PCB_REF2,POS_PCB_REF1),(Vector3){1.0f,0.0f,0.0f});
     Matrix transformPCB = MatrixIdentity();
     transformPCB = MatrixMultiply(transformPCB,MatrixRotate((Vector3){0.0f,1.0f,0.0f}, anglePCB));
-    transformPCB = MatrixMultiply(transformPCB,MatrixTranslate(POS_PCB_REF1.x, POS_PCB_REF1.y, POS_PCB_REF1.z));
+    transformPCB = MatrixMultiply(transformPCB,MatrixTranslate(POS_PCB_REF1.x, POS_PCB_REF1.z, POS_PCB_REF1.y));
 
     std::vector<std::string> job;
     std::string instruction;
@@ -1900,12 +1900,14 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
 
         // secuencia de poner componente ---------------------------------------------------------------------------------------------
         // transformar marco de referencia robot->pcb
-        Vector3 posComponentePCB = {componente.posx, componente.posy, 0.0f};
+        Vector3 posComponentePCB = {componente.posx+POS_PCB_OFFSET_X, 0.0f, componente.posy+POS_PCB_OFFSET_Y};
         Vector3 posComponenteRobot = Vector3Transform(posComponentePCB, transformPCB);
 
-        sprintf(aux_x, format.c_str(), posComponenteRobot.x+POS_PCB_OFFSET_X);
-        sprintf(aux_y, format.c_str(), posComponenteRobot.y+POS_PCB_OFFSET_Y);
-        sprintf(aux_z, format.c_str(), posComponenteRobot.z);
+        // fprintf(stdout, "Componente %i: X %2.f Y %2.f", componentCount, posComponentePCB.x, posComponentePCB.y);
+
+        sprintf(aux_x, format.c_str(), posComponenteRobot.x);
+        sprintf(aux_y, format.c_str(), posComponenteRobot.z);
+        sprintf(aux_z, format.c_str(), posComponenteRobot.y);
         
         // posición de componente manteniendo z de approach
         instruction = "LX";
