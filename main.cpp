@@ -666,6 +666,8 @@ int main(int argc, char** argv)
 
         octoKin.set_effector_precision(EFF_STEPS_NUM);
         
+        gpioWrite(25,0);
+        gpioWrite(25,1);
         // turn suction off
         gpioWrite(PIN_BOMBA,0);
         // enable motors
