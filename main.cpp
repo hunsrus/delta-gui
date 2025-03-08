@@ -666,8 +666,6 @@ int main(int argc, char** argv)
 
         octoKin.set_effector_precision(EFF_STEPS_NUM);
         
-        gpioWrite(25,0);
-        gpioWrite(25,1);
         // turn suction off
         gpioWrite(PIN_BOMBA,0);
         // enable motors
@@ -774,6 +772,14 @@ int main(int argc, char** argv)
         if(axis_state_Y0 == 0 && axis_state_Y1 == 0) //arriba
         {
             axis_state_Y = 1;
+        }
+
+        if(!button_state_R1 && !button_state_R2)
+        {
+            gpioWrite(25,0);
+            usleep(1500);
+            gpioWrite(25,1);
+            fprintf(stdout, "[INFO] Display reset");
         }
 
         if(MODE_MANUAL)
