@@ -40,7 +40,7 @@ bool OctoKinematics::inverse_kinematics_1(float xt, float yt, float zt)
         return false;
     }
     
-    this->a = beta * (180.0/3.141592653589793238463);
+    this->a = beta * 57.29577951f;
     return true;
 }
 
@@ -49,8 +49,8 @@ bool OctoKinematics::inverse_kinematics_2(float xt, float yt, float zt)
     zt -= MOTOR_OFFSET_Z;
     float x = xt;
     float y = yt;
-    xt = x * cos(2.0943951023931954923084289221863f) - y * sin(2.0943951023931954923084289221863f); //Rotate coordinate frame 120 degrees
-    yt = x * sin(2.0943951023931954923084289221863f) + y * cos(2.0943951023931954923084289221863f);
+    xt = x * (-0.5f) - y * (0.8660254038f); //Rotate coordinate frame 120 degrees
+    yt = x * (0.8660254038f) + y * (-0.5f);
     
     float arm_end_x = xt + this->effRadius;
     float rod_length_p = sqrt(pow(this->rodLength, 2) - pow(yt, 2));
@@ -78,7 +78,7 @@ bool OctoKinematics::inverse_kinematics_2(float xt, float yt, float zt)
         return false;
     }
     
-    this->b = beta * (180.0/3.141592653589793238463);
+    this->b = beta * 57.29577951f;
     return true;
 }
 
@@ -88,8 +88,8 @@ bool OctoKinematics::inverse_kinematics_3(float xt, float yt, float zt)
 
     float x = xt;
     float y = yt;
-    xt = x * cos(4.1887902047863909846168578443727f) - y * sin(4.1887902047863909846168578443727f); //Rotate coordinate frame 240 degrees
-    yt = x * sin(4.1887902047863909846168578443727f) + y * cos(4.1887902047863909846168578443727f);
+    xt = x * (-0.5f) - y * (-0.8660254038f); //Rotate coordinate frame 240 degrees
+    yt = x * (-0.8660254038f) + y * (-0.5f);
 
     float arm_end_x = xt + this->effRadius;
     float rod_length_p = sqrt(pow(this->rodLength, 2) - pow(yt, 2));
@@ -117,7 +117,7 @@ bool OctoKinematics::inverse_kinematics_3(float xt, float yt, float zt)
         return false;
     }
     
-    this->c = beta * (180.0/3.141592653589793238463);
+    this->c = beta * 57.29577951f;
     return true;
 }
 
