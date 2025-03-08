@@ -4,6 +4,7 @@ project(example)
 # Generate compile_commands.json
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(GRAPHICS GRAPHICS_API_OPENGL_21)
+SET(CMAKE_CXX_FLAGS  "-g")
 
 # Dependencies
 find_package(raylib 4.0.0 QUIET) # QUIET or REQUIRED
