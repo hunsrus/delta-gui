@@ -1868,8 +1868,8 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
         // paso fino
         job.push_back("S0.002");
         // posición de push
-        instruction = "LX"+std::to_string(aux_feeder.push.x)+"Y"+std::to_string(aux_feeder.push.y)+"Z"+std::to_string(aux_feeder.push.z);
-        job.push_back(instruction);
+        // instruction = "LX"+std::to_string(aux_feeder.push.x)+"Y"+std::to_string(aux_feeder.push.y)+"Z"+std::to_string(aux_feeder.push.z);
+        // job.push_back(instruction);
         // posición de pick manteniendo altura
         instruction = "LX"+std::to_string(aux_feeder.pick.x)+"Y"+std::to_string(aux_feeder.pick.y);
         job.push_back(instruction);
