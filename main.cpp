@@ -1832,7 +1832,7 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
     float anglePCB = Vector3Angle(Vector3Subtract(POS_PCB_REF2,POS_PCB_REF1),(Vector3){1.0f,0.0f,0.0f});
     Matrix transformPCB = MatrixIdentity();
     transformPCB = MatrixMultiply(transformPCB,MatrixRotate((Vector3){0.0f,1.0f,0.0f}, anglePCB));
-    transformPCB = MatrixMultiply(transformPCB,MatrixTranslate(POS_PCB_REF1.x+POS_PCB_OFFSET_X, POS_PCB_REF1.y+POS_PCB_OFFSET_Y, POS_PCB_REF1.z));
+    transformPCB = MatrixMultiply(transformPCB,MatrixTranslate(POS_PCB_REF1.x, POS_PCB_REF1.y, POS_PCB_REF1.z));
 
     std::vector<std::string> job;
     std::string instruction;
@@ -1903,8 +1903,8 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
         Vector3 posComponentePCB = {componente.posx, componente.posy, 0.0f};
         Vector3 posComponenteRobot = Vector3Transform(posComponentePCB, transformPCB);
 
-        sprintf(aux_x, format.c_str(), posComponenteRobot.x);
-        sprintf(aux_y, format.c_str(), posComponenteRobot.y);
+        sprintf(aux_x, format.c_str(), posComponenteRobot.x+POS_PCB_OFFSET_X);
+        sprintf(aux_y, format.c_str(), posComponenteRobot.y+POS_PCB_OFFSET_Y);
         sprintf(aux_z, format.c_str(), posComponenteRobot.z);
         
         // posición de componente manteniendo z de approach
