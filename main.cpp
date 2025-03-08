@@ -207,7 +207,7 @@ int readBit(char data, int bit);
 int writeConfigFile(const std::string& config_file_path);
 int configFileParser(std::string config_file_path);
 
-int calculateKinematics(double &x,double &y,double &z, OctoKinematics &octoKin)
+int calculateKinematics(OctoKinematics &octoKin)
 {
     float low_z = LIM_Z;//-294
     float high_z = LIM_Z+10;
@@ -329,7 +329,6 @@ int main(int argc, char** argv)
 
     DrawProgressBarScreen("inicializando cinemática...", 20);
     OctoKinematics octoKin = OctoKinematics(ARM_LENGTH, ROD_LENGTH, EFF_RADIUS, BAS_RADIUS);
-    double x = 0, y = 0, z = HOME_Z;
     double lastX = -1, lastY = -1, lastZ = -1;
     double rod1Phi, rod1Theta;
     double rod2Phi, rod2Theta;
@@ -347,7 +346,7 @@ int main(int argc, char** argv)
     Vector3 rod2Pos = (Vector3){arm1Pos.x,static_cast<float>(arm1Pos.y+ARM_LENGTH*sin(-octoKin.b*DEG2RAD)),arm1Pos.z};
     Vector3 rod3Pos = (Vector3){arm1Pos.x,static_cast<float>(arm1Pos.y+ARM_LENGTH*sin(-octoKin.a*DEG2RAD)),arm1Pos.z};
     Vector3 baseJoint1, baseJoint2, baseJoint3;
-    Vector3 basePos = (Vector3){static_cast<float>(x),static_cast<float>(z),static_cast<float>(y)};
+    Vector3 basePos = (Vector3){0.0f,static_cast<float>(HOME_Z),0.0f};
     Vector3 arm1Projection, arm2Projection, arm3Projection;
 
     DrawProgressBarScreen("cargando menú...", 30);
@@ -706,12 +705,12 @@ int main(int argc, char** argv)
     std::cout << "a: " << octoKin.a << std::endl;
     std::cout << "b: " << octoKin.b << std::endl;
     std::cout << "c: " << octoKin.c << std::endl;
-    std::cout << "x: " << x << std::endl;
-    std::cout << "y: " << y << std::endl;
-    std::cout << "z: " << z << std::endl;
+    std::cout << "x: " << octoKin.x << std::endl;
+    std::cout << "y: " << octoKin.y << std::endl;
+    std::cout << "z: " << octoKin.z << std::endl;
 
     DrawProgressBarScreen("iniciando hilo de cinemática...", 90);
-    std::thread t1(calculateKinematics,std::ref(x),std::ref(y),std::ref(z),std::ref(octoKin));
+    std::thread t1(calculateKinematics,std::ref(octoKin));
 
     DrawProgressBarScreen("listo", 100);
 
