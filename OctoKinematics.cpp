@@ -355,7 +355,7 @@ int OctoKinematics::linear_move_eased(float x1, float y1, float z1, float stepDi
         // Calcula cinemática inversa y actualiza
         this->inverse_kinematics(xInterpolation, yInterpolation, zInterpolation);
         if(this->updateKinematics()) return EXIT_FAILURE;
-        // usleep(stepDelay);
+        if(stepDelay > 0) usleep(stepDelay);
     }
     return EXIT_SUCCESS;
 }
@@ -471,7 +471,7 @@ int OctoKinematics::home(float x, float y, float z)
     this->set_pulse_width(aux_pulse_width);
 
     if(this->starting_z != 0)
-        this->linear_move(x, y, this->starting_z, 0.1f, 1000);
+        this->linear_move_eased(x, y, this->starting_z, 0.1f, 1000);
 
     this->ls_hit = false;
     IGNORE_LIMIT_SWITCHES = false;
