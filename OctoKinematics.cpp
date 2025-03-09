@@ -249,6 +249,8 @@ int OctoKinematics::step(int step_pin, int dir_pin, bool dir)
     {
         ls_hit = true;
     }
+    #else
+        usleep(this->pulse_width);
     #endif
 
     return EXIT_SUCCESS;
@@ -343,7 +345,7 @@ int OctoKinematics::linear_move(float x1, float y1, float z1, float stepDist, in
 
         this->inverse_kinematics(xInterpolation, yInterpolation, zInterpolation);//calculates the inverse kinematics for the interpolated values
         if(this->updateKinematics()) return EXIT_FAILURE;
-        usleep(stepDelay);
+        // usleep(stepDelay);
     }
     return EXIT_SUCCESS;
 }
