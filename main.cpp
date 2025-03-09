@@ -1873,8 +1873,8 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
         instruction = "S"+std::to_string(STEP_COARSE);
         job.push_back(instruction);
         // posición de approach
-        instruction = "LX"+std::to_string(aux_feeder.approach.x)+"Y"+std::to_string(aux_feeder.approach.y)+"Z"+std::to_string(aux_feeder.approach.z);
-        job.push_back(instruction);
+        // instruction = "LX"+std::to_string(aux_feeder.approach.x)+"Y"+std::to_string(aux_feeder.approach.y)+"Z"+std::to_string(aux_feeder.approach.z);
+        // job.push_back(instruction);
         // paso fino
         instruction = "S"+std::to_string(STEP_FINE);
         job.push_back(instruction);
@@ -1882,14 +1882,14 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
         // instruction = "LX"+std::to_string(aux_feeder.push.x)+"Y"+std::to_string(aux_feeder.push.y)+"Z"+std::to_string(aux_feeder.push.z);
         // job.push_back(instruction);
         // posición de pick manteniendo altura
-        instruction = "LX"+std::to_string(aux_feeder.pick.x)+"Y"+std::to_string(aux_feeder.pick.y);
+        instruction = "LX"+std::to_string(aux_feeder.pick.x)+"Y"+std::to_string(aux_feeder.pick.y)+"Z"+std::to_string(aux_feeder.approach.z);;
         job.push_back(instruction);
 
         // prender bomba
         job.push_back("B1");
         
         // baja hacia posición de pick
-        instruction += "Z"+std::to_string(aux_feeder.pick.z);
+        instruction = "LZ"+std::to_string(aux_feeder.pick.z);
         job.push_back(instruction);
 
         // delay para juntar
