@@ -1871,11 +1871,13 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
 
         // paso grueso
         instruction = "S"+std::to_string(STEP_COARSE);
+        job.push_back(instruction);
         // posición de approach
         instruction = "LX"+std::to_string(aux_feeder.approach.x)+"Y"+std::to_string(aux_feeder.approach.y)+"Z"+std::to_string(aux_feeder.approach.z);
         job.push_back(instruction);
         // paso fino
         instruction = "S"+std::to_string(STEP_FINE);
+        job.push_back(instruction);
         // posición de push
         // instruction = "LX"+std::to_string(aux_feeder.push.x)+"Y"+std::to_string(aux_feeder.push.y)+"Z"+std::to_string(aux_feeder.push.z);
         // job.push_back(instruction);
@@ -1898,6 +1900,7 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
         job.push_back(instruction);
         // paso grueso
         instruction = "S"+std::to_string(STEP_COARSE);
+        job.push_back(instruction);
 
         // secuencia de poner componente ---------------------------------------------------------------------------------------------
         // transformar marco de referencia robot->pcb
@@ -1925,6 +1928,7 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
 
         // paso fino
         instruction = "S"+std::to_string(STEP_FINE);
+        job.push_back(instruction);
         // bajo en posición de componente hasta placa pcb
         instruction = "LZ";
         instruction.append(aux_z);
@@ -1934,7 +1938,7 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
         // apagar bomba
         job.push_back("B0");
         // delay
-        job.push_back("1000000");
+        job.push_back("D100000");
 
         // sube a z de approach
         sprintf(aux_z, format.c_str(), aux_feeder.approach.z);
@@ -2132,10 +2136,10 @@ int configFileParser(std::string config_file_path) {
                     // PATH_FILES = param_content;
                 }else if (param_name == "STEP_FINE")
                 {
-                    STEP_FINE = std::stoi(param_content);
+                    STEP_FINE = std::stof(param_content);
                 }else if (param_name == "STEP_COARSE")
                 {
-                    STEP_COARSE = std::stoi(param_content);
+                    STEP_COARSE = std::stof(param_content);
                 }else if (param_name == "STEPS_NUM")
                 {
                     STEPS_NUM = std::stoi(param_content);
