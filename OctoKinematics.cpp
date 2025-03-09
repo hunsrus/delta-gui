@@ -307,6 +307,7 @@ int OctoKinematics::updateKinematics(void)
     return EXIT_SUCCESS;
 }
 
+
 // Interpola entre dos puntos para moverse en línea recta con aceleración y desaceleración suaves
 int OctoKinematics::linear_move_eased(float x1, float y1, float z1, float stepDist, int stepDelay)
 {
@@ -335,7 +336,16 @@ int OctoKinematics::linear_move_eased(float x1, float y1, float z1, float stepDi
     for(int i = 1; i <= numberOfSteps; i++){
         // Calcula t normalizado (0 a 1) y aplica easing cúbico (aceleración/desaceleración)
         float t = static_cast<float>(i) / numberOfSteps;
-        float eased_t = t * t * (3.0f - 2.0f * t); // Función de easing cúbico
+
+        // circ
+        float eased_t = t < 0.5f
+                        ? (1.0f - sqrt(1.0f - pow(2.0f * t, 2.0f))) / 2.0f
+                        : (sqrt(1.0f - pow(-2.0f * t + 2.0f, 2.0f)) + 1.0f) / 2.0f;
+        // quint
+        // float eased_t = t < 0.5f ? 16.0f * t * t * t * t * t : 1.0f - pow(-2.0f * t + 2.0f, 5.0f) / 2.0f;
+        // cubic
+        // float eased_t = t < 0.5f ? 4.0f * t * t * t : 1.0f - pow(-2.0f * t + 2.0f, 3.0f) / 2.0f;
+        // float eased_t = t * t * (3.0f - 2.0f * t); // Función de easing cúbico
         
         // Interpolación con easing
         xInterpolation = x0 + eased_t * xDist;
