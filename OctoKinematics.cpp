@@ -307,6 +307,49 @@ int OctoKinematics::updateKinematics(void)
     return EXIT_SUCCESS;
 }
 
+// Interpola entre dos puntos para moverse en línea recta con aceleración y desaceleración suaves
+int OctoKinematics::linear_move_eased(float x1, float y1, float z1, float stepDist, int stepDelay)
+{
+    // Establece las variables de posición inicial
+    float x0 = this->x;
+    float y0 = this->y;
+    float z0 = this->z;
+    
+    // Distancia a recorrer en cada eje
+    float xDist = x1 - x0;
+    float yDist = y1 - y0;
+    float zDist = z1 - z0;
+    
+    // Distancia total del movimiento
+    double totalDist = sqrt(pow(xDist,2) + pow(yDist,2) + pow(zDist,2));
+    int numberOfSteps = round(totalDist / stepDist); // Número de pasos basado en stepDist
+
+    if(numberOfSteps == 0){
+        printf("ERROR: No change in position: numberOfSteps = %i\n", numberOfSteps);
+        return EXIT_FAILURE;
+    }
+    
+    // Variables de interpolación
+    float xInterpolation, yInterpolation, zInterpolation;
+
+    for(int i = 1; i <= numberOfSteps; i++){
+        // Calcula t normalizado (0 a 1) y aplica easing cúbico (aceleración/desaceleración)
+        float t = static_cast<float>(i) / numberOfSteps;
+        float eased_t = t * t * (3.0f - 2.0f * t); // Función de easing cúbico
+        
+        // Interpolación con easing
+        xInterpolation = x0 + eased_t * xDist;
+        yInterpolation = y0 + eased_t * yDist;
+        zInterpolation = z0 + eased_t * zDist;
+
+        // Calcula cinemática inversa y actualiza
+        this->inverse_kinematics(xInterpolation, yInterpolation, zInterpolation);
+        if(this->updateKinematics()) return EXIT_FAILURE;
+        // usleep(stepDelay);
+    }
+    return EXIT_SUCCESS;
+}
+
 //interpolates between two points to move in a stright line (beware of physical and kinematic limits)
 int OctoKinematics::linear_move(float x1, float y1, float z1, float stepDist, int stepDelay)
 {

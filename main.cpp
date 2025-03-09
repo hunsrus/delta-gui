@@ -1763,7 +1763,7 @@ int executeInstruction(std::string instruction, OctoKinematics &octoKin)
         // if (has_z) printf("Coordenada Z: %.4f\n", z);
         
         
-        if(octoKin.linear_move(x, y, z, STEP_SIZE, 0)) return EXIT_FAILURE;
+        if(octoKin.linear_move_eased(x, y, z, STEP_SIZE, 0)) return EXIT_FAILURE;
     }else if(instruction[0] == 'D') // delay
     {
         char *d_pos = strchr((char*)instruction.c_str(), 'D');

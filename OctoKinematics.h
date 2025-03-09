@@ -30,6 +30,7 @@ class OctoKinematics
         bool inverse_kinematics(float x, float y, float z);
         int updateKinematics(void);
         int linear_move(float x, float y, float z, float stepDist, int stepDelay);
+        int linear_move_eased(float x, float y, float z, float stepDist, int stepDelay);
         void rotate_effector(float angle);
         void correct_effector_init(int steps);
         void set_axis_direction(bool dir);
