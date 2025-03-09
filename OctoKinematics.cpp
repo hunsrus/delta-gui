@@ -338,13 +338,13 @@ int OctoKinematics::linear_move_eased(float x1, float y1, float z1, float stepDi
         float t = static_cast<float>(i) / numberOfSteps;
 
         // circ
-        float eased_t = t < 0.5f
-                        ? (1.0f - sqrt(1.0f - pow(2.0f * t, 2.0f))) / 2.0f
-                        : (sqrt(1.0f - pow(-2.0f * t + 2.0f, 2.0f)) + 1.0f) / 2.0f;
+        // float eased_t = t < 0.5f
+        //                 ? (1.0f - sqrt(1.0f - pow(2.0f * t, 2.0f))) / 2.0f
+        //                 : (sqrt(1.0f - pow(-2.0f * t + 2.0f, 2.0f)) + 1.0f) / 2.0f;
         // quint
         // float eased_t = t < 0.5f ? 16.0f * t * t * t * t * t : 1.0f - pow(-2.0f * t + 2.0f, 5.0f) / 2.0f;
         // cubic
-        // float eased_t = t < 0.5f ? 4.0f * t * t * t : 1.0f - pow(-2.0f * t + 2.0f, 3.0f) / 2.0f;
+        float eased_t = t < 0.5f ? 4.0f * t * t * t : 1.0f - pow(-2.0f * t + 2.0f, 3.0f) / 2.0f;
         // float eased_t = t * t * (3.0f - 2.0f * t); // Función de easing cúbico
         
         // Interpolación con easing
