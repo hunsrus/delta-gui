@@ -2239,6 +2239,8 @@ int writeConfigFile(const std::string& config_file_path)
               << POS_PCB_REF2.y << " "
               << POS_PCB_REF2.z << "\n";
     
+    output_file << "STEP_FINE=" << STEP_FINE << "\n";
+    output_file << "STEP_COARSE=" << STEP_COARSE << "\n";
     output_file << "STEPS_NUM=" << STEPS_NUM << "\n";
     output_file << "NUMERIC_PRECISION=" << NUMERIC_PRECISION << "\n";
 
