@@ -120,6 +120,8 @@ std::list<std::string> MANUAL_QUEUE;
 
 static std::string PATH_FILES = "../tests/";
 static double STEP_SIZE = 0.002;
+static double STEP_FINE = 0.0002;
+static double STEP_COARSE = 0.002;
 static float MANUAL_INCREMENT = 0.5f;
 static Vector3 POS_PCB_REF1 = Vector3Zero();
 static Vector3 POS_PCB_REF2 = Vector3Zero();
@@ -1836,7 +1838,7 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
     std::vector<std::string> job;
     std::string instruction;
     
-    instruction = "S0.02";
+    instruction = "S"+std::to_string(STEP_COARSE);
     job.push_back(instruction);
     instruction = "LX0Y0Z"+std::to_string(LIM_Z+30);
     job.push_back(instruction);
@@ -1868,12 +1870,12 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
         }
 
         // paso grueso
-        job.push_back("S0.02");
+        instruction = "S"+std::to_string(STEP_COARSE);
         // posición de approach
         instruction = "LX"+std::to_string(aux_feeder.approach.x)+"Y"+std::to_string(aux_feeder.approach.y)+"Z"+std::to_string(aux_feeder.approach.z);
         job.push_back(instruction);
         // paso fino
-        job.push_back("S0.002");
+        instruction = "S"+std::to_string(STEP_FINE);
         // posición de push
         // instruction = "LX"+std::to_string(aux_feeder.push.x)+"Y"+std::to_string(aux_feeder.push.y)+"Z"+std::to_string(aux_feeder.push.z);
         // job.push_back(instruction);
@@ -1895,7 +1897,7 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
         instruction = "LZ"+std::to_string(aux_feeder.approach.z);
         job.push_back(instruction);
         // paso grueso
-        job.push_back("S0.02");
+        instruction = "S"+std::to_string(STEP_COARSE);
 
         // secuencia de poner componente ---------------------------------------------------------------------------------------------
         // transformar marco de referencia robot->pcb
@@ -1922,7 +1924,7 @@ std::vector<std::string> generateJob(std::vector<Componente> componentes)
         job.push_back("R"+std::to_string(componente.rotation));
 
         // paso fino
-        job.push_back("S0.002");
+        instruction = "S"+std::to_string(STEP_FINE);
         // bajo en posición de componente hasta placa pcb
         instruction = "LZ";
         instruction.append(aux_z);
@@ -2128,7 +2130,13 @@ int configFileParser(std::string config_file_path) {
                 }else if (param_name == "PATH_FILES")
                 {
                     // PATH_FILES = param_content;
-                } else if (param_name == "STEPS_NUM")
+                }else if (param_name == "STEP_FINE")
+                {
+                    STEP_FINE = std::stoi(param_content);
+                }else if (param_name == "STEP_COARSE")
+                {
+                    STEP_COARSE = std::stoi(param_content);
+                }else if (param_name == "STEPS_NUM")
                 {
                     STEPS_NUM = std::stoi(param_content);
                 } else if (param_name == "NUMERIC_PRECISION")
