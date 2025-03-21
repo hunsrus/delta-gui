@@ -72,18 +72,22 @@ static unsigned int STEPS_NUM = 16;
 
 // graphics config
 #define GLSL_VERSION 100
+#define TARGET_FPS 30
 
 #if ARCH_ARM
     #define DISPLAY_WIDTH 320
     #define DISPLAY_HEIGHT 240
     #define BORDER_THICKNESS 2.0f
+    #define BORDER_RADIUS 8.0f
 #else
     #define DISPLAY_WIDTH 320
     #define DISPLAY_HEIGHT 240
     #define BORDER_THICKNESS 2.0f
+    #define BORDER_RADIUS 8.0f
 #endif
-#define TARGET_FPS 30
-#define MARGIN 20*(DISPLAY_HEIGHT/768.0f)
+
+static bool ROUNDED_CORNERS = false;
+static float MARGIN = 18*(DISPLAY_HEIGHT/768.0f);
 static float FONT_PIXELS = 24*DISPLAY_HEIGHT/240;
 static unsigned int OPTIONS_PER_WINDOW = 6;
 #define BUTTON_SIZE (DISPLAY_HEIGHT-MARGIN*3-MARGIN*(OPTIONS_PER_WINDOW-1)-FONT_PIXELS)/OPTIONS_PER_WINDOW
@@ -202,6 +206,10 @@ std::vector<std::string> listarArchivos(const std::string& rutaCarpeta);
 float mapear(float x, float in_min, float in_max, float out_min, float out_max) {
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
+
+#include <rshapes.c>
+void DrawRectangleRoundedLinesRadius(Rectangle rec, float radius, int segments, float lineThick, Color color);
+void DrawRectangleRoundedRadius(Rectangle rec, float radius, int segments, Color color);
 
 char readRegister(int pin_data, int pin_pl, int pin_cp);
 int readBit(char data, int bit);
@@ -1400,7 +1408,7 @@ int main(int argc, char** argv)
                 EndShaderMode();
                 DrawTextureRec(renderTextureForeground.texture, viewRectangle, viewPos, WHITE);
                 Rectangle viewBorderRectangle = {viewPos.x, viewPos.y, viewSize.x, viewSize.y};
-                DrawRectangleLinesEx(viewBorderRectangle,BORDER_THICKNESS,COLOR_FG);
+                DrawRectangleRoundedLinesRadius(viewBorderRectangle, BORDER_RADIUS, 5, BORDER_THICKNESS, COLOR_FG);
             }
 
             i = 2;
@@ -1427,13 +1435,13 @@ int main(int argc, char** argv)
                     optionSize.x = screenWidth-MARGIN*2;
                 Rectangle optionRectangle = {optionPos.x, optionPos.y, optionSize.x, optionSize.y};
                 // dibujo el recuadro de la opción
-                DrawRectangleLinesEx(optionRectangle,BORDER_THICKNESS,optionBorderColor);
+                DrawRectangleRoundedLinesRadius(optionRectangle, BORDER_RADIUS, 20, BORDER_THICKNESS, optionBorderColor);
                 
                 if(it == HIGHLIGHTED_OPTION)
                 {
                     // la opción seleccionada se grafica con los colores invertidos
                     optionTextColor = COLOR_BG;
-                    DrawRectangleRec(optionRectangle, COLOR_FG);
+                    DrawRectangleRoundedRadius(optionRectangle, BORDER_RADIUS, 10, COLOR_FG);
                 }
                 // cargo el texto de la opción en un string
                 sprintf(c," %s",it->text.c_str());
@@ -1620,9 +1628,9 @@ void DrawProgressBarScreen(const char* text, int progress)
     BeginDrawing();
         ClearBackground(COLOR_BG);
         Rectangle barRec = {barPos.x, barPos.y, barSize.x, barSize.y};
-        DrawRectangleLinesEx(barRec, BORDER_THICKNESS, COLOR_FG);
+        DrawRectangleRoundedLinesRadius(barRec, BORDER_RADIUS, 5, BORDER_THICKNESS, COLOR_FG);
         barRec.width *= progress/100.0f;
-        DrawRectangleRec(barRec,COLOR_FG);
+        DrawRectangleRoundedRadius(barRec, BORDER_RADIUS, 5, COLOR_FG);
         DrawTextEx(font, text, textPos, fontSize, 1, COLOR_FG);
     EndDrawing();
 }
@@ -1637,9 +1645,9 @@ void DrawProgressBarIndicator(const char* text, int progress)
         // ClearBackground(COLOR_BG);
         DrawRectangle(barPos.x,MARGIN,barSize.x,MARGIN*2+fontSize,COLOR_BG);
         Rectangle barRec = {barPos.x, barPos.y, barSize.x, barSize.y};
-        DrawRectangleLinesEx(barRec, BORDER_THICKNESS, COLOR_FG);
+        DrawRectangleRoundedLinesRadius(barRec, BORDER_RADIUS/2.0f, 5, BORDER_THICKNESS, COLOR_FG);
         barRec.width *= progress/100.0f;
-        DrawRectangleRec(barRec,COLOR_FG);
+        DrawRectangleRoundedRadius(barRec, BORDER_RADIUS/2.0f, 5, COLOR_FG);
         DrawTextEx(font, text, textPos, fontSize, 1, COLOR_FG);
     EndDrawing();
 }
@@ -2261,4 +2269,466 @@ int writeConfigFile(const std::string& config_file_path)
 
     output_file.close();
     return EXIT_SUCCESS;
+}
+
+// Draw rectangle with rounded edges
+void DrawRectangleRoundedRadius(Rectangle rec, float radius, int segments, Color color)
+{
+    rec.width -= radius*0.4f;
+    rec.height -= radius*0.4f;
+    rec.x += radius*0.2f;
+    rec.y += radius*0.2f;
+
+    // Not a rounded rectangle
+    if ((radius <= 0.0f) || (rec.width < 1) || (rec.height < 1 ))
+    {
+        DrawRectangleRec(rec, color);
+        return;
+    }
+
+    if (radius <= 0.0f) return;
+
+    // Calculate number of segments to use for the corners
+    if (segments < 4)
+    {
+        // Calculate the maximum angle between segments based on the error rate (usually 0.5f)
+        float th = acosf(2*powf(1 - SMOOTH_CIRCLE_ERROR_RATE/radius, 2) - 1);
+        segments = (int)(ceilf(2*PI/th)/4.0f);
+        if (segments <= 0) segments = 4;
+    }
+
+    float stepLength = 90.0f/(float)segments;
+
+    /*
+    Quick sketch to make sense of all of this,
+    there are 9 parts to draw, also mark the 12 points we'll use
+
+          P0____________________P1
+          /|                    |\
+         /1|          2         |3\
+     P7 /__|____________________|__\ P2
+       |   |P8                P9|   |
+       | 8 |          9         | 4 |
+       | __|____________________|__ |
+     P6 \  |P11              P10|  / P3
+         \7|          6         |5/
+          \|____________________|/
+          P5                    P4
+    */
+    // Coordinates of the 12 points that define the rounded rect
+    const Vector2 point[12] = {
+        {(float)rec.x + radius, rec.y}, {(float)(rec.x + rec.width) - radius, rec.y}, { rec.x + rec.width, (float)rec.y + radius },     // PO, P1, P2
+        {rec.x + rec.width, (float)(rec.y + rec.height) - radius}, {(float)(rec.x + rec.width) - radius, rec.y + rec.height},           // P3, P4
+        {(float)rec.x + radius, rec.y + rec.height}, { rec.x, (float)(rec.y + rec.height) - radius}, {rec.x, (float)rec.y + radius},    // P5, P6, P7
+        {(float)rec.x + radius, (float)rec.y + radius}, {(float)(rec.x + rec.width) - radius, (float)rec.y + radius},                   // P8, P9
+        {(float)(rec.x + rec.width) - radius, (float)(rec.y + rec.height) - radius}, {(float)rec.x + radius, (float)(rec.y + rec.height) - radius} // P10, P11
+    };
+
+    const Vector2 centers[4] = { point[8], point[9], point[10], point[11] };
+    const float angles[4] = { 180.0f, 90.0f, 0.0f, 270.0f };
+
+#if defined(SUPPORT_QUADS_DRAW_MODE)
+    rlCheckRenderBatchLimit(16*segments/2 + 5*4);
+
+    rlSetTexture(texShapes.id);
+
+    rlBegin(RL_QUADS);
+        // Draw all of the 4 corners: [1] Upper Left Corner, [3] Upper Right Corner, [5] Lower Right Corner, [7] Lower Left Corner
+        for (int k = 0; k < 4; ++k) // Hope the compiler is smart enough to unroll this loop
+        {
+            float angle = angles[k];
+            const Vector2 center = centers[k];
+
+            // NOTE: Every QUAD actually represents two segments
+            for (int i = 0; i < segments/2; i++)
+            {
+                rlColor4ub(color.r, color.g, color.b, color.a);
+                rlTexCoord2f(texShapesRec.x/texShapes.width, texShapesRec.y/texShapes.height);
+                rlVertex2f(center.x, center.y);
+                rlTexCoord2f(texShapesRec.x/texShapes.width, (texShapesRec.y + texShapesRec.height)/texShapes.height);
+                rlVertex2f(center.x + sinf(DEG2RAD*angle)*radius, center.y + cosf(DEG2RAD*angle)*radius);
+                rlTexCoord2f((texShapesRec.x + texShapesRec.width)/texShapes.width, (texShapesRec.y + texShapesRec.height)/texShapes.height);
+                rlVertex2f(center.x + sinf(DEG2RAD*(angle + stepLength))*radius, center.y + cosf(DEG2RAD*(angle + stepLength))*radius);
+                rlTexCoord2f((texShapesRec.x + texShapesRec.width)/texShapes.width, texShapesRec.y/texShapes.height);
+                rlVertex2f(center.x + sinf(DEG2RAD*(angle + stepLength*2))*radius, center.y + cosf(DEG2RAD*(angle + stepLength*2))*radius);
+                angle += (stepLength*2);
+            }
+
+            // NOTE: In case number of segments is odd, we add one last piece to the cake
+            if (segments%2)
+            {
+                rlColor4ub(color.r, color.g, color.b, color.a);
+                rlTexCoord2f(texShapesRec.x/texShapes.width, texShapesRec.y/texShapes.height);
+                rlVertex2f(center.x, center.y);
+                rlTexCoord2f(texShapesRec.x/texShapes.width, (texShapesRec.y + texShapesRec.height)/texShapes.height);
+                rlVertex2f(center.x + sinf(DEG2RAD*angle)*radius, center.y + cosf(DEG2RAD*angle)*radius);
+                rlTexCoord2f((texShapesRec.x + texShapesRec.width)/texShapes.width, (texShapesRec.y + texShapesRec.height)/texShapes.height);
+                rlVertex2f(center.x + sinf(DEG2RAD*(angle + stepLength))*radius, center.y + cosf(DEG2RAD*(angle + stepLength))*radius);
+                rlTexCoord2f((texShapesRec.x + texShapesRec.width)/texShapes.width, texShapesRec.y/texShapes.height);
+                rlVertex2f(center.x, center.y);
+            }
+        }
+
+        // [2] Upper Rectangle
+        rlColor4ub(color.r, color.g, color.b, color.a);
+        rlTexCoord2f(texShapesRec.x/texShapes.width, texShapesRec.y/texShapes.height);
+        rlVertex2f(point[0].x, point[0].y);
+        rlTexCoord2f(texShapesRec.x/texShapes.width, (texShapesRec.y + texShapesRec.height)/texShapes.height);
+        rlVertex2f(point[8].x, point[8].y);
+        rlTexCoord2f((texShapesRec.x + texShapesRec.width)/texShapes.width, (texShapesRec.y + texShapesRec.height)/texShapes.height);
+        rlVertex2f(point[9].x, point[9].y);
+        rlTexCoord2f((texShapesRec.x + texShapesRec.width)/texShapes.width, texShapesRec.y/texShapes.height);
+        rlVertex2f(point[1].x, point[1].y);
+
+        // [4] Right Rectangle
+        rlColor4ub(color.r, color.g, color.b, color.a);
+        rlTexCoord2f(texShapesRec.x/texShapes.width, texShapesRec.y/texShapes.height);
+        rlVertex2f(point[2].x, point[2].y);
+        rlTexCoord2f(texShapesRec.x/texShapes.width, (texShapesRec.y + texShapesRec.height)/texShapes.height);
+        rlVertex2f(point[9].x, point[9].y);
+        rlTexCoord2f((texShapesRec.x + texShapesRec.width)/texShapes.width, (texShapesRec.y + texShapesRec.height)/texShapes.height);
+        rlVertex2f(point[10].x, point[10].y);
+        rlTexCoord2f((texShapesRec.x + texShapesRec.width)/texShapes.width, texShapesRec.y/texShapes.height);
+        rlVertex2f(point[3].x, point[3].y);
+
+        // [6] Bottom Rectangle
+        rlColor4ub(color.r, color.g, color.b, color.a);
+        rlTexCoord2f(texShapesRec.x/texShapes.width, texShapesRec.y/texShapes.height);
+        rlVertex2f(point[11].x, point[11].y);
+        rlTexCoord2f(texShapesRec.x/texShapes.width, (texShapesRec.y + texShapesRec.height)/texShapes.height);
+        rlVertex2f(point[5].x, point[5].y);
+        rlTexCoord2f((texShapesRec.x + texShapesRec.width)/texShapes.width, (texShapesRec.y + texShapesRec.height)/texShapes.height);
+        rlVertex2f(point[4].x, point[4].y);
+        rlTexCoord2f((texShapesRec.x + texShapesRec.width)/texShapes.width, texShapesRec.y/texShapes.height);
+        rlVertex2f(point[10].x, point[10].y);
+
+        // [8] Left Rectangle
+        rlColor4ub(color.r, color.g, color.b, color.a);
+        rlTexCoord2f(texShapesRec.x/texShapes.width, texShapesRec.y/texShapes.height);
+        rlVertex2f(point[7].x, point[7].y);
+        rlTexCoord2f(texShapesRec.x/texShapes.width, (texShapesRec.y + texShapesRec.height)/texShapes.height);
+        rlVertex2f(point[6].x, point[6].y);
+        rlTexCoord2f((texShapesRec.x + texShapesRec.width)/texShapes.width, (texShapesRec.y + texShapesRec.height)/texShapes.height);
+        rlVertex2f(point[11].x, point[11].y);
+        rlTexCoord2f((texShapesRec.x + texShapesRec.width)/texShapes.width, texShapesRec.y/texShapes.height);
+        rlVertex2f(point[8].x, point[8].y);
+
+        // [9] Middle Rectangle
+        rlColor4ub(color.r, color.g, color.b, color.a);
+        rlTexCoord2f(texShapesRec.x/texShapes.width, texShapesRec.y/texShapes.height);
+        rlVertex2f(point[8].x, point[8].y);
+        rlTexCoord2f(texShapesRec.x/texShapes.width, (texShapesRec.y + texShapesRec.height)/texShapes.height);
+        rlVertex2f(point[11].x, point[11].y);
+        rlTexCoord2f((texShapesRec.x + texShapesRec.width)/texShapes.width, (texShapesRec.y + texShapesRec.height)/texShapes.height);
+        rlVertex2f(point[10].x, point[10].y);
+        rlTexCoord2f((texShapesRec.x + texShapesRec.width)/texShapes.width, texShapesRec.y/texShapes.height);
+        rlVertex2f(point[9].x, point[9].y);
+
+    rlEnd();
+    rlSetTexture(0);
+#else
+    rlCheckRenderBatchLimit(12*segments + 5*6); // 4 corners with 3 vertices per segment + 5 rectangles with 6 vertices each
+
+    rlBegin(RL_TRIANGLES);
+
+        // Draw all of the 4 corners: [1] Upper Left Corner, [3] Upper Right Corner, [5] Lower Right Corner, [7] Lower Left Corner
+        for (int k = 0; k < 4; ++k) // Hope the compiler is smart enough to unroll this loop
+        {
+            float angle = angles[k];
+            const Vector2 center = centers[k];
+            for (int i = 0; i < segments; i++)
+            {
+                rlColor4ub(color.r, color.g, color.b, color.a);
+                rlVertex2f(center.x, center.y);
+                rlVertex2f(center.x + sinf(DEG2RAD*angle)*radius, center.y + cosf(DEG2RAD*angle)*radius);
+                rlVertex2f(center.x + sinf(DEG2RAD*(angle + stepLength))*radius, center.y + cosf(DEG2RAD*(angle + stepLength))*radius);
+                angle += stepLength;
+            }
+        }
+
+        // [2] Upper Rectangle
+        rlColor4ub(color.r, color.g, color.b, color.a);
+        rlVertex2f(point[0].x, point[0].y);
+        rlVertex2f(point[8].x, point[8].y);
+        rlVertex2f(point[9].x, point[9].y);
+        rlVertex2f(point[1].x, point[1].y);
+        rlVertex2f(point[0].x, point[0].y);
+        rlVertex2f(point[9].x, point[9].y);
+
+        // [4] Right Rectangle
+        rlColor4ub(color.r, color.g, color.b, color.a);
+        rlVertex2f(point[9].x, point[9].y);
+        rlVertex2f(point[10].x, point[10].y);
+        rlVertex2f(point[3].x, point[3].y);
+        rlVertex2f(point[2].x, point[2].y);
+        rlVertex2f(point[9].x, point[9].y);
+        rlVertex2f(point[3].x, point[3].y);
+
+        // [6] Bottom Rectangle
+        rlColor4ub(color.r, color.g, color.b, color.a);
+        rlVertex2f(point[11].x, point[11].y);
+        rlVertex2f(point[5].x, point[5].y);
+        rlVertex2f(point[4].x, point[4].y);
+        rlVertex2f(point[10].x, point[10].y);
+        rlVertex2f(point[11].x, point[11].y);
+        rlVertex2f(point[4].x, point[4].y);
+
+        // [8] Left Rectangle
+        rlColor4ub(color.r, color.g, color.b, color.a);
+        rlVertex2f(point[7].x, point[7].y);
+        rlVertex2f(point[6].x, point[6].y);
+        rlVertex2f(point[11].x, point[11].y);
+        rlVertex2f(point[8].x, point[8].y);
+        rlVertex2f(point[7].x, point[7].y);
+        rlVertex2f(point[11].x, point[11].y);
+
+        // [9] Middle Rectangle
+        rlColor4ub(color.r, color.g, color.b, color.a);
+        rlVertex2f(point[8].x, point[8].y);
+        rlVertex2f(point[11].x, point[11].y);
+        rlVertex2f(point[10].x, point[10].y);
+        rlVertex2f(point[9].x, point[9].y);
+        rlVertex2f(point[8].x, point[8].y);
+        rlVertex2f(point[10].x, point[10].y);
+    rlEnd();
+#endif
+}
+
+// Draw rectangle with rounded edges outline
+void DrawRectangleRoundedLinesRadius(Rectangle rec, float radius, int segments, float lineThick, Color color)
+{
+    rec.width -= radius*0.4f;
+    rec.height -= radius*0.4f;
+    rec.x += radius*0.2f;
+    rec.y += radius*0.2f;
+    
+    if (lineThick < 0) lineThick = 0;
+
+    // Not a rounded rectangle
+    if (radius <= 0.0f)
+    {
+        DrawRectangleLinesEx((Rectangle){rec.x-lineThick, rec.y-lineThick, rec.width+2*lineThick, rec.height+2*lineThick}, lineThick, color);
+        return;
+    }
+
+    if (radius <= 0.0f) return;
+
+    // Calculate number of segments to use for the corners
+    if (segments < 4)
+    {
+        // Calculate the maximum angle between segments based on the error rate (usually 0.5f)
+        float th = acosf(2*powf(1 - SMOOTH_CIRCLE_ERROR_RATE/radius, 2) - 1);
+        segments = (int)(ceilf(2*PI/th)/2.0f);
+        if (segments <= 0) segments = 4;
+    }
+
+    float stepLength = 90.0f/(float)segments;
+    const float outerRadius = radius + lineThick, innerRadius = radius;
+
+    /*
+    Quick sketch to make sense of all of this,
+    marks the 16 + 4(corner centers P16-19) points we'll use
+
+           P0 ================== P1
+          // P8                P9 \\
+         //                        \\
+     P7 // P15                  P10 \\ P2
+       ||   *P16             P17*    ||
+       ||                            ||
+       || P14                   P11  ||
+     P6 \\  *P19             P18*   // P3
+         \\                        //
+          \\ P13              P12 //
+           P5 ================== P4
+    */
+    const Vector2 point[16] = {
+        {(float)rec.x + innerRadius, rec.y - lineThick}, {(float)(rec.x + rec.width) - innerRadius, rec.y - lineThick}, { rec.x + rec.width + lineThick, (float)rec.y + innerRadius }, // PO, P1, P2
+        {rec.x + rec.width + lineThick, (float)(rec.y + rec.height) - innerRadius}, {(float)(rec.x + rec.width) - innerRadius, rec.y + rec.height + lineThick}, // P3, P4
+        {(float)rec.x + innerRadius, rec.y + rec.height + lineThick}, { rec.x - lineThick, (float)(rec.y + rec.height) - innerRadius}, {rec.x - lineThick, (float)rec.y + innerRadius}, // P5, P6, P7
+        {(float)rec.x + innerRadius, rec.y}, {(float)(rec.x + rec.width) - innerRadius, rec.y}, // P8, P9
+        { rec.x + rec.width, (float)rec.y + innerRadius }, {rec.x + rec.width, (float)(rec.y + rec.height) - innerRadius}, // P10, P11
+        {(float)(rec.x + rec.width) - innerRadius, rec.y + rec.height}, {(float)rec.x + innerRadius, rec.y + rec.height}, // P12, P13
+        { rec.x, (float)(rec.y + rec.height) - innerRadius}, {rec.x, (float)rec.y + innerRadius} // P14, P15
+    };
+
+    const Vector2 centers[4] = {
+        {(float)rec.x + innerRadius, (float)rec.y + innerRadius}, {(float)(rec.x + rec.width) - innerRadius, (float)rec.y + innerRadius}, // P16, P17
+        {(float)(rec.x + rec.width) - innerRadius, (float)(rec.y + rec.height) - innerRadius}, {(float)rec.x + innerRadius, (float)(rec.y + rec.height) - innerRadius} // P18, P19
+    };
+
+    const float angles[4] = { 180.0f, 90.0f, 0.0f, 270.0f };
+
+    if (lineThick > 1)
+    {
+#if defined(SUPPORT_QUADS_DRAW_MODE)
+        rlCheckRenderBatchLimit(4*4*segments + 4*4); // 4 corners with 4 vertices for each segment + 4 rectangles with 4 vertices each
+
+        rlSetTexture(texShapes.id);
+
+        rlBegin(RL_QUADS);
+
+            // Draw all of the 4 corners first: Upper Left Corner, Upper Right Corner, Lower Right Corner, Lower Left Corner
+            for (int k = 0; k < 4; ++k) // Hope the compiler is smart enough to unroll this loop
+            {
+                float angle = angles[k];
+                const Vector2 center = centers[k];
+                for (int i = 0; i < segments; i++)
+                {
+                    rlColor4ub(color.r, color.g, color.b, color.a);
+                    rlTexCoord2f(texShapesRec.x/texShapes.width, texShapesRec.y/texShapes.height);
+                    rlVertex2f(center.x + sinf(DEG2RAD*angle)*innerRadius, center.y + cosf(DEG2RAD*angle)*innerRadius);
+                    rlTexCoord2f(texShapesRec.x/texShapes.width, (texShapesRec.y + texShapesRec.height)/texShapes.height);
+                    rlVertex2f(center.x + sinf(DEG2RAD*angle)*outerRadius, center.y + cosf(DEG2RAD*angle)*outerRadius);
+                    rlTexCoord2f((texShapesRec.x + texShapesRec.width)/texShapes.width, (texShapesRec.y + texShapesRec.height)/texShapes.height);
+                    rlVertex2f(center.x + sinf(DEG2RAD*(angle + stepLength))*outerRadius, center.y + cosf(DEG2RAD*(angle + stepLength))*outerRadius);
+                    rlTexCoord2f((texShapesRec.x + texShapesRec.width)/texShapes.width, texShapesRec.y/texShapes.height);
+                    rlVertex2f(center.x + sinf(DEG2RAD*(angle + stepLength))*innerRadius, center.y + cosf(DEG2RAD*(angle + stepLength))*innerRadius);
+
+                    angle += stepLength;
+                }
+            }
+
+            // Upper rectangle
+            rlColor4ub(color.r, color.g, color.b, color.a);
+            rlTexCoord2f(texShapesRec.x/texShapes.width, texShapesRec.y/texShapes.height);
+            rlVertex2f(point[0].x, point[0].y);
+            rlTexCoord2f(texShapesRec.x/texShapes.width, (texShapesRec.y + texShapesRec.height)/texShapes.height);
+            rlVertex2f(point[8].x, point[8].y);
+            rlTexCoord2f((texShapesRec.x + texShapesRec.width)/texShapes.width, (texShapesRec.y + texShapesRec.height)/texShapes.height);
+            rlVertex2f(point[9].x, point[9].y);
+            rlTexCoord2f((texShapesRec.x + texShapesRec.width)/texShapes.width, texShapesRec.y/texShapes.height);
+            rlVertex2f(point[1].x, point[1].y);
+
+            // Right rectangle
+            rlColor4ub(color.r, color.g, color.b, color.a);
+            rlTexCoord2f(texShapesRec.x/texShapes.width, texShapesRec.y/texShapes.height);
+            rlVertex2f(point[2].x, point[2].y);
+            rlTexCoord2f(texShapesRec.x/texShapes.width, (texShapesRec.y + texShapesRec.height)/texShapes.height);
+            rlVertex2f(point[10].x, point[10].y);
+            rlTexCoord2f((texShapesRec.x + texShapesRec.width)/texShapes.width, (texShapesRec.y + texShapesRec.height)/texShapes.height);
+            rlVertex2f(point[11].x, point[11].y);
+            rlTexCoord2f((texShapesRec.x + texShapesRec.width)/texShapes.width, texShapesRec.y/texShapes.height);
+            rlVertex2f(point[3].x, point[3].y);
+
+            // Lower rectangle
+            rlColor4ub(color.r, color.g, color.b, color.a);
+            rlTexCoord2f(texShapesRec.x/texShapes.width, texShapesRec.y/texShapes.height);
+            rlVertex2f(point[13].x, point[13].y);
+            rlTexCoord2f(texShapesRec.x/texShapes.width, (texShapesRec.y + texShapesRec.height)/texShapes.height);
+            rlVertex2f(point[5].x, point[5].y);
+            rlTexCoord2f((texShapesRec.x + texShapesRec.width)/texShapes.width, (texShapesRec.y + texShapesRec.height)/texShapes.height);
+            rlVertex2f(point[4].x, point[4].y);
+            rlTexCoord2f((texShapesRec.x + texShapesRec.width)/texShapes.width, texShapesRec.y/texShapes.height);
+            rlVertex2f(point[12].x, point[12].y);
+
+            // Left rectangle
+            rlColor4ub(color.r, color.g, color.b, color.a);
+            rlTexCoord2f(texShapesRec.x/texShapes.width, texShapesRec.y/texShapes.height);
+            rlVertex2f(point[15].x, point[15].y);
+            rlTexCoord2f(texShapesRec.x/texShapes.width, (texShapesRec.y + texShapesRec.height)/texShapes.height);
+            rlVertex2f(point[7].x, point[7].y);
+            rlTexCoord2f((texShapesRec.x + texShapesRec.width)/texShapes.width, (texShapesRec.y + texShapesRec.height)/texShapes.height);
+            rlVertex2f(point[6].x, point[6].y);
+            rlTexCoord2f((texShapesRec.x + texShapesRec.width)/texShapes.width, texShapesRec.y/texShapes.height);
+            rlVertex2f(point[14].x, point[14].y);
+
+        rlEnd();
+        rlSetTexture(0);
+#else
+        rlCheckRenderBatchLimit(4*6*segments + 4*6); // 4 corners with 6(2*3) vertices for each segment + 4 rectangles with 6 vertices each
+
+        rlBegin(RL_TRIANGLES);
+
+            // Draw all of the 4 corners first: Upper Left Corner, Upper Right Corner, Lower Right Corner, Lower Left Corner
+            for (int k = 0; k < 4; ++k) // Hope the compiler is smart enough to unroll this loop
+            {
+                float angle = angles[k];
+                const Vector2 center = centers[k];
+
+                for (int i = 0; i < segments; i++)
+                {
+                    rlColor4ub(color.r, color.g, color.b, color.a);
+
+                    rlVertex2f(center.x + sinf(DEG2RAD*angle)*innerRadius, center.y + cosf(DEG2RAD*angle)*innerRadius);
+                    rlVertex2f(center.x + sinf(DEG2RAD*angle)*outerRadius, center.y + cosf(DEG2RAD*angle)*outerRadius);
+                    rlVertex2f(center.x + sinf(DEG2RAD*(angle + stepLength))*innerRadius, center.y + cosf(DEG2RAD*(angle + stepLength))*innerRadius);
+
+                    rlVertex2f(center.x + sinf(DEG2RAD*(angle + stepLength))*innerRadius, center.y + cosf(DEG2RAD*(angle + stepLength))*innerRadius);
+                    rlVertex2f(center.x + sinf(DEG2RAD*angle)*outerRadius, center.y + cosf(DEG2RAD*angle)*outerRadius);
+                    rlVertex2f(center.x + sinf(DEG2RAD*(angle + stepLength))*outerRadius, center.y + cosf(DEG2RAD*(angle + stepLength))*outerRadius);
+
+                    angle += stepLength;
+                }
+            }
+
+            // Upper rectangle
+            rlColor4ub(color.r, color.g, color.b, color.a);
+            rlVertex2f(point[0].x, point[0].y);
+            rlVertex2f(point[8].x, point[8].y);
+            rlVertex2f(point[9].x, point[9].y);
+            rlVertex2f(point[1].x, point[1].y);
+            rlVertex2f(point[0].x, point[0].y);
+            rlVertex2f(point[9].x, point[9].y);
+
+            // Right rectangle
+            rlColor4ub(color.r, color.g, color.b, color.a);
+            rlVertex2f(point[10].x, point[10].y);
+            rlVertex2f(point[11].x, point[11].y);
+            rlVertex2f(point[3].x, point[3].y);
+            rlVertex2f(point[2].x, point[2].y);
+            rlVertex2f(point[10].x, point[10].y);
+            rlVertex2f(point[3].x, point[3].y);
+
+            // Lower rectangle
+            rlColor4ub(color.r, color.g, color.b, color.a);
+            rlVertex2f(point[13].x, point[13].y);
+            rlVertex2f(point[5].x, point[5].y);
+            rlVertex2f(point[4].x, point[4].y);
+            rlVertex2f(point[12].x, point[12].y);
+            rlVertex2f(point[13].x, point[13].y);
+            rlVertex2f(point[4].x, point[4].y);
+
+            // Left rectangle
+            rlColor4ub(color.r, color.g, color.b, color.a);
+            rlVertex2f(point[7].x, point[7].y);
+            rlVertex2f(point[6].x, point[6].y);
+            rlVertex2f(point[14].x, point[14].y);
+            rlVertex2f(point[15].x, point[15].y);
+            rlVertex2f(point[7].x, point[7].y);
+            rlVertex2f(point[14].x, point[14].y);
+        rlEnd();
+#endif
+    }
+    else
+    {
+        // Use LINES to draw the outline
+        rlCheckRenderBatchLimit(8*segments + 4*2); // 4 corners with 2 vertices for each segment + 4 rectangles with 2 vertices each
+
+        rlBegin(RL_LINES);
+
+            // Draw all of the 4 corners first: Upper Left Corner, Upper Right Corner, Lower Right Corner, Lower Left Corner
+            for (int k = 0; k < 4; ++k) // Hope the compiler is smart enough to unroll this loop
+            {
+                float angle = angles[k];
+                const Vector2 center = centers[k];
+
+                for (int i = 0; i < segments; i++)
+                {
+                    rlColor4ub(color.r, color.g, color.b, color.a);
+                    rlVertex2f(center.x + sinf(DEG2RAD*angle)*outerRadius, center.y + cosf(DEG2RAD*angle)*outerRadius);
+                    rlVertex2f(center.x + sinf(DEG2RAD*(angle + stepLength))*outerRadius, center.y + cosf(DEG2RAD*(angle + stepLength))*outerRadius);
+                    angle += stepLength;
+                }
+            }
+
+            // And now the remaining 4 lines
+            for (int i = 0; i < 8; i += 2)
+            {
+                rlColor4ub(color.r, color.g, color.b, color.a);
+                rlVertex2f(point[i].x, point[i].y);
+                rlVertex2f(point[i + 1].x, point[i + 1].y);
+            }
+
+        rlEnd();
+    }
 }
