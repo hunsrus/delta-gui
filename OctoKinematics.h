@@ -23,7 +23,7 @@ static bool IGNORE_LIMIT_SWITCHES = false;
 class OctoKinematics
 {
     public:
-        OctoKinematics(double armLength,double rodLength,double effRadius,double basRadius);
+        OctoKinematics(float armLength, float rodLength, float effRadius, float basRadius);
         int step(int step_pin, int dir_pin, bool dir);
         void step_eff(bool dir);
         int home(float x, float y, float z);
@@ -36,8 +36,8 @@ class OctoKinematics
         void set_axis_direction(bool dir);
         void set_step_precision(int stepsNum);
         void set_effector_precision(int stepsNum);
-        void set_transmission_ratio(double transRatio);
-        void set_starting_z(double z);
+        void set_transmission_ratio(float transRatio);
+        void set_starting_z(float z);
         void set_pulse_width(useconds_t us);
         void set_pulse_width_effector(useconds_t us);
 
@@ -48,20 +48,20 @@ class OctoKinematics
         void set_pin_motor_effector(unsigned int step_pin, unsigned int dir_pin);
         void set_pin_limit_sw(unsigned int ls1, unsigned int ls2, unsigned int ls3);
 
-        double x = 0;
-        double y = 0;
-        double z = 0;
-        double a = 0;
-        double b = 0;
-        double c = 0;
+        float x = 0;
+        float y = 0;
+        float z = 0;
+        float a = 0;
+        float b = 0;
+        float c = 0;
 
         bool ls_hit = false;
 
     private:
-        double armLength;
-        double rodLength;
-        double effRadius;
-        double basRadius;
+        float armLength;
+        float rodLength;
+        float effRadius;
+        float basRadius;
 
         unsigned int pin_ms1, pin_ms2, pin_ms3;
         unsigned int pin_step1, pin_step2, pin_step3, pin_step_eff;
@@ -70,19 +70,19 @@ class OctoKinematics
 
         bool axis_direction = 1;
 
-        double motorOffsetX;
+        float motorOffsetX;
 
-        double starting_z = 0;
+        float starting_z = 0;
 
-        double lastA = 0;
-        double lastB = 0;
-        double lastC = 0;
+        float lastA = 0;
+        float lastB = 0;
+        float lastC = 0;
 
-        double trans_ratio;
-        double steps_num;
-        double step_angle = 0;
-        double steps_num_eff = 2;
-        double step_angle_eff = 0;
+        float trans_ratio;
+        float steps_num;
+        float step_angle = 0;
+        float steps_num_eff = 2;
+        float step_angle_eff = 0;
 
         useconds_t pulse_width;
         useconds_t pulse_width_eff;

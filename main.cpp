@@ -177,9 +177,9 @@ struct Componente {
     std::string reference;
     std::string value;
     std::string package;
-    double posx;
-    double posy;
-    double rotation;
+    float posx;
+    float posy;
+    float rotation;
 };
 
 typedef struct Feeder

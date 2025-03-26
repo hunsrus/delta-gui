@@ -1,6 +1,6 @@
 #include "OctoKinematics.h"
 
-OctoKinematics::OctoKinematics(double armLength,double rodLength,double effRadius,double basRadius)
+OctoKinematics::OctoKinematics(float armLength,float rodLength,float effRadius,float basRadius)
 {
   this->armLength = armLength;
   this->rodLength = rodLength;
@@ -180,13 +180,13 @@ void OctoKinematics::set_step_precision(int stepsNum)
     this->step_angle = 1.8/(this->steps_num*this->trans_ratio);
 }
 
-void OctoKinematics::set_transmission_ratio(double transRatio)
+void OctoKinematics::set_transmission_ratio(float transRatio)
 {
     this->trans_ratio = transRatio;
     this->step_angle = 1.8/(this->steps_num*this->trans_ratio);
 }
 
-void OctoKinematics::set_starting_z(double z)
+void OctoKinematics::set_starting_z(float z)
 {
     this->starting_z = z;
 }
@@ -258,7 +258,7 @@ int OctoKinematics::step(int step_pin, int dir_pin, bool dir)
 
 int OctoKinematics::updateKinematics(void)
 {
-    double diffA, diffB, diffC;
+    float diffA, diffB, diffC;
 
     bool reached = false;
 
@@ -322,7 +322,7 @@ int OctoKinematics::linear_move_eased(float x1, float y1, float z1, float stepDi
     float zDist = z1 - z0;
     
     // Distancia total del movimiento
-    double totalDist = sqrt(pow(xDist,2) + pow(yDist,2) + pow(zDist,2));
+    float totalDist = sqrt(pow(xDist,2) + pow(yDist,2) + pow(zDist,2));
     int numberOfSteps = round(totalDist / stepDist); // Número de pasos basado en stepDist
 
     if(numberOfSteps == 0){
@@ -373,7 +373,7 @@ int OctoKinematics::linear_move(float x1, float y1, float z1, float stepDist, in
     float yDist = y1 - y0;
     float zDist = z1 - z0;
     
-    double totalDist = sqrt(pow(xDist,2) + pow(yDist,2) + pow(zDist,2));//Absolute magnitute of the distance
+    float totalDist = sqrt(pow(xDist,2) + pow(yDist,2) + pow(zDist,2));//Absolute magnitute of the distance
     int numberOfSteps = round(totalDist / stepDist);//Number of steps required for the desired step distance
 
     //Step size of each axis
