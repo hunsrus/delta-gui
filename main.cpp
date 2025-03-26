@@ -184,7 +184,7 @@ struct Componente {
 
 typedef struct Feeder
 {
-    int id;
+    unsigned int id;
     Vector3 push;
     Vector3 approach;
     Vector3 pick;
@@ -417,7 +417,7 @@ int main(int argc, char** argv)
     {
         auxMenu->options.push_back((Option){feeder.id,"Feeder "+std::to_string(feeder.id)});
     }
-    auxMenu->options.push_back((Option){feeders.size()+1,"Nuevo feeder"});
+    auxMenu->options.push_back((Option){(unsigned int)(feeders.size()+1),"Nuevo feeder"});
     menus.push_back(auxMenu);
     auxMenu = new Menu();
     auxMenu->title = "Control";     // 6
@@ -624,7 +624,7 @@ int main(int argc, char** argv)
 
     Vector2 viewSize = {DISPLAY_WIDTH*SCREEN_DIVISION_RATIO, (float)renderTextureModel.texture.height/2};
     Rectangle viewRectangle = {(float)renderTextureModel.texture.width/2-viewSize.x/2, (float)renderTextureModel.texture.height/2-viewSize.y/2, viewSize.x, -viewSize.y};
-    Vector2 viewPos = { screenWidth-viewSize.x-MARGIN, (int)(MARGIN*2+fontSize)};
+    Vector2 viewPos = { screenWidth-viewSize.x-MARGIN, MARGIN*2+fontSize};
     Vector2 dataViewPos = { viewPos.x, viewPos.y+viewSize.y+MARGIN};
     Rectangle dataViewRectangle = {dataViewPos.x, dataViewPos.y, viewSize.x, DISPLAY_HEIGHT-viewSize.y-fontSize-MARGIN*4};
     float dataViewFontSize = (dataViewRectangle.height-MARGIN*4)/3;
@@ -1105,7 +1105,7 @@ int main(int argc, char** argv)
                 {
                     CURRENT_MENU->options.push_back((Option){feeder.id,"Feeder "+std::to_string(feeder.id)});
                 }
-                CURRENT_MENU->options.push_back((Option){feeders.size()+1,"Nuevo feeder"});
+                CURRENT_MENU->options.push_back((Option){(unsigned int)(feeders.size()+1),"Nuevo feeder"});
             }else if(HIGHLIGHTED_OPTION->text == "Prueba")
             {
                 if(!JOB_RUNNING)
@@ -1144,11 +1144,11 @@ int main(int argc, char** argv)
                     if(HIGHLIGHTED_OPTION->text == "Nuevo feeder")
                     {
                         Feeder aux_feeder = {
-                            feeders.size()+1, // id
-                            Vector3Zero(),  // push
-                            Vector3Zero(),  // approach
-                            Vector3Zero(),  // pick
-                            ""              // component
+                            (unsigned int)(feeders.size()+1),   // id
+                            Vector3Zero(),                      // push
+                            Vector3Zero(),                      // approach
+                            Vector3Zero(),                      // pick
+                            ""                                  // component
                         };
                         feeders.push_back(aux_feeder);
 
@@ -1158,7 +1158,7 @@ int main(int argc, char** argv)
                         {
                             CURRENT_MENU->options.push_back((Option){feeder.id,"Feeder "+std::to_string(feeder.id)});
                         }
-                        CURRENT_MENU->options.push_back((Option){feeders.size()+1,"Nuevo feeder"});
+                        CURRENT_MENU->options.push_back((Option){(unsigned int)(feeders.size()+1),"Nuevo feeder"});
                     }
 
                     selectedFeederID = HIGHLIGHTED_OPTION->id;
@@ -1543,7 +1543,7 @@ int main(int argc, char** argv)
                     animationState = 1;
                     animationStep = 0;
                 }else{
-                    DrawRectangle(0,0,screenWidth,screenHeight,(Color){COLOR_BG.r,COLOR_BG.g,COLOR_BG.b,alpha});
+                    DrawRectangle(0,0,screenWidth,screenHeight,(Color){COLOR_BG.r,COLOR_BG.g,COLOR_BG.b,(unsigned char)alpha});
                 }
             }
         EndDrawing();
@@ -1797,7 +1797,7 @@ int executeInstruction(std::string instruction, OctoKinematics &octoKin)
         else if(instruction[1] == 'A') dir = 0;
         else
         {
-            fprintf(stderr, "[ERROR] invalid instruction: %s\n",instruction);
+            fprintf(stderr, "[ERROR] invalid instruction: %s\n",instruction.c_str());
             return EXIT_FAILURE;
         }
 
