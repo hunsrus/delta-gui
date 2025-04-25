@@ -1402,21 +1402,6 @@ int main(int argc, char** argv)
 
         BeginDrawing();
             ClearBackground(COLOR_BG);
-            
-            if(SHOW_3D_VIEW)
-            {
-                DrawTextureRec(renderTextureBackground.texture, viewRectangle, viewPos, WHITE);
-                BeginShaderMode(shader);
-                    // NOTE: Render texture must be y-flipped due to default OpenGL coordinates (left-bottom)
-                    DrawTextureRec(renderTextureModel.texture, viewRectangle, viewPos, WHITE);
-                EndShaderMode();
-                DrawTextureRec(renderTextureForeground.texture, viewRectangle, viewPos, WHITE);
-                Rectangle viewBorderRectangle = {viewPos.x, viewPos.y, viewSize.x, viewSize.y};
-                if(ROUNDED_CORNERS)
-                    DrawRectangleRoundedLinesRadius(viewBorderRectangle, BORDER_RADIUS, 5, BORDER_THICKNESS, COLOR_FG);
-                else
-                    DrawRectangleLinesEx(viewBorderRectangle,BORDER_THICKNESS,COLOR_FG);
-            }
 
             i = 2;
             DrawTextEx(font,CURRENT_MENU->title,(Vector2){MARGIN,MARGIN},fontSize,1,COLOR_FG);
@@ -1516,11 +1501,26 @@ int main(int argc, char** argv)
             iconPos.x += fontSize;
             if(STATUS_VACUUM_PUMP) DrawTextureEx(iconVacuum, Vector2Add(iconPos,(Vector2){-iconSize/2.0f+iconMargin,iconMargin}), 0.0f, 1.0f, COLOR_HL);
             else DrawTextureEx(iconVacuum, Vector2Add(iconPos,(Vector2){-iconSize/2.0f+iconMargin,iconMargin}), 0.0f, 1.0f, COLOR_FG);
-
+            
             if(JOB_SHOULD_STOP && EXECUTING_INSTRUCTION)
             {   
                 DrawRectangle(statusBarPos.x,statusBarPos.y,statusBarSize.x,statusBarSize.y,COLOR_BG);
                 DrawTextEx(font, "Deteniendo...", statusBarPos, fontSize*0.5f, 1, COLOR_FG);
+            }
+
+            if(SHOW_3D_VIEW)
+            {
+                DrawTextureRec(renderTextureBackground.texture, viewRectangle, viewPos, WHITE);
+                BeginShaderMode(shader);
+                    // NOTE: Render texture must be y-flipped due to default OpenGL coordinates (left-bottom)
+                    DrawTextureRec(renderTextureModel.texture, viewRectangle, viewPos, WHITE);
+                EndShaderMode();
+                DrawTextureRec(renderTextureForeground.texture, viewRectangle, viewPos, WHITE);
+                Rectangle viewBorderRectangle = {viewPos.x, viewPos.y, viewSize.x, viewSize.y};
+                if(ROUNDED_CORNERS)
+                    DrawRectangleRoundedLinesRadius(viewBorderRectangle, BORDER_RADIUS, 5, BORDER_THICKNESS, COLOR_FG);
+                else
+                    DrawRectangleLinesEx(viewBorderRectangle,BORDER_THICKNESS,COLOR_FG);
             }
 
             if(SHOW_DEBUG_DATA)
