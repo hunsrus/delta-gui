@@ -1647,11 +1647,12 @@ void DrawProgressBarScreen(const char* text, int progress)
     Vector2 barSize = {DISPLAY_WIDTH*0.8f, DISPLAY_HEIGHT*0.1f};
     Vector2 barPos = {DISPLAY_WIDTH/2-barSize.x/2, DISPLAY_HEIGHT*0.6f-barSize.y/2.0f};
     Vector2 textPos = {barPos.x,barPos.y+barSize.y+MARGIN};
-    Vector2 iconSize = {utnImage.width*0.5f, utnImage.height*0.5f};
+    float iconScale = DISPLAY_HEIGHT/1200.0f;
+    Vector2 iconSize = {utnImage.width*iconScale, utnImage.height*iconScale};
     Vector2 iconPos = {DISPLAY_WIDTH/2.0f-iconSize.x/2.0f, barPos.y-MARGIN*2-iconSize.y};
     BeginDrawing();
         ClearBackground(COLOR_BG);
-        DrawTextureEx(utnTexture, iconPos, 0.0f, 0.5f, COLOR_FG);
+        DrawTextureEx(utnTexture, iconPos, 0.0f, iconScale, COLOR_FG);
         Rectangle barRec = {barPos.x, barPos.y, barSize.x, barSize.y};
         if(ROUNDED_CORNERS)
             DrawRectangleRoundedLinesRadius(barRec, BORDER_RADIUS, 5, BORDER_THICKNESS, COLOR_FG);
@@ -2206,67 +2207,6 @@ int configFileParser(std::string config_file_path) {
     }
     return EXIT_SUCCESS;
 }
-
-// int configFileParser(std::string config_file_path)
-// {
-//     std::ifstream configFile(config_file_path);
-//     std::string line, param_name, param_content;
-
-//     if (configFile.is_open()) {
-//         while (std::getline(configFile, line)) {
-//             // Ignorar líneas vacías y comentarios
-//             if (line.empty() || line[0] == '#')
-//                 continue;
-
-//             size_t div_pos = line.find_last_of("=");
-//             if (div_pos == std::string::npos) {
-//                 std::cout << "Error en formato de línea: " << line << std::endl;
-//                 return EXIT_FAILURE;
-//             }
-
-//             param_name = line.substr(0, div_pos);
-//             param_content = line.substr(div_pos + 1);
-
-//             if (param_name == "POS_FEEDER" || param_name == "POS_PCB")
-//             {
-//                 size_t first_space = param_content.find(' ');
-//                 size_t second_space = param_content.find(' ', first_space + 1);
-
-//                 if (first_space == std::string::npos || second_space == std::string::npos) {
-//                     std::cout << "Formato inválido para " << param_name << ". Se esperaban tres valores." << std::endl;
-//                     return EXIT_FAILURE;
-//                 }
-
-//                 float x = std::stof(param_content.substr(0, first_space));
-//                 float y = std::stof(param_content.substr(first_space + 1, second_space - first_space - 1));
-//                 float z = std::stof(param_content.substr(second_space + 1));
-
-//                 if (param_name == "POS_FEEDER")
-//                     POS_FEEDER = {x, y, z};
-//                 else
-//                     POS_PCB = {x, y, z};
-//             }
-//             else if (param_name == "PATH_FILES") {
-//                 // PATH_FILES = param_content;
-//             }
-//             else if (param_name == "STEPS_NUM") {
-//                 // STEPS_NUM = std::stoi(param_content);
-//             }
-//             else if (param_name == "NUMERIC_PRECISION") {
-//                 // NUMERIC_PRECISION = std::stoi(param_content);
-//             }
-//             else {
-//                 std::cout << "Parámetro desconocido: " << line << std::endl;
-//                 return EXIT_FAILURE;
-//             }
-//         }
-//         configFile.close();
-//     } else {
-//         std::cout << "Error al abrir el archivo de configuración" << std::endl;
-//         return EXIT_FAILURE;
-//     }
-//     return EXIT_SUCCESS;
-// }
 
 int writeConfigFile(const std::string& config_file_path)
 {
