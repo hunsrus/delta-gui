@@ -434,10 +434,10 @@ int main(int argc, char** argv)
     auxMenu->parent = menus.at(0);  // Menú principal
     auxMenu->options.push_back((Option){0,"Atrás"});
     auxMenu->options.push_back((Option){1,"Letra",std::to_string((int)fontSize)});
-    auxMenu->options.push_back((Option){3,"Botones",std::to_string(OPTIONS_PER_WINDOW)});
-    auxMenu->options.push_back((Option){4,"Tema",std::to_string(CURRENT_THEME)});
-    auxMenu->options.push_back((Option){5,"División",std::to_string(SCREEN_DIVISION_RATIO)});
-    auxMenu->options.push_back((Option){6,"Redondeado", ROUNDED_CORNERS ? "ON" : "OFF"});
+    auxMenu->options.push_back((Option){2,"Botones",std::to_string(OPTIONS_PER_WINDOW)});
+    auxMenu->options.push_back((Option){3,"Tema",std::to_string(CURRENT_THEME)});
+    auxMenu->options.push_back((Option){4,"División",std::to_string(SCREEN_DIVISION_RATIO)});
+    auxMenu->options.push_back((Option){5,"Redondeado", ROUNDED_CORNERS ? "ON" : "OFF"});
     menus.push_back(auxMenu);
     auxMenu = new Menu();
     auxMenu->title = "Salir";       // 8
@@ -1421,10 +1421,10 @@ int main(int argc, char** argv)
             i = 2;
             DrawTextEx(font,CURRENT_MENU->title,(Vector2){MARGIN,MARGIN},fontSize,1,COLOR_FG);
             std::vector<Option>::iterator startingOption = CURRENT_MENU->options.begin();
-            if(HIGHLIGHTED_OPTION->id >= OPTIONS_PER_WINDOW)
+            if(HIGHLIGHTED_OPTION->id > OPTIONS_PER_WINDOW-1)
             {
-                // TODO: dividir por la cantidad de opciones para calcular el offset
-                startingOption = CURRENT_MENU->options.begin()+OPTIONS_PER_WINDOW;
+                // WARNING: soporta únicamente 2 páginas, por ahora no necesita más que eso
+                startingOption = CURRENT_MENU->options.begin()+HIGHLIGHTED_OPTION->id-OPTIONS_PER_WINDOW+1;
             }
             for (std::vector<Option>::iterator it = startingOption; it != CURRENT_MENU->options.end(); it++)
             {
