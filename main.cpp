@@ -161,6 +161,9 @@ typedef struct Theme
 Menu* CURRENT_MENU;
 std::vector<Option>::iterator HIGHLIGHTED_OPTION;
 
+Image utnImage;
+Texture utnTexture;
+
 void goBackOneMenu(void);
 void DrawReferenceArrows(void);
 void DrawProgressBarScreen(const char* text, int progress);
@@ -278,6 +281,9 @@ int main(int argc, char** argv)
     //SetConfigFlags(FLAG_MSAA_4X_HINT);
     //SetConfigFlags(FLAG_WINDOW_UNDECORATED);
     InitWindow(screenWidth, screenHeight, "delta gui test");
+
+    utnImage = LoadImage("resources/icons/utn.png");
+    utnTexture = LoadTextureFromImage(utnImage);
 
     font = LoadFontEx("resources/fonts/JetBrainsMono/JetBrainsMono-Bold.ttf", FONT_PIXELS, 0, 250);
     float fontSize = font.baseSize;//DISPLAY_HEIGHT/20;
@@ -1638,11 +1644,14 @@ void DrawProgressBarScreen(const char* text, int progress)
 {
     HideCursor();
     float fontSize = font.baseSize/2.0f;
-    Vector2 barSize = {DISPLAY_WIDTH*0.8, DISPLAY_HEIGHT*0.1};
-    Vector2 barPos = {DISPLAY_WIDTH/2-barSize.x/2, DISPLAY_HEIGHT/2-barSize.y/2};
-    Vector2 textPos = {barPos.x,barPos.y-fontSize};
+    Vector2 barSize = {DISPLAY_WIDTH*0.8f, DISPLAY_HEIGHT*0.1f};
+    Vector2 barPos = {DISPLAY_WIDTH/2-barSize.x/2, DISPLAY_HEIGHT*0.6f-barSize.y/2.0f};
+    Vector2 textPos = {barPos.x,barPos.y+barSize.y+MARGIN};
+    Vector2 iconSize = {utnImage.width*0.5f, utnImage.height*0.5f};
+    Vector2 iconPos = {DISPLAY_WIDTH/2.0f-iconSize.x/2.0f, barPos.y-MARGIN*2-iconSize.y};
     BeginDrawing();
         ClearBackground(COLOR_BG);
+        DrawTextureEx(utnTexture, iconPos, 0.0f, 0.5f, COLOR_FG);
         Rectangle barRec = {barPos.x, barPos.y, barSize.x, barSize.y};
         if(ROUNDED_CORNERS)
             DrawRectangleRoundedLinesRadius(barRec, BORDER_RADIUS, 5, BORDER_THICKNESS, COLOR_FG);
