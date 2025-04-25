@@ -77,16 +77,15 @@ static unsigned int STEPS_NUM = 16;
 #if ARCH_ARM
     #define DISPLAY_WIDTH 320
     #define DISPLAY_HEIGHT 240
-    #define BORDER_THICKNESS 2.0f
-    #define BORDER_RADIUS 8.0f
 #else
-    #define DISPLAY_WIDTH 320
-    #define DISPLAY_HEIGHT 240
-    #define BORDER_THICKNESS 2.0f
-    #define BORDER_RADIUS 8.0f
+    #define DISPLAY_WIDTH 800
+    #define DISPLAY_HEIGHT 600
 #endif
 
-static bool ROUNDED_CORNERS = false;
+#define BORDER_THICKNESS DISPLAY_HEIGHT/120.0f
+#define BORDER_RADIUS DISPLAY_HEIGHT/30.0f
+
+static bool ROUNDED_CORNERS = true;
 static float MARGIN = 18*(DISPLAY_HEIGHT/768.0f);
 static float FONT_PIXELS = 24*DISPLAY_HEIGHT/240;
 static unsigned int OPTIONS_PER_WINDOW = 6;
@@ -438,6 +437,7 @@ int main(int argc, char** argv)
     auxMenu->options.push_back((Option){3,"Botones",std::to_string(OPTIONS_PER_WINDOW)});
     auxMenu->options.push_back((Option){4,"Tema",std::to_string(CURRENT_THEME)});
     auxMenu->options.push_back((Option){5,"División",std::to_string(SCREEN_DIVISION_RATIO)});
+    auxMenu->options.push_back((Option){6,"Redondeado", ROUNDED_CORNERS ? "ON" : "OFF"});
     menus.push_back(auxMenu);
     auxMenu = new Menu();
     auxMenu->title = "Salir";       // 8
@@ -1021,6 +1021,10 @@ int main(int argc, char** argv)
             }else if(HIGHLIGHTED_OPTION->text == "Debug")
             {
                 SHOW_DEBUG_DATA = !SHOW_DEBUG_DATA;   
+            }else if(HIGHLIGHTED_OPTION->text == "Redondeado")
+            {
+                ROUNDED_CORNERS = !ROUNDED_CORNERS;
+                HIGHLIGHTED_OPTION->value = ROUNDED_CORNERS ? "ON" : "OFF";
             }else if(HIGHLIGHTED_OPTION->text == "Deshabilitar")
             {
                 STATUS_MOTOR_DISABLED = !STATUS_MOTOR_DISABLED;
@@ -1408,7 +1412,10 @@ int main(int argc, char** argv)
                 EndShaderMode();
                 DrawTextureRec(renderTextureForeground.texture, viewRectangle, viewPos, WHITE);
                 Rectangle viewBorderRectangle = {viewPos.x, viewPos.y, viewSize.x, viewSize.y};
-                DrawRectangleRoundedLinesRadius(viewBorderRectangle, BORDER_RADIUS, 5, BORDER_THICKNESS, COLOR_FG);
+                if(ROUNDED_CORNERS)
+                    DrawRectangleRoundedLinesRadius(viewBorderRectangle, BORDER_RADIUS, 5, BORDER_THICKNESS, COLOR_FG);
+                else
+                    DrawRectangleLinesEx(viewBorderRectangle,BORDER_THICKNESS,COLOR_FG);
             }
 
             i = 2;
@@ -1435,13 +1442,19 @@ int main(int argc, char** argv)
                     optionSize.x = screenWidth-MARGIN*2;
                 Rectangle optionRectangle = {optionPos.x, optionPos.y, optionSize.x, optionSize.y};
                 // dibujo el recuadro de la opción
-                DrawRectangleRoundedLinesRadius(optionRectangle, BORDER_RADIUS, 20, BORDER_THICKNESS, optionBorderColor);
+                if(ROUNDED_CORNERS)
+                    DrawRectangleRoundedLinesRadius(optionRectangle, BORDER_RADIUS, 20, BORDER_THICKNESS, optionBorderColor);
+                else
+                    DrawRectangleLinesEx(optionRectangle,BORDER_THICKNESS,optionBorderColor);
                 
                 if(it == HIGHLIGHTED_OPTION)
                 {
                     // la opción seleccionada se grafica con los colores invertidos
                     optionTextColor = COLOR_BG;
-                    DrawRectangleRoundedRadius(optionRectangle, BORDER_RADIUS, 10, COLOR_FG);
+                    if(ROUNDED_CORNERS)
+                        DrawRectangleRoundedRadius(optionRectangle, BORDER_RADIUS, 10, COLOR_FG);
+                    else
+                        DrawRectangleRec(optionRectangle,COLOR_FG);
                 }
                 // cargo el texto de la opción en un string
                 sprintf(c," %s",it->text.c_str());
@@ -1476,7 +1489,10 @@ int main(int argc, char** argv)
 
             if(CURRENT_MENU->title == "Calibrar")
             {
-                DrawRectangleLinesEx(dataViewRectangle,BORDER_THICKNESS,COLOR_FG);
+                if(ROUNDED_CORNERS)
+                    DrawRectangleRoundedLinesRadius(dataViewRectangle, BORDER_RADIUS, 20, BORDER_THICKNESS, COLOR_FG);
+                else
+                    DrawRectangleLinesEx(dataViewRectangle,BORDER_THICKNESS,COLOR_FG);
                 sprintf(c," X %.4f",octoKin.x);
                 DrawTextEx(dataViewFont,c,Vector2Add(dataViewPos,(Vector2){0,MARGIN}),dataViewFontSize,1,COLOR_FG);
                 sprintf(c," Y %.4f",octoKin.y);
@@ -1628,9 +1644,15 @@ void DrawProgressBarScreen(const char* text, int progress)
     BeginDrawing();
         ClearBackground(COLOR_BG);
         Rectangle barRec = {barPos.x, barPos.y, barSize.x, barSize.y};
-        DrawRectangleRoundedLinesRadius(barRec, BORDER_RADIUS, 5, BORDER_THICKNESS, COLOR_FG);
+        if(ROUNDED_CORNERS)
+            DrawRectangleRoundedLinesRadius(barRec, BORDER_RADIUS, 5, BORDER_THICKNESS, COLOR_FG);
+        else
+            DrawRectangleLinesEx(barRec,BORDER_THICKNESS,COLOR_FG);
         barRec.width *= progress/100.0f;
-        DrawRectangleRoundedRadius(barRec, BORDER_RADIUS, 5, COLOR_FG);
+        if(ROUNDED_CORNERS)
+            DrawRectangleRoundedRadius(barRec, BORDER_RADIUS, 5, COLOR_FG);
+        else
+            DrawRectangleRec(barRec,COLOR_FG);
         DrawTextEx(font, text, textPos, fontSize, 1, COLOR_FG);
     EndDrawing();
 }
@@ -1645,9 +1667,15 @@ void DrawProgressBarIndicator(const char* text, int progress)
         // ClearBackground(COLOR_BG);
         DrawRectangle(barPos.x,MARGIN,barSize.x,MARGIN*2+fontSize,COLOR_BG);
         Rectangle barRec = {barPos.x, barPos.y, barSize.x, barSize.y};
-        DrawRectangleRoundedLinesRadius(barRec, BORDER_RADIUS/2.0f, 5, BORDER_THICKNESS, COLOR_FG);
+        if(ROUNDED_CORNERS)
+            DrawRectangleRoundedLinesRadius(barRec, BORDER_RADIUS/2.0f, 5, BORDER_THICKNESS, COLOR_FG);
+        else
+            DrawRectangleLinesEx(barRec,BORDER_THICKNESS,COLOR_FG);
         barRec.width *= progress/100.0f;
-        DrawRectangleRoundedRadius(barRec, BORDER_RADIUS/2.0f, 5, COLOR_FG);
+        if(ROUNDED_CORNERS)
+            DrawRectangleRoundedRadius(barRec, BORDER_RADIUS/2.0f, 5, COLOR_FG);
+        else
+            DrawRectangleRec(barRec,COLOR_FG);
         DrawTextEx(font, text, textPos, fontSize, 1, COLOR_FG);
     EndDrawing();
 }
@@ -1708,12 +1736,12 @@ std::vector<Componente> parsearArchivo(const std::string& nombreArchivo) {
     std::ifstream archivo(nombreArchivo);
     if (archivo.is_open()) {
         std::string linea;
-        // Saltar las líneas de comentario y encabezado
+        // saltar las líneas de comentario y encabezado
         while (std::getline(archivo, linea)) {
             if (linea.find('#') == 0 || linea.empty()) {
                 continue;
             }
-            // Parsear la línea
+            // parsear la línea
             std::istringstream iss(linea);
             Componente componente;
             iss >> componente.reference >> componente.value >> componente.package
